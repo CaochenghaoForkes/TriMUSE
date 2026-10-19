@@ -23,7 +23,7 @@ class ChiefCard:
 
     @dataclass
     class Output:
-        """算例输出根目录"""
+        """实际输出根目录: 用户指定目录/seed_<随机种子>"""
 
         directory: str
 
@@ -53,7 +53,7 @@ class ChiefCardLoader:
         root = XmlUtils.get_root(chief_path, "trimuse_chief")
         name = XmlUtils.read_attribute(root, "name", required=True)
         random_seed = cls.read_random(XmlUtils.read_child(root, "random"))
-        output = cls.read_output(XmlUtils.read_child(root, "output"), chief_path.parent)
+        output = cls.read_output(XmlUtils.read_child(root, "output"), chief_path.parent, random_seed)
         input_files = cls.read_input_files(XmlUtils.read_child(root, "input_files"), chief_path.parent)
         execution = cls.read_execution(XmlUtils.read_child(root, "execution", required=False))
         chief_card = ChiefCard(
@@ -72,10 +72,10 @@ class ChiefCardLoader:
         return random_seed
 
     @staticmethod
-    def read_output(element: ET.Element, base_directory: Path) -> ChiefCard.Output:
-        """输出根目录按总调度卡所在目录解析"""
+    def read_output(element: ET.Element, base_directory: Path, random_seed: int) -> ChiefCard.Output:
+        """解析用户目录并追加种子子目录, 各模块共用此实际输出根目录"""
         directory = XmlUtils.read_attribute(element, "directory", required=True)
-        directory = str(XmlUtils.resolve_path(directory, base_directory))
+        directory = str(XmlUtils.resolve_path(directory, base_directory) / f"seed_{random_seed}")
         output = ChiefCard.Output(directory=directory)
         return output
 

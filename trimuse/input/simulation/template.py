@@ -38,9 +38,11 @@ class SimulationCardTemplate:
         <step fields="[str]" method="[single][staggered]" max_iterations="[int]" relative_tolerance="[float]"/>
     </coupling>
     <output>
-        <!-- 各阶段每隔多少个基础时间步保存一次; 初始时刻和各阶段终点额外保存 -->
+        <!-- 每个阶段填写一个输出间隔; 初始时刻和各阶段终点额外保存 -->
         <!-- 当前仅保存 thermal/temperature, 时间统一为 s -->
-        <write_interval value="[int] [int]"/>
+        <!-- 正数: 每隔指定模拟时间输出, unit 仅作用于正数; 负整数: 每隔其绝对值个时间步输出 -->
+        <!-- 禁止零; 未落在步末的目标时间在首次达到或超过时输出, 不改变求解步长 -->
+        <write_interval value="[float] [float]" unit="[s]"/>
     </output>
 </simulation>
 '''

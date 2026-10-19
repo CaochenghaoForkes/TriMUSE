@@ -11,6 +11,16 @@ class GmshMesh:
     _ALGORITHMS_3D = {"del3d": 1, "front3d": 4, "mmg3d": 7, "hxt": 10}
     _OPTIMIZERS = {"gmsh": "", "netgen": "Netgen"}
 
+    @staticmethod
+    def read(path: str | Path) -> MeshInfo:
+        """读取已有网格及其物理组名称编号, 不重新生成几何或网格"""
+        path = Path(path).expanduser().resolve()
+        gmsh.open(str(path))
+        dimension = gmsh.model.getDimension()
+        regions = {gmsh.model.getPhysicalName(dim, tag): tag for dim, tag in gmsh.model.getPhysicalGroups(dimension)}
+        boundaries = {gmsh.model.getPhysicalName(dim, tag): tag for dim, tag in gmsh.model.getPhysicalGroups(dimension - 1)}
+        return MeshInfo(path=path, dimension=dimension, region_attributes=regions, boundary_attributes=boundaries)
+
     @classmethod
     def generate(cls, topology: GeometryTopology, config: MeshConfig, output_directory: str | Path) -> MeshInfo:
         """使用已检查的配置生成网格, 写入输出根目录下的 mesh 子目录"""

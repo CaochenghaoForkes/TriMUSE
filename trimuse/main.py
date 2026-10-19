@@ -17,7 +17,7 @@ from trimuse.coupling import CouplingManager
 if __name__ == "__main__":
 
     # 读取输入
-    chief_path = project_directory / "cases/flux/case.xml"
+    chief_path = project_directory / "cases/source/case.xml"
     input_cards = load_input_cards(chief_path)
 
     # 创建随机数生成器

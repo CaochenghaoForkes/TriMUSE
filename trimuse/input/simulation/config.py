@@ -5,6 +5,7 @@ from xml.etree import ElementTree as ET
 import sys
 
 from ..xml_utils import XmlUtils
+from ..units import Units
 from .template import SimulationCardTemplate
 
 @dataclass
@@ -93,9 +94,9 @@ class SimulationCard:
 
     @dataclass
     class Output:
-        """各阶段按基础时间步计数的保存间隔"""
+        """各阶段保存间隔: 正数为秒, 负整数的绝对值为步数"""
 
-        write_interval: list[int]
+        write_interval: list[float]
 
     problem: Problem
     solver: Solver
@@ -135,7 +136,10 @@ class SimulationCardLoader:
     def read_output(element: ET.Element) -> SimulationCard.Output:
         """读取各阶段的结果保存间隔"""
         interval_element = XmlUtils.read_child(element, "write_interval")
-        write_interval = XmlUtils.read_attribute(interval_element, "value", list[int], required=True)
+        write_interval = XmlUtils.read_attribute(interval_element, "value", list[float], required=True)
+        unit = XmlUtils.read_attribute(interval_element, "unit", required=True)
+        time_scale = Units.convert(1.0, unit, Units.SI_UNITS["time"], context="output.write_interval")
+        write_interval = [value * time_scale if value > 0 else value for value in write_interval]
         output = SimulationCard.Output(write_interval=write_interval)
         return output
 

@@ -9,7 +9,7 @@ class ChiefCardTemplate:
 <trimuse_chief name="[str]">
     <!-- 整个算例共用的随机种子 -->
     <random seed="[int]"/>
-    <!-- 输出根目录, 相对路径以本卡所在目录为基准 -->
+    <!-- 相对路径以本卡所在目录为基准, 实际输出到该目录/seed_<随机种子>/ -->
     <output directory="[str]"/>
     <input_files>
         <!-- 子卡相对路径以本卡所在目录为基准, file 留空时生成对应模板并退出 -->

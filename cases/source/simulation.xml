@@ -27,10 +27,10 @@
     </coupling>
 
     <output>
-        <!-- 每个阶段按基础时间步计数; 初始时刻和阶段终点额外保存 -->
+        <!-- 负数的绝对值为步数间隔; 正数为带 unit 的模拟时间间隔; 初始时刻和阶段终点额外保存 -->
         <!-- 当前仅输出 thermal/temperature 的 ParaView 时间序列 -->
         <!-- 对应每 0.0002、0.002、0.02 s 保存, 共 191 帧 -->
-        <write_interval value="1 1 2"/>
+        <write_interval value="0.01 0.01 0.01" unit="[s]"/>
     </output>
 
 </simulation>

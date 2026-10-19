@@ -13,7 +13,9 @@ class SimulationCardExamine:
         for name, values in (("time_span", problem.time_span), ("min_time_step", problem.min_time_step)):
             if not values or len(values) != stage_count or not all(math.isfinite(value) and value > 0 for value in values):
                 raise ValueError(f"{name} 必须包含各阶段的有限正数")
-        cls.check_intervals(card.output.write_interval, stage_count, "output.write_interval")
+        intervals = card.output.write_interval
+        if len(intervals) != stage_count or any(not math.isfinite(value) or value == 0 or value < 0 and value % 1 != 0 for value in intervals):
+            raise ValueError("output.write_interval 必须按阶段填写: 正数为时间间隔, 负整数为步数间隔, 不能为零")
         cls.check_intervals(card.coupling.exchange_interval, stage_count, "exchange_interval")
         field_names = [item.name for item in problem.field]
         solver_names = [item.name for item in card.solver.field]

@@ -1,5 +1,5 @@
 from __future__ import annotations
-from math import ceil
+from math import ceil, floor, isclose
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -36,13 +36,24 @@ class CouplingManager:
         for duration, time_step, write_interval in zip(self.time_span, self.min_time_step, self.write_interval):
             stage_start = self.time
             step_count = ceil(duration / time_step)
+            next_output = 1 
             for step in range(1, step_count + 1):
                 next_time = stage_start + min(step * time_step, duration)
                 self.time_step = next_time - self.time
                 self.time = next_time
                 self.cycle += 1
                 self.update_and_solve()
-                if step % write_interval == 0 or step == step_count:
+                if write_interval < 0:
+                    write_due = step % int(-write_interval) == 0
+                else:
+                    elapsed = min(step * time_step, duration)
+                    output_period = floor(elapsed / write_interval)
+                    if isclose(elapsed, (output_period + 1) * write_interval, rel_tol=1e-12, abs_tol=0.0):
+                        output_period += 1
+                    write_due = output_period >= next_output
+                    if write_due:
+                        next_output = output_period + 1
+                if write_due or step == step_count:
                     self.output_manager.save(self.cycle, self.time, self.time_step)
                 print(f"计算进度: {self.cycle}/{total_steps} ({self.cycle / total_steps:.1%}), 时间: {self.time:.6g} s", flush=True)
 
