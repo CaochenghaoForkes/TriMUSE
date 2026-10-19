@@ -14,6 +14,8 @@ from .thermal.config import ThermalCard, ThermalCardLoader
 from .thermal.examine import ThermalCardExamine
 from .simulation.config import SimulationCard, SimulationCardLoader
 from .simulation.examine import SimulationCardExamine
+from .postprocess.config import PostprocessCard, PostprocessCardLoader
+from .postprocess.examine import PostprocessCardExamine
 from .examine import InputCardsExamine
 
 @dataclass
@@ -26,6 +28,7 @@ class InputCards:
     properties: PropertiesCard
     thermal: ThermalCard
     simulation: SimulationCard
+    postprocess: PostprocessCard
 
 class XmlLoader:
     """统一加载输入卡, 空路径由对应读取器生成模板并退出程序"""
@@ -40,8 +43,9 @@ class XmlLoader:
         properties = cls._load_properties(chief.input_files.properties)
         thermal = cls._load_thermal(chief.input_files.thermal)
         simulation = cls._load_simulation(chief.input_files.simulation)
-        InputCardsExamine.examine(geometry_mesh, material, properties, thermal)
-        input_cards = InputCards(chief=chief, geometry_mesh=geometry_mesh, material=material, properties=properties, thermal=thermal, simulation=simulation)
+        postprocess = cls._load_postprocess(chief.input_files.postprocess)
+        InputCardsExamine.examine(geometry_mesh, material, properties, thermal, postprocess)
+        input_cards = InputCards(chief=chief, geometry_mesh=geometry_mesh, material=material, properties=properties, thermal=thermal, simulation=simulation, postprocess=postprocess)
         return input_cards
 
     @staticmethod
@@ -78,6 +82,13 @@ class XmlLoader:
         simulation = SimulationCardLoader.load(path)
         SimulationCardExamine.examine(simulation)
         return simulation
+
+    @staticmethod
+    def _load_postprocess(path: str | None) -> PostprocessCard:
+        """读取并检查后处理卡, 空路径生成模板并退出"""
+        postprocess = PostprocessCardLoader.load(path)
+        PostprocessCardExamine.examine(postprocess)
+        return postprocess
 
 def load_input_cards(chief_path: str | Path | None = None) -> InputCards:
     """对外的输入加载入口"""

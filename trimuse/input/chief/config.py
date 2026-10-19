@@ -20,6 +20,7 @@ class ChiefCard:
         properties: str | None = None
         thermal: str | None = None
         simulation: str | None = None
+        postprocess: str | None = None
 
     @dataclass
     class Output:
@@ -27,17 +28,10 @@ class ChiefCard:
 
         directory: str
 
-    @dataclass
-    class Execution:
-        """本次运行的目标阶段"""
-
-        target: str = "mesh"  # [mesh,solve,postprocess], 当前实现 mesh
-
     name: str
     random_seed: int
     output: Output
     input_files: InputFiles = field(default_factory=InputFiles)
-    execution: Execution = field(default_factory=Execution)
 
 class ChiefCardLoader:
     """读取总调度配置, 空路径在当前工作目录生成模板并退出"""
@@ -55,13 +49,11 @@ class ChiefCardLoader:
         random_seed = cls.read_random(XmlUtils.read_child(root, "random"))
         output = cls.read_output(XmlUtils.read_child(root, "output"), chief_path.parent, random_seed)
         input_files = cls.read_input_files(XmlUtils.read_child(root, "input_files"), chief_path.parent)
-        execution = cls.read_execution(XmlUtils.read_child(root, "execution", required=False))
         chief_card = ChiefCard(
             name=name,
             random_seed=random_seed,
             output=output,
-            input_files=input_files,
-            execution=execution
+            input_files=input_files
         )
         return chief_card
 
@@ -97,12 +89,8 @@ class ChiefCardLoader:
         simulation = XmlUtils.read_child(element, "simulation", required=False)
         simulation_path = XmlUtils.read_attribute(simulation, "file", default="", allow_empty=True)
         simulation_path = str(XmlUtils.resolve_path(simulation_path, base_directory)) if simulation_path else None
-        input_files = ChiefCard.InputFiles(geometry_mesh=geometry_mesh_path, material=material_path, properties=properties_path, thermal=thermal_path, simulation=simulation_path)
+        postprocess = XmlUtils.read_child(element, "postprocess", required=False)
+        postprocess_path = XmlUtils.read_attribute(postprocess, "file", default="", allow_empty=True)
+        postprocess_path = str(XmlUtils.resolve_path(postprocess_path, base_directory)) if postprocess_path else None
+        input_files = ChiefCard.InputFiles(geometry_mesh=geometry_mesh_path, material=material_path, properties=properties_path, thermal=thermal_path, simulation=simulation_path, postprocess=postprocess_path)
         return input_files
-
-    @staticmethod
-    def read_execution(element: ET.Element | None) -> ChiefCard.Execution:
-        """目标阶段默认 mesh"""
-        target = XmlUtils.read_attribute(element, "target", default="mesh")
-        execution = ChiefCard.Execution(target=target)
-        return execution

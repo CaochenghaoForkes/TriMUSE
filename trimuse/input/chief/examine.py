@@ -5,8 +5,6 @@ class ChiefCardExamine:
 
     @staticmethod
     def examine(card: ChiefCard) -> None:
-        """检查随机种子和执行阶段"""
+        """检查随机种子"""
         if card.random_seed < 0:
             raise ValueError("random seed 必须非负")
-        if card.execution.target not in ("mesh", "solve", "postprocess"):
-            raise ValueError("execution target 必须为 [mesh,solve,postprocess]")

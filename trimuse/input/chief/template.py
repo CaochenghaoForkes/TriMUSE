@@ -18,9 +18,8 @@ class ChiefCardTemplate:
         <properties file="[str]"/>
         <thermal file="[str]"/>
         <simulation file="[str]"/>
+        <postprocess file="[str]"/>
     </input_files>
-    <!-- 当前实现 mesh, solve 和 postprocess 为预留阶段 -->
-    <execution target="[mesh][solve][postprocess]"/>
 </trimuse_chief>
 '''
 

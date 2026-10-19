@@ -2,18 +2,41 @@ from .geometry_mesh.config import GeometryMeshCard
 from .material.config import MaterialCard
 from .properties.config import PropertiesCard
 from .thermal.config import ThermalCard
+from .postprocess.config import PostprocessCard
 
 class InputCardsExamine:
     """只负责卡间一致性, 各卡自身的检查由对应 examine 完成"""
 
     @classmethod
-    def examine(cls, geometry_mesh: GeometryMeshCard, material: MaterialCard, properties: PropertiesCard, thermal: ThermalCard) -> None:
-        """检查材料分配和热卡中的几何名称引用"""
+    def examine(cls, geometry_mesh: GeometryMeshCard, material: MaterialCard, properties: PropertiesCard, thermal: ThermalCard, postprocess: PostprocessCard) -> None:
+        """检查材料与热卡的几何引用, 以及后处理配置与几何维数的一致性"""
         cls.check_material_assignments(geometry_mesh, material)
         cls.check_properties_references(geometry_mesh, properties)
         cls.check_thermal_references(geometry_mesh, thermal)
         cls.check_thermal_boundary_properties(properties, thermal)
         cls.check_thermal_source_dependencies(properties, thermal)
+        cls.check_postprocess_geometry(geometry_mesh, postprocess)
+
+    @staticmethod
+    def check_postprocess_geometry(geometry_mesh: GeometryMeshCard, postprocess: PostprocessCard) -> None:
+        """按几何维数检查采样坐标和方向, 不在输入阶段判断随机域内外"""
+        dimension = geometry_mesh.model.dimension
+        if dimension == 1 and postprocess.sections:
+            raise ValueError("postprocess: 1D 不支持 section")
+        positions = [(point.name, point.center) for point in postprocess.points]
+        if dimension > 1:
+            positions.extend((line.name, line.center) for line in postprocess.lines)
+        if dimension == 3:
+            positions.extend((section.name, section.center) for section in postprocess.sections)
+        for name, center in positions:
+            if center is None or dimension > 1 and center.y is None or dimension == 3 and center.z is None:
+                raise ValueError(f"postprocess.{name}: center 必须提供当前维数所需的坐标")
+        directions = [(line.name, line.direction) for line in postprocess.lines] if dimension > 1 else []
+        if dimension == 3:
+            directions.extend((section.name, section.normal) for section in postprocess.sections)
+        for name, direction in directions:
+            if direction is None or dimension == 3 and direction.phi is None:
+                raise ValueError(f"postprocess.{name}: 必须提供 theta, 3D 还需要 phi")
 
     @staticmethod
     def outer_boundary_names(geometry_mesh: GeometryMeshCard) -> set[str]:

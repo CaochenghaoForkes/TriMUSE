@@ -12,9 +12,7 @@
         <properties file="./properties.xml"/>
         <thermal file="./thermal.xml"/>
         <simulation file="./simulation.xml"/>
+        <postprocess file="./postprocess.xml"/>
     </input_files>
-
-    <!-- 3. 本次运行的目标阶段 -->
-    <execution target="solve"/>
 
 </trimuse_chief>
