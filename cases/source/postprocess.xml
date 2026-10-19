@@ -18,11 +18,6 @@
 
     <lines>
         <line name="hline" sample_count="50">
-            <center>
-                <x value="0.0" unit="[um]"/>
-                <y value="0.0" unit="[um]"/>
-                <z value="0.0" unit="[um]"/>
-            </center>
             <direction>
                 <theta value="45.0" unit="[degree]"/>
             </direction>

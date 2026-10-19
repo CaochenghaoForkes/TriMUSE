@@ -26,8 +26,6 @@ class InputCardsExamine:
         if dimension == 1 and postprocess.sections:
             raise ValueError("postprocess: 1D 不支持 section")
         positions = [(point.name, point.center) for point in postprocess.points]
-        if dimension > 1:
-            positions.extend((line.name, line.center) for line in postprocess.lines)
         if dimension == 3:
             positions.extend((section.name, section.center) for section in postprocess.sections)
         for name, center in positions:

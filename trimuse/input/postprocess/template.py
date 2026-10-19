@@ -6,7 +6,7 @@ class PostprocessCardTemplate:
     CONTENT = '''<?xml version="1.0" encoding="UTF-8"?>
 <!-- 默认处理全部已保存时刻; 坐标为实际笛卡尔坐标, 名称仅为采样位置标签 -->
 <postprocess>
-    <!-- points、lines、sections 可分别省略; 至少配置一项, 各项可重复 -->
+    <!-- 1D 默认输出 100 点径向线; 2D 默认输出全截面; 3D 至少指定一项 -->
     <points>
         <point name="[str]">
             <center>
@@ -18,14 +18,9 @@ class PostprocessCardTemplate:
         </point>
     </points>
     <lines>
-        <!-- sample_count 至少 2, 默认 100; 取双向割线与计算域相交的部分 -->
-        <!-- 1D 为整个径向范围, 可省略 center、direction -->
+        <!-- sample_count 至少 2, 默认 100; 起点固定为颗粒中心, 沿方向到外表面 -->
+        <!-- 1D 为整个径向范围, 可省略 direction -->
         <line name="[str]" sample_count="[int]">
-            <center>
-                <x value="[float]" unit="[um]"/>
-                <y value="[float]" unit="[um]"/>
-                <z value="[float]" unit="[um]"/>
-            </center>
             <!-- 2D theta 从 +y 起算; 3D theta 从 +z 起算, phi 绕 z 轴 -->
             <!-- theta 在 [0,180] 度, phi 在 [0,360) 度; 2D 不需要 phi -->
             <direction>

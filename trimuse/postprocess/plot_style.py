@@ -1,4 +1,7 @@
 from functools import wraps
+from math import degrees
+
+BOUNDARY_COLORS = ["#E64B35", "#00A087", "#3C5488", "#F39B7F", "#DC00FF", "#333333", "#7E6148", "#4DBBD5"]
 
 
 def plot_style(method):
@@ -12,6 +15,9 @@ def plot_style(method):
             "font.serif": ["Times New Roman", "DejaVu Serif"],
             "font.size": 16,
             "axes.labelsize": 16,
+            "axes.labelweight": "normal",
+            "axes.grid": False,
+            "legend.frameon": False,
             "axes.linewidth": 1.0,
             "xtick.labelsize": 14,
             "ytick.labelsize": 14,
@@ -30,7 +36,28 @@ def plot_style(method):
     return wrapped
 
 
-def annotate_time(axes, time: float) -> None:
-    """时间放在坐标轴内部右上偏中位置, 不使用标题"""
-    axes.text(0.97, 0.90, f"t = {time:.8g} s", transform=axes.transAxes,
-              ha="right", va="center", bbox={"facecolor": "white", "edgecolor": "none", "alpha": 0.8})
+def annotate_details(axes, lines: list[str], position: tuple[float, float] = (0.97, 0.94), align: str = "right") -> None:
+    """逐行注释统一使用 12 pt 斜体, 在框内顶对齐"""
+    axes.text(*position, "\n".join(lines), transform=axes.transAxes, ha=align, va="top",
+              fontsize=12, fontstyle="italic", linespacing=1.25,
+              bbox={"facecolor": "white", "edgecolor": "none", "alpha": 0.8})
+
+
+def annotate_time(axes, time: float, position: tuple[float, float] = (0.97, 0.94), details: list[str] | None = None) -> None:
+    annotate_details(axes, [f"t = {time:.8g} s", *(details or [])], position)
+
+
+def coordinate_labels(point: tuple[float, float, float]) -> list[str]:
+    return [f"{axis} = {value:.4g} m" for axis, value in zip("xyz", point)]
+
+
+def direction_labels(theta: float, phi: float | None = None) -> list[str]:
+    labels = [f"θ = {degrees(theta):.4g}°"]
+    if phi is not None:
+        labels.append(f"φ = {degrees(phi):.4g}°")
+    return labels
+
+
+def property_label(name: str, metadata: dict[str, dict[str, str]]) -> str:
+    unit = metadata.get(name, {}).get("unit")
+    return f"{name} ({unit})" if unit else name

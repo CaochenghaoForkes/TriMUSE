@@ -263,7 +263,11 @@ class OutputManager:
             node = cls._node(root, group)
             for item in getattr(card, group):
                 element = cls._node(node, tag, name=item.name)
-                cls._center(element, item.center)
+                if group != "lines":
+                    cls._center(element, item.center)
+                else:
+                    for center in element.findall("center"):
+                        element.remove(center)
                 if group == "lines":
                     element.set("sample_count", str(item.sample_count))
                     cls._direction(element, "direction", item.direction)

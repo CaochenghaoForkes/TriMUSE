@@ -14,7 +14,7 @@ class PostprocessCardExamine:
             if len(names) != len(set(names)):
                 raise ValueError(f"postprocess.{group}: 名称不能重复")
             for item in items:
-                if item.center is not None:
+                if group != "lines" and item.center is not None:
                     if any(value is not None and not math.isfinite(value) for value in (item.center.x, item.center.y, item.center.z)):
                         raise ValueError(f"postprocess.{group}.{item.name}: 坐标必须有限")
         for line in card.lines:

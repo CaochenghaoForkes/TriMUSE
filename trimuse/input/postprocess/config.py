@@ -31,11 +31,10 @@ class PostprocessCard:
 
     @dataclass
     class Line:
-        """经过 center 的双向割线, 截取与计算域相交的部分; 1D 为整个径向范围"""
+        """从颗粒中心沿指定方向到外表面的射线; 1D 为整个径向范围"""
 
         name: str
         sample_count: int = 100
-        center: PostprocessCard.Center | None = None
         direction: PostprocessCard.Direction | None = None
 
     @dataclass
@@ -102,9 +101,8 @@ class PostprocessCardLoader:
     def read_line(cls, element: ET.Element) -> PostprocessCard.Line:
         name = XmlUtils.read_attribute(element, "name", required=True)
         sample_count = XmlUtils.read_attribute(element, "sample_count", int, default=100)
-        center = cls.read_center(XmlUtils.read_child(element, "center", required=False))
         direction = cls.read_direction(XmlUtils.read_child(element, "direction", required=False))
-        line = PostprocessCard.Line(name=name, sample_count=sample_count, center=center, direction=direction)
+        line = PostprocessCard.Line(name=name, sample_count=sample_count, direction=direction)
         return line
 
     @classmethod
