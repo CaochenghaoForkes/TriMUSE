@@ -10,6 +10,7 @@ from .output_reader import OutputReader
 from .point_plotter import PointPlotter
 from .line_plotter import LinePlotter
 from .section_plotter import SectionPlotter
+from .material_regions import MaterialRegions
 
 
 class PostprocessManager:
@@ -28,6 +29,11 @@ class PostprocessManager:
         self.point_plotter = PointPlotter(self.output_directory, self.postprocess_directory, self.reader, self.center)
         self.line_plotter = LinePlotter(self.output_directory, self.postprocess_directory, self.reader, self.center)
         self.section_plotter = SectionPlotter(self.output_directory, self.postprocess_directory, self.reader, self.center)
+        self.material_regions = None
+        if self.dimension > 1:
+            mesh_path = self.output_directory / "mesh" / f"{geometry.source}.vtk"
+            materials = {region.name: region.mat for region in input_cards.material.assign.region}
+            self.material_regions = MaterialRegions(mesh_path, self.dimension, materials)
         self.lines = list(self.config.lines)
         self.sections = list(self.config.sections)
         if self.dimension == 1 and not self.lines:
@@ -79,9 +85,10 @@ class PostprocessManager:
         for section in self.sections:
             center = self.coordinates(section.center) if section.center is not None else self.center
             normal = (0.0, 0.0, 1.0) if self.dimension == 2 else self.direction(section.normal)
+            regions = self.material_regions.section(center, normal)
             for frame_directory, time, data in self.section_plotter.extract(center, normal, property_name):
                 self.section_plotter.save(data, property_name, section.name, frame_directory)
-                self.section_plotter.plot(data, property_name, section.name, frame_directory, time, normal)
+                self.section_plotter.plot(data, property_name, section.name, frame_directory, time, normal, regions)
 
     def run(self) -> None:
         """按属性依次完成点、线和截面后处理"""

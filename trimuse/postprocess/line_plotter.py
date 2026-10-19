@@ -8,6 +8,7 @@ from vtkmodules.vtkCommonDataModel import vtkGenericCell
 
 from .output_reader import OutputReader
 from .point_plotter import PointPlotter
+from .plot_style import plot_style, annotate_time
 
 if TYPE_CHECKING:
     from vtkmodules.vtkCommonDataModel import vtkStaticCellLocator, vtkUnstructuredGrid
@@ -35,12 +36,18 @@ class LinePlotter:
         # 两端均延伸到包围盒外, 从相反方向分别寻找第一次进入计算域的位置。
         reach = np.linalg.norm(center - bounds.mean(axis=1)) + mesh.GetLength()
         start, end = center - reach * direction, center + reach * direction
+        tolerance = 1e-9 * mesh.GetLength()
         endpoints = []
         for first, last in ((start, end), (end, start)):
             position = [0.0, 0.0, 0.0]
-            hit = locator.IntersectWithLine(first, last, 1e-9 * mesh.GetLength(), reference(0.0), position, [0.0, 0.0, 0.0], reference(0), reference(0), vtkGenericCell())
+            hit = locator.IntersectWithLine(first, last, tolerance, reference(0.0), position, [0.0, 0.0, 0.0], reference(0), reference(0), vtkGenericCell())
             if not hit:
                 raise ValueError("指定直线未与计算域相交")
+            # 曲边求交点可能因舍入误差略在域外, 仅对此端点沿入域方向微移。
+            cell_id = locator.FindCell(position, tolerance ** 2, vtkGenericCell(), reference(0),
+                                       [0.0, 0.0, 0.0], [0.0] * mesh.GetMaxCellSize())
+            if cell_id < 0:
+                position = np.asarray(position) + tolerance * (last - first) / np.linalg.norm(last - first)
             endpoints.append(tuple(position))
         return endpoints[0], endpoints[1]
 
@@ -72,22 +79,23 @@ class LinePlotter:
         np.savetxt(path, data, delimiter=",", fmt=["%d", "%.18e", "%.18e", "%.18e", "%.18e", "%.18e"], header=f"index,x_m,y_m,z_m,r_m,{property_name}", comments="")
         return path
 
+    @plot_style
     def plot(self, data: np.ndarray, property_name: str, line_name: str, frame_directory: str, time: float) -> Path:
-        """以采样点编号为横轴, 在标题标注当前模拟时间, 不重新读取或采样"""
+        """以采样点编号为横轴, 图内标注模拟时间, 不重新读取或采样"""
         from matplotlib.figure import Figure
         from matplotlib.backends.backend_agg import FigureCanvasAgg
 
-        figure = Figure(figsize=(6.4, 4.2))
+        figure = Figure()
         FigureCanvasAgg(figure)
         axis = figure.subplots()
         axis.plot(data[:, 0], data[:, 5])
         axis.set_xlabel("Point index")
         axis.set_ylabel(property_name)
-        axis.set_title(f"{line_name}, t = {time:.8g} s")
+        annotate_time(axis, time)
         axis.grid(True, alpha=0.3)
         figure.tight_layout()
         directory = self.postprocess_directory / frame_directory / "lines" / line_name
         directory.mkdir(parents=True, exist_ok=True)
         path = directory / f"{property_name}.png"
-        figure.savefig(path, dpi=200)
+        figure.savefig(path)
         return path

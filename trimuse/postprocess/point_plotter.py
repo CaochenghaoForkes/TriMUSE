@@ -7,6 +7,7 @@ from vtkmodules.vtkCommonCore import reference
 from vtkmodules.vtkCommonDataModel import vtkGenericCell, vtkStaticCellLocator
 
 from .output_reader import OutputReader
+from .plot_style import plot_style
 
 if TYPE_CHECKING:
     from vtkmodules.vtkCommonDataModel import vtkUnstructuredGrid
@@ -62,22 +63,22 @@ class PointPlotter:
         np.savetxt(directory / f"{property_name}.csv", data, delimiter=",", header=f"time_s,{property_name}", comments="")
         return data
 
+    @plot_style
     def plot(self, data: np.ndarray, property_name: str, point_name: str) -> Path:
         """只绘制传入数据, 不读取场或执行插值"""
         from matplotlib.figure import Figure
         from matplotlib.backends.backend_agg import FigureCanvasAgg
 
-        figure = Figure(figsize=(6.4, 4.2))
+        figure = Figure()
         FigureCanvasAgg(figure)
         axis = figure.subplots()
         axis.plot(data[:, 0], data[:, 1])
         axis.set_xlabel("Time (s)")
         axis.set_ylabel(property_name)
-        axis.set_title(point_name)
         axis.grid(True, alpha=0.3)
         figure.tight_layout()
         directory = self.postprocess_directory / "points" / point_name
         directory.mkdir(parents=True, exist_ok=True)
         path = directory / f"{property_name}.png"
-        figure.savefig(path, dpi=200)
+        figure.savefig(path)
         return path

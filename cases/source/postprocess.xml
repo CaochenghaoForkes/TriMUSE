@@ -24,7 +24,7 @@
                 <z value="0.0" unit="[um]"/>
             </center>
             <direction>
-                <theta value="0.0" unit="[degree]"/>
+                <theta value="45.0" unit="[degree]"/>
             </direction>
         </line>
     </lines>
