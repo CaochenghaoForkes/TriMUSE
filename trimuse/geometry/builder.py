@@ -13,7 +13,7 @@ class GeometryMeshBuilder:
     @classmethod
     def build(cls, config: GeometryMeshCard, output_directory: str | Path, rng: np.random.Generator) -> MeshInfo:
         """目标 MSH 已存在则读取复用, 否则构建并写出网格"""
-        mesh_path = Path(output_directory).expanduser().resolve() / "mesh" / config.mesh.output.file
+        mesh_path = Path(output_directory).expanduser().resolve() / "mesh" / f"{config.geometry.source}.msh"
         gmsh.initialize()
         try:
             if mesh_path.is_file():
@@ -22,7 +22,7 @@ class GeometryMeshBuilder:
                 return mesh_info
             gmsh.model.add("trimuse_geometry")
             topology = cls._build_geometry(config, rng)
-            mesh_info = GmshMesh.generate(topology, config.mesh, output_directory)
+            mesh_info = GmshMesh.generate(topology, config.mesh, mesh_path)
             return mesh_info
         finally:
             gmsh.finalize()

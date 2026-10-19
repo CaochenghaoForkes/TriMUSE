@@ -3,7 +3,7 @@ from math import ceil, floor, isclose
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from _core import OutputManager
+    from .output import OutputManager
     from .input.simulation.config import SimulationCard
     from .problem import Thermal
     from .properties import PropertiesManager

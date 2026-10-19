@@ -16,13 +16,15 @@ class GmshMesh:
         """读取已有网格及其物理组名称编号, 不重新生成几何或网格"""
         path = Path(path).expanduser().resolve()
         gmsh.open(str(path))
+        if not path.with_suffix(".vtk").is_file():
+            gmsh.write(str(path.with_suffix(".vtk")))
         dimension = gmsh.model.getDimension()
         regions = {gmsh.model.getPhysicalName(dim, tag): tag for dim, tag in gmsh.model.getPhysicalGroups(dimension)}
         boundaries = {gmsh.model.getPhysicalName(dim, tag): tag for dim, tag in gmsh.model.getPhysicalGroups(dimension - 1)}
         return MeshInfo(path=path, dimension=dimension, region_attributes=regions, boundary_attributes=boundaries)
 
     @classmethod
-    def generate(cls, topology: GeometryTopology, config: MeshConfig, output_directory: str | Path) -> MeshInfo:
+    def generate(cls, topology: GeometryTopology, config: MeshConfig, mesh_path: str | Path) -> MeshInfo:
         """使用已检查的配置生成网格, 写入输出根目录下的 mesh 子目录"""
         region_attributes, boundary_attributes = cls._add_physical_groups(topology)
         cls._set_mesh_sizes(topology, config.sizing)
@@ -31,7 +33,7 @@ class GmshMesh:
         cls._optimize(topology.dimension, config.gmsh.optimizer)
         cls._set_order(config.element.geometry_order, config.gmsh.optimizer)
         cls._check_mesh(topology)
-        path = cls._write(output_directory, config.output)
+        path = cls._write(mesh_path)
         mesh_info = MeshInfo(
             path=path,
             dimension=topology.dimension,
@@ -116,13 +118,12 @@ class GmshMesh:
                 raise RuntimeError(f"材料区域 {name!r} 未生成 {topology.dimension}D 单元")
 
     @staticmethod
-    def _write(output_directory: str | Path, output: MeshConfig.Output) -> Path:
-        """固定输出 MSH 2.2 ASCII, 可选写出同名 VTK"""
-        path = Path(output_directory).expanduser().resolve() / "mesh" / output.file
+    def _write(mesh_path: str | Path) -> Path:
+        """固定输出 MSH 2.2 ASCII 和同名 VTK"""
+        path = Path(mesh_path).expanduser().resolve()
         path.parent.mkdir(parents=True, exist_ok=True)
         gmsh.option.setNumber("Mesh.MshFileVersion", 2.2)
         gmsh.option.setNumber("Mesh.Binary", 0)
         gmsh.write(str(path))
-        if output.write_vtk:
-            gmsh.write(str(path.with_suffix(".vtk")))
+        gmsh.write(str(path.with_suffix(".vtk")))
         return path

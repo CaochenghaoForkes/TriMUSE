@@ -1,5 +1,4 @@
 import math
-from pathlib import Path
 
 from .config import GeometryMeshCard
 
@@ -139,7 +138,7 @@ class GeometryMeshCardExamine:
 
     @classmethod
     def check_mesh(cls, mesh: GeometryMeshCard.Mesh, dimension: int, region_names: set[str]) -> None:
-        """检查网格尺寸, 区域引用, 算法及输出文件名"""
+        """检查网格尺寸, 区域引用和算法"""
         if mesh.element.geometry_order not in (1, 2):
             raise ValueError("geometry_order 必须为 [1,2]")
         sampler = mesh.space_sampler
@@ -167,6 +166,3 @@ class GeometryMeshCardExamine:
             raise ValueError("algorithm_3d 必须为 [hxt,mmg3d,del3d,front3d]")
         if mesh.gmsh.optimizer not in ("gmsh", "netgen", "none"):
             raise ValueError("optimizer 必须为 [gmsh,netgen,none]")
-        filename = mesh.output.file
-        if "/" in filename or "\\" in filename or Path(filename).suffix.lower() != ".msh":
-            raise ValueError("output file 必须为不含目录的 .msh 文件名")

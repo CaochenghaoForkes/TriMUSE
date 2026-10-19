@@ -161,13 +161,6 @@ class GeometryMeshCard:
             region: list[Region] = field(default_factory=list)
 
         @dataclass
-        class Output:
-            """仅保存输出文件名, 写入总调度输出根目录下的 mesh 子目录"""
-
-            file: str = "mesh.msh"
-            write_vtk: bool = False
-
-        @dataclass
         class Gmsh:
             """算法与优化选项, 输出格式固定为 MSH 2.2 ASCII"""
 
@@ -176,7 +169,6 @@ class GeometryMeshCard:
 
         element: Element = field(default_factory=Element)
         sizing: Sizing = field(default_factory=Sizing)
-        output: Output = field(default_factory=Output)
         gmsh: Gmsh = field(default_factory=Gmsh)
         space_sampler: SpaceSampler = field(default_factory=SpaceSampler)
 
@@ -370,7 +362,7 @@ class GeometryMeshCardLoader:
         """读取公共网格选项, 未提供的部分使用配置类默认值"""
         defaults = GeometryMeshCard.Mesh()
         space_sampler = defaults.space_sampler
-        mesh_element, sizing, output, gmsh = defaults.element, defaults.sizing, defaults.output, defaults.gmsh
+        mesh_element, sizing, gmsh = defaults.element, defaults.sizing, defaults.gmsh
         if element is not None:
             child = XmlUtils.read_child(element, "space_sampler", required=False)
             space_sampler = GeometryMeshCard.Mesh.SpaceSampler(
@@ -384,9 +376,6 @@ class GeometryMeshCardLoader:
             child = XmlUtils.read_child(element, "sizing", required=False)
             if child is not None:
                 sizing = cls.read_sizing(child)
-            child = XmlUtils.read_child(element, "output", required=False)
-            if child is not None:
-                output = cls.read_mesh_output(child)
             child = XmlUtils.read_child(element, "gmsh", required=False)
             if child is not None:
                 gmsh = cls.read_gmsh(child)
@@ -394,7 +383,6 @@ class GeometryMeshCardLoader:
             space_sampler=space_sampler,
             element=mesh_element,
             sizing=sizing,
-            output=output,
             gmsh=gmsh
         )
         return mesh
@@ -422,14 +410,6 @@ class GeometryMeshCardLoader:
             regions.append(region)
         sizing = GeometryMeshCard.Mesh.Sizing(global_=global_sizing, region=regions)
         return sizing
-
-    @staticmethod
-    def read_mesh_output(element: ET.Element) -> GeometryMeshCard.Mesh.Output:
-        """读取输出文件名, 不在几何卡中拼接路径"""
-        file = XmlUtils.read_attribute(element, "file", default="mesh.msh")
-        write_vtk = XmlUtils.read_attribute(element, "write_vtk", bool, default=False)
-        output = GeometryMeshCard.Mesh.Output(file=file, write_vtk=write_vtk)
-        return output
 
     @staticmethod
     def read_gmsh(element: ET.Element) -> GeometryMeshCard.Mesh.Gmsh:

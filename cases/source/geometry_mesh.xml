@@ -73,7 +73,6 @@
             <region name="sic"><target_edge_length value="8.0" unit="[um]"/></region>
             <region name="opyc"><target_edge_length value="10.0" unit="[um]"/></region>
         </sizing>
-        <output file="stochastic_particle_2d_order2.msh" write_vtk="true"/>
         <gmsh algorithm_3d="hxt" optimizer="gmsh"/>
     </mesh>
 </geometry_mesh>

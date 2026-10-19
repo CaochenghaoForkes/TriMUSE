@@ -106,9 +106,7 @@ class GeometryMeshCardTemplate:
                 <target_edge_length value="[float]" unit="[str]"/>
             </region>
         </sizing>
-        <!-- file 只填文件名, 默认 mesh.msh, 输出到总调度输出根目录/mesh/文件名 -->
-        <!-- write_vtk 默认 false, VTK 与 MSH 同目录同名 -->
-        <output file="[str]" write_vtk="[true][false]"/>
+        <!-- 固定输出到输出根目录/mesh/<geometry source>.msh 和同名 .vtk -->
         <!-- algorithm_3d 仅 3D 使用, 默认 hxt, optimizer 默认 gmsh -->
         <!-- 输出格式内部固定为 MSH 2.2 ASCII -->
         <gmsh algorithm_3d="[hxt][mmg3d][del3d][front3d]" optimizer="[gmsh][netgen][none]"/>
