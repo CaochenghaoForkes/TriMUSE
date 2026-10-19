@@ -1,23 +1,20 @@
-"""XML 通用读取工具；具体输入卡规则由各自的 Examine 类检查
-
-属性读取默认允许缺省并返回默认值，标记为必填时缺失或空值报错
-context 可传入文件名和节点路径，使错误信息能够定位到输入卡
-物理量只提取 value、unit 单位解释与换算由单位模块完成
-"""
-
 from __future__ import annotations
-import math
 import re
 from pathlib import Path
-from typing import Iterable
+from types import GenericAlias
+from typing import Iterable, get_args, get_origin
 from xml.etree import ElementTree as ET
+
+from .units import Units
 
 class XmlUtils:
     """无实例状态的 XML 工具集合，直接通过类名调用"""
 
     @staticmethod
-    def _location(element: ET.Element, context: str | None = None) -> str:
+    def _location(element: ET.Element | None, context: str | None = None) -> str:
         """统一构造错误位置"""
+        if element is None:
+            return context or "XML"
         return f"{context}: <{element.tag}>" if context else f"<{element.tag}>"
 
     @staticmethod
@@ -31,7 +28,7 @@ class XmlUtils:
         return output_path
 
     @staticmethod
-    def read_xml(path: str | Path, root_tag: str | None = None) -> ET.Element:
+    def get_root(path: str | Path, root_tag: str | None = None) -> ET.Element:
         """读取 XML 并可选核对根标签；不创建目录或修改文件"""
         card_path = Path(path).expanduser().resolve()
         if not card_path.is_file():
@@ -45,16 +42,18 @@ class XmlUtils:
         return root
 
     @staticmethod
-    def read_string(
-        element: ET.Element,
+    def read_attribute(
+        element: ET.Element | None,
         name: str,
+        value_type: type | GenericAlias = str,
         *,
         required: bool = False,
-        default: str | None = None,
+        default: str | int | float | bool | list | None = None,
+        allow_empty: bool = False,
+        quantity: str | None = None,
         context: str | None = None,
-    ) -> str | None:
-        """读取属性并去除首尾空白；显式空值报错，不用默认值掩盖"""
-        value = element.get(name)
+    ) -> str | int | float | bool | list | None:
+        value = element.get(name) if element is not None else None
         location = XmlUtils._location(element, context)
         if value is None:
             if required:
@@ -62,92 +61,43 @@ class XmlUtils:
             return default
         value = value.strip()
         if not value:
+            if allow_empty:
+                return default
             raise ValueError(f"{location}: 属性 '{name}' 不能为空")
+        is_array = get_origin(value_type) is list
+        item_type = get_args(value_type)[0] if is_array else value_type
+        items = value.split() if is_array else [value]
+        result = []
+        for item in items:
+            if item_type is bool:
+                result.append({"true": True, "false": False}[item.lower()])
+            elif item_type is int:
+                result.append(int(item))
+            else:
+                result.append(item_type(item))
+        value = result if is_array else result[0]
+        if quantity is not None:
+            unit = XmlUtils.read_attribute(element, "unit", str, required=True, context=context)
+            value = Units.convert(value, unit, Units.SI_UNITS[quantity], context=context)
         return value
 
     @staticmethod
-    def read_int(
-        element: ET.Element,
-        name: str,
-        *,
-        required: bool = False,
-        default: int | None = None,
-        context: str | None = None,
-    ) -> int | None:
-        """读取十进制整数；不接受小数、科学计数法或布尔字符串"""
-        value = XmlUtils.read_string(element, name, required=required, context=context)
-        if value is None:
-            return default
-        if re.fullmatch(r"[+-]?[0-9]+", value) is None:
-            raise ValueError(
-                f"{XmlUtils._location(element, context)}: "
-                f"属性 '{name}' 必须为整数，实际为 {value!r}"
-            )
-        return int(value)
-
-    @staticmethod
-    def read_float(
-        element: ET.Element,
-        name: str,
-        *,
-        required: bool = False,
-        default: float | None = None,
-        context: str | None = None,
-    ) -> float | None:
-        """读取有限浮点数，支持科学计数法，拒绝 NaN 和无穷大"""
-        value = XmlUtils.read_string(element, name, required=required, context=context)
-        if value is None:
-            return default
-        pattern = r"[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?"
+    def read_model(element: ET.Element, *, context: str | None = None) -> dict[str, str | dict[str, float | list[float]]]:
+        """读取模型参数并换算单位, 单个数值存为标量, 空白分隔的多个数值存为列表"""
+        model = XmlUtils.read_attribute(element, "model", required=True, context=context)
         location = XmlUtils._location(element, context)
-        if re.fullmatch(pattern, value) is None:
-            raise ValueError(f"{location}: 属性 '{name}' 必须为有限数值，实际为 {value!r}")
-        number = float(value)
-        if not math.isfinite(number):
-            raise ValueError(f"{location}: 属性 '{name}' 超出有限数值范围: {value!r}")
-        return number
-
-    @staticmethod
-    def read_bool(
-        element: ET.Element,
-        name: str,
-        *,
-        required: bool = False,
-        default: bool | None = None,
-        context: str | None = None,
-    ) -> bool | None:
-        """接受 true、false (忽略大小写) 以及 1、0"""
-        value = XmlUtils.read_string(element, name, required=required, context=context)
-        if value is None:
-            return default
-        normalized = value.lower()
-        if normalized in ("true", "1"):
-            return True
-        if normalized in ("false", "0"):
-            return False
-        raise ValueError(
-            f"{XmlUtils._location(element, context)}: "
-            f"属性 '{name}' 必须为 true、false、1 或 0, 实际为 {value!r}"
-        )
-
-    @staticmethod
-    def read_text(
-        element: ET.Element,
-        *,
-        required: bool = False,
-        default: str | None = None,
-        context: str | None = None,
-    ) -> str | None:
-        """读取纯文本元素正文；拒绝嵌套元素，避免漏读正文"""
-        location = XmlUtils._location(element, context)
-        if any(isinstance(child.tag, str) for child in element):
-            raise ValueError(f"{location}: 纯文本节点不能包含子元素")
-        value = (element.text or "").strip()
-        if not value:
-            if required:
-                raise ValueError(f"{location}: 正文不能为空")
-            return default
-        return value
+        parameters = {}
+        for parameter_element in XmlUtils.read_children(element, "parameter"):
+            name = XmlUtils.read_attribute(parameter_element, "name", required=True, context=context)
+            values = XmlUtils.read_attribute(parameter_element, "value", list[float], required=True, context=context)
+            value = values[0] if len(values) == 1 else values
+            unit = XmlUtils.read_attribute(parameter_element, "unit", required=True, context=context)
+            si_unit = XmlUtils.read_attribute(parameter_element, "si_unit", required=True, context=context)
+            if name in parameters:
+                raise ValueError(f"{location}: 参数名重复: {name}")
+            parameters[name] = Units.convert(value, unit, si_unit, context=context)
+        model_config = {"model": model, "parameters": parameters}
+        return model_config
 
     @staticmethod
     def read_child(
@@ -186,24 +136,6 @@ class XmlUtils:
         return children
 
     @staticmethod
-    def read_quantity(
-        element: ET.Element, *, context: str | None = None
-    ) -> tuple[float, str]:
-        """读取物理量的 value 和 unit 属性，不解释单位表达式"""
-        XmlUtils.check_attributes(element, ("value", "unit"), context=context)
-        XmlUtils.check_children(element, (), context=context)
-        if (element.text or "").strip():
-            raise ValueError(
-                f"{XmlUtils._location(element, context)}: "
-                "物理量应使用 value、unit 属性，不能包含正文"
-            )
-        value = XmlUtils.read_float(element, "value", required=True, context=context)
-        unit = XmlUtils.read_string(element, "unit", required=True, context=context)
-        # 必填检查已保证两者存在；断言同时帮助静态类型检查
-        assert value is not None and unit is not None
-        return value, unit
-
-    @staticmethod
     def check_attributes(
         element: ET.Element,
         allowed: Iterable[str],
@@ -239,10 +171,7 @@ class XmlUtils:
 
     @staticmethod
     def resolve_path(path: str | Path, base_directory: str | Path) -> Path:
-        """以声明路径的 XML 所在目录为基准，返回绝对路径
-
-        不要求目标已存在，因为输出文件路径也使用此方法
-        """
+        """以声明路径的 XML 所在目录为基准，返回绝对路径不要求目标已存在，因为输出文件路径也使用此方法"""
         if isinstance(path, str) and not path.strip():
             raise ValueError("文件路径不能为空")
         resolved = Path(path).expanduser()

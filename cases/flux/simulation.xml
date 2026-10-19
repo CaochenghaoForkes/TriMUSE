@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<simulation>
+
+    <problem>
+        <!-- 三段持续时间, 累计终点为 0.01、0.10、4.00 s -->
+        <time_span value="0.01 0.09 2.50" unit="[s]"/>
+        <!-- 三维首次功能试算: 保留 4 s 总时长, 使用较粗时间步, 共 116 步; 后续需验证时间收敛 -->
+        <min_time_step value="0.0005 0.002 0.01" unit="[s]"/>
+        <!-- 初始热边界突变, 使用后向欧拉减少时间离散振荡 -->
+        <field name="thermal" model="transient" theta="1.0"/>
+    </problem>
+
+    <solver>
+        <!-- 三维一阶四面体采用二阶求积, 作为首次功能测试 -->
+        <quadrature domain_order="2" boundary_order="2"/>
+        <field name="thermal"> 
+            <fem_space family="H1" order="1"/>
+            <linear_solver method="cg" preconditioner="none" relative_tolerance="1e-8" max_iterations="5000"/>
+            <nonlinear_solver method="picard" relative_tolerance="1e-5" max_iterations="50">
+                <absolute_tolerance value="1e-3" unit="[K]"/>
+            </nonlinear_solver>
+        </field>
+    </solver>
+
+    <coupling exchange_interval="1 1 1">
+        <step fields="thermal" method="single"/>
+    </coupling>
+
+    <output>
+        <!-- 每个阶段按基础时间步计数; 初始时刻和阶段终点额外保存 -->
+        <!-- 当前仅输出 thermal/temperature 的 ParaView 时间序列 -->
+        <!-- 对应每 0.0005、0.005、0.05 s 保存, 共 117 帧 -->
+        <write_interval value="1 1 1"/>
+    </output>
+
+</simulation>

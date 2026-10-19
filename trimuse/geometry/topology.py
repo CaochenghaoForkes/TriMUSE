@@ -1,5 +1,4 @@
-"""不同几何构造器共用的几何拓扑数据"""
-
+from pathlib import Path
 from dataclasses import dataclass, field
 
 @dataclass
@@ -9,3 +8,12 @@ class GeometryTopology:
     dimension: int
     regions: dict[str, list[int]] = field(default_factory=dict)
     boundaries: dict[str, list[int]] = field(default_factory=dict)
+
+@dataclass
+class MeshInfo:
+    """保存生成后的网格文件及物理属性映射"""
+
+    path: Path
+    dimension: int
+    region_attributes: dict[str, int]
+    boundary_attributes: dict[str, int]

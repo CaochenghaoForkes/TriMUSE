@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<thermal>
+
+    <!-- 各层初温均为环境温度 293.15 K, 从初始时刻起由核心内热源加热 -->
+    <initial>
+        <temperature region="kernel" model="uniform">
+            <parameter name="uniform_value" value="293.15" unit="[K]" si_unit="[K]"/>
+        </temperature>
+        <temperature region="buffer" model="uniform">
+            <parameter name="uniform_value" value="293.15" unit="[K]" si_unit="[K]"/>
+        </temperature>
+        <temperature region="ipyc" model="uniform">
+            <parameter name="uniform_value" value="293.15" unit="[K]" si_unit="[K]"/>
+        </temperature>
+        <temperature region="sic" model="uniform">
+            <parameter name="uniform_value" value="293.15" unit="[K]" si_unit="[K]"/>
+        </temperature>
+        <temperature region="opyc" model="uniform">
+            <parameter name="uniform_value" value="293.15" unit="[K]" si_unit="[K]"/>
+        </temperature>
+    </initial>
+
+    <boundaries>
+        <boundary name="environment_zone" model="robin"/>
+    </boundaries>
+
+    <interfaces>
+        <interface name="kernel_buffer" model="perfect_contact"/>
+        <interface name="buffer_ipyc" model="perfect_contact"/>
+        <interface name="ipyc_sic" model="perfect_contact"/>
+        <interface name="sic_opyc" model="perfect_contact"/>
+    </interfaces>
+
+    <!-- 只在核心装配体积热源, 其余材料区域不发热 -->
+    <source>
+        <region name="kernel" model="volumetric_power"/>
+    </source>
+ 
+</thermal>

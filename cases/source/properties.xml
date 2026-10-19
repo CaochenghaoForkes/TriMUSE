@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<properties>
+
+    <!-- 颗粒总发热功率 0.1 W, 全部集中于核心; 包覆层不安排热源 -->
+    <external_property name="power">
+        <region name="kernel" model="constant">
+            <parameter name="constant_value" value="0.1" unit="[W]" si_unit="[W]"/>
+        </region>
+    </external_property>
+
+    <external_property name="environment_temperature">
+        <zone name="environment_zone" model="constant">
+            <parameter name="constant_value" value="293.15" unit="[K]" si_unit="[K]"/>
+        </zone>
+    </external_property>
+
+    <derived_property name="heat_transfer_coef">
+        <zone name="environment_zone" model="constant">
+            <parameter name="constant_value" value="500.0" unit="[W]/[m]^2[K]" si_unit="[W]/[m]^2[K]"/>
+        </zone>
+    </derived_property>
+
+    <!-- 按实际三维核心体积换算 Q=P/V, 在核心内均匀分布, 单位 W/m³ -->
+    <derived_property name="volumetric_power">
+        <region name="kernel" model="uniform"/>
+    </derived_property>
+</properties>

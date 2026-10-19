@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<trimuse_chief name="transient_heat_flux_stochastic_particle_3d">
+
+    <!-- 1. 算例说明 -->
+    <random seed="202609134"/>
+    <output directory="./output_transient_heat_flux_3d"/>
+
+    <!-- 2. 本算例使用的输入卡 -->
+    <input_files>
+        <geometry_mesh file="./geometry_mesh.xml"/>
+        <material file="./material.xml"/>
+        <properties file="./properties.xml"/>
+        <thermal file="./thermal.xml"/>
+        <simulation file="./simulation.xml"/>
+    </input_files>
+
+    <!-- 3. 本次运行的目标阶段 -->
+    <execution target="solve"/>
+
+</trimuse_chief>

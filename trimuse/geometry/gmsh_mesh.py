@@ -1,69 +1,64 @@
-"""各种几何构造方式共用的 Gmsh 网格流程"""
-
 from pathlib import Path
 import gmsh
-from trimuse.input.geometry_mesh_config import GeometryMeshCard
-from trimuse.geometry.topology import GeometryTopology
+from trimuse.input.geometry_mesh.config import GeometryMeshCard
+from trimuse.geometry.topology import GeometryTopology, MeshInfo
 MeshConfig = GeometryMeshCard.Mesh
 
 class GmshMesh:
     """根据几何拓扑和网格配置生成 Gmsh 网格"""
 
-    _ELEMENTS_BY_DIMENSION = {1: "line", 2: "triangle", 3: "tetrahedron"}
     _ENTITY_LISTS = {1: "CurvesList", 2: "SurfacesList", 3: "VolumesList"}
     _ALGORITHMS_3D = {"del3d": 1, "front3d": 4, "mmg3d": 7, "hxt": 10}
     _OPTIMIZERS = {"gmsh": "", "netgen": "Netgen"}
 
     @classmethod
-    def generate(cls, topology: GeometryTopology, config: MeshConfig, output_path: str | Path) -> Path:
-        """生成网格并按配置写出网格文件"""
-        cls._check_element(topology.dimension, config.element.type)
-        cls._add_physical_groups(topology)
+    def generate(cls, topology: GeometryTopology, config: MeshConfig, output_directory: str | Path) -> MeshInfo:
+        """使用已检查的配置生成网格, 写入输出根目录下的 mesh 子目录"""
+        region_attributes, boundary_attributes = cls._add_physical_groups(topology)
         cls._set_mesh_sizes(topology, config.sizing)
         cls._set_algorithm(topology.dimension, config.gmsh.algorithm_3d)
         gmsh.model.mesh.generate(topology.dimension)
         cls._optimize(topology.dimension, config.gmsh.optimizer)
         cls._set_order(config.element.geometry_order, config.gmsh.optimizer)
         cls._check_mesh(topology)
-        return cls._write(output_path, config.output, config.gmsh)
-
-    @classmethod
-    def _check_element(cls, dimension: int, element_type: str) -> None:
-        """检查当前阶段能够直接生成的单元类型"""
-        expected = cls._ELEMENTS_BY_DIMENSION[dimension]
-        if element_type != expected:
-            raise NotImplementedError(
-                f"当前 {dimension}D Gmsh 网格仅支持 {expected!r}, "
-                f"尚未实现 {element_type!r} 所需的结构化或重组流程"
-            )
+        path = cls._write(output_directory, config.output)
+        mesh_info = MeshInfo(
+            path=path,
+            dimension=topology.dimension,
+            region_attributes=region_attributes,
+            boundary_attributes=boundary_attributes,
+        )
+        return mesh_info
 
     @staticmethod
-    def _add_physical_groups(topology: GeometryTopology) -> None:
-        """将材料区域和边界注册为 Gmsh 物理组"""
-        groups = ((topology.dimension, topology.regions), (topology.dimension - 1, topology.boundaries))
-        for dimension, named_entities in groups:
+    def _add_physical_groups(topology: GeometryTopology) -> tuple[dict[str, int], dict[str, int]]:
+        """注册 Gmsh 物理组并返回名称与属性编号的映射"""
+        region_attributes = {}
+        boundary_attributes = {}
+        groups = ((topology.dimension, topology.regions, region_attributes), (topology.dimension - 1, topology.boundaries, boundary_attributes))
+        for dimension, named_entities, attributes in groups:
             for name, entity_tags in named_entities.items():
                 if not entity_tags:
-                    raise ValueError(f"物理组 {name!r} 不包含任何几何实体")
+                    raise RuntimeError(f"物理组 {name!r} 不包含任何几何实体")
                 group_tag = gmsh.model.addPhysicalGroup(dimension, entity_tags)
                 gmsh.model.setPhysicalName(dimension, group_tag, name)
+                attributes[name] = group_tag
+        return region_attributes, boundary_attributes
 
     @classmethod
     def _set_mesh_sizes(cls, topology: GeometryTopology, sizing: MeshConfig.Sizing) -> None:
         """设置全局网格尺寸范围和材料区域目标尺寸"""
         global_sizing = sizing.global_
         if global_sizing.min_edge_length is not None:
-            gmsh.option.setNumber("Mesh.MeshSizeMin", global_sizing.min_edge_length.value)
+            gmsh.option.setNumber("Mesh.MeshSizeMin", global_sizing.min_edge_length)
         if global_sizing.max_edge_length is not None:
-            gmsh.option.setNumber("Mesh.MeshSizeMax", global_sizing.max_edge_length.value)
+            gmsh.option.setNumber("Mesh.MeshSizeMax", global_sizing.max_edge_length)
 
         region_fields = []
         entity_list = cls._ENTITY_LISTS[topology.dimension]
         for region in sizing.region:
-            if region.name not in topology.regions:
-                raise ValueError(f"网格尺寸区域 {region.name!r} 不存在于几何拓扑中")
             value_field = gmsh.model.mesh.field.add("MathEval")
-            gmsh.model.mesh.field.setString(value_field, "F", repr(region.target_edge_length.value))
+            gmsh.model.mesh.field.setString(value_field, "F", repr(region.target_edge_length))
             region_field = gmsh.model.mesh.field.add("Restrict")
             gmsh.model.mesh.field.setNumber(region_field, "InField", value_field)
             gmsh.model.mesh.field.setNumbers(region_field, entity_list, topology.regions[region.name])
@@ -111,12 +106,12 @@ class GmshMesh:
                 raise RuntimeError(f"材料区域 {name!r} 未生成 {topology.dimension}D 单元")
 
     @staticmethod
-    def _write(output_path: str | Path, output: MeshConfig.Output, config: MeshConfig.Gmsh) -> Path:
-        """设置输出格式并写出网格文件"""
-        path = Path(output_path).expanduser().resolve()
+    def _write(output_directory: str | Path, output: MeshConfig.Output) -> Path:
+        """固定输出 MSH 2.2 ASCII, 可选写出同名 VTK"""
+        path = Path(output_directory).expanduser().resolve() / "mesh" / output.file
         path.parent.mkdir(parents=True, exist_ok=True)
-        gmsh.option.setNumber("Mesh.MshFileVersion", float(config.msh_version))
-        gmsh.option.setNumber("Mesh.Binary", int(config.binary))
+        gmsh.option.setNumber("Mesh.MshFileVersion", 2.2)
+        gmsh.option.setNumber("Mesh.Binary", 0)
         gmsh.write(str(path))
         if output.write_vtk:
             gmsh.write(str(path.with_suffix(".vtk")))

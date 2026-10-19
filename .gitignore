@@ -1,18 +1,17 @@
-.DS_Store
+# Generated build files and native modules
+/build/
+/build-*/
+*.so
+*.dylib
+*.a
+*.o
+
+# Python and operating-system caches
 __pycache__/
 *.py[cod]
-
-.vscode/
-.idea/
-.env
+.DS_Store
 .venv/
-venv/
 
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-build/
-dist/
-*.egg-info/
-
-cases/**/output*/
+# Simulation results and local ParaView sessions
+/cases/**/output*/
+*.pvsm
