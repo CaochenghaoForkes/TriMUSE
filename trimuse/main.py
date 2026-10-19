@@ -63,5 +63,10 @@ if __name__ == "__main__":
         output_manager.finish_module("solve")
         output_manager.finish_simulation(coupling_manager.time, coupling_manager.cycle)
 
-    # 后续在这里根据 input_cards.postprocess 提取已有结果, 不依赖本次创建求解对象。
-    print("后处理阶段: 结果已就绪, 数据提取与绘图接口待接入", flush=True)
+    # 新计算及已有完整结果均进入后处理, 不依赖本次创建求解对象。
+    from trimuse.postprocess.postprocess import PostprocessManager
+
+    print("开始后处理", flush=True)
+    postprocess_manager = PostprocessManager(input_cards)
+    postprocess_manager.run()
+    print(f"后处理完成: {postprocess_manager.postprocess_directory}", flush=True)

@@ -7,8 +7,6 @@ class PostprocessCardExamine:
 
     @classmethod
     def examine(cls, card: PostprocessCard) -> None:
-        if not card.points and not card.lines and not card.sections:
-            raise ValueError("postprocess: 至少配置一个 point、line 或 section")
         if not card.properties or len(card.properties) != len(set(card.properties)):
             raise ValueError("postprocess.properties: names 必须非空且不能重复")
         for group, items in (("points", card.points), ("lines", card.lines), ("sections", card.sections)):

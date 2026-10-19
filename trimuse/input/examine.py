@@ -21,6 +21,8 @@ class InputCardsExamine:
     def check_postprocess_geometry(geometry_mesh: GeometryMeshCard, postprocess: PostprocessCard) -> None:
         """按几何维数检查采样坐标和方向, 不在输入阶段判断随机域内外"""
         dimension = geometry_mesh.model.dimension
+        if dimension == 3 and not postprocess.points and not postprocess.lines and not postprocess.sections:
+            raise ValueError("postprocess: 3D 至少配置一个 point、line 或 section")
         if dimension == 1 and postprocess.sections:
             raise ValueError("postprocess: 1D 不支持 section")
         positions = [(point.name, point.center) for point in postprocess.points]

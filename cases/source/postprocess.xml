@@ -29,20 +29,6 @@
         </line>
     </lines>
 
-    <sections>
-        <section name="middle">
-            <center>
-                <x value="0.0" unit="[um]"/>
-                <y value="0.0" unit="[um]"/>
-                <z value="0.0" unit="[um]"/>
-            </center>
-            <normal>
-                <theta value="0.0" unit="[degree]"/>
-                <phi value="0.0" unit="[degree]"/>
-            </normal>
-        </section>
-    </sections>
-
     <properties names="temperature"/>
 
 </postprocess>
