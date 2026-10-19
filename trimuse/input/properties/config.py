@@ -24,7 +24,7 @@ class PropertiesCard:
 
     @dataclass
     class Zone:
-        """外表面分区模型; heat_flux 的 SI 单位为 W/m², 外流为正、流入为负"""
+        """外表面分区模型; 温度使用 K, heat_flux 使用 W/m² (外流为正)"""
 
         name: str
         model: str

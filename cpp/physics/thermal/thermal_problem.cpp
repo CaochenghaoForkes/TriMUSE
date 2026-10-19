@@ -62,6 +62,8 @@ void ThermalProblem::solve_steady()
     const int max_iterations = nonlinear ? picard.max_iterations : 1;
     source_manager_.update(properties_system_.field_data());
     boundary_manager_.update(properties_system_.field_data());
+    mfem::Array<int> essential_true_dofs;
+    boundary_manager_.apply_essential_conditions(trial_temperature, essential_true_dofs); // 1.把指定表面温度写入 trial_temperature 对应的边界自由度 2.把这些需要约束的真实自由度编号填入 essential_true_dofs
 
     for (int iteration = 0; iteration < max_iterations; ++iteration)
     {
@@ -77,7 +79,6 @@ void ThermalProblem::solve_steady()
         conduction_form.Assemble();
         source_form.Assemble();
 
-        mfem::Array<int> essential_true_dofs; // 当前 Robin 边界通过积分器施加
         mfem::SparseMatrix system_matrix;
         mfem::Vector true_temperature, true_right_hand_side;
         conduction_form.FormLinearSystem(essential_true_dofs, trial_temperature, source_form, system_matrix, true_temperature, true_right_hand_side, 1);
@@ -101,9 +102,12 @@ void ThermalProblem::solve_steady()
 
 void ThermalProblem::solve_transient(double time_step, double theta)
 {
-    // 初始时刻只接受初值及属性快照, 不执行时间推进。
+    // 初始时刻施加指定边界温度, 不执行时间推进。
     if (time_step == 0.0)
     {
+        boundary_manager_.update(properties_system_.field_data());
+        mfem::Array<int> essential_true_dofs;
+        boundary_manager_.apply_essential_conditions(temperature_field_.mfem_grid_function(), essential_true_dofs);
         return;
     }
     mfem::GridFunction& temperature = temperature_field_.mfem_grid_function();
@@ -113,7 +117,7 @@ void ThermalProblem::solve_transient(double time_step, double theta)
     trial_temperature = temperature;
 
     // 上一步的属性快照固定不变。K 同时包含域内导热和 Robin 左端项,
-    // F 同时包含体积热源和 Robin 右端项。
+    // F 同时包含体积热源、Robin 和 Neumann 右端项。
     const PropertiesFieldData& old_properties = properties_system_.previous_field_data();
     capacity_manager_.update(old_properties);
     conduction_manager_.update(old_properties);
@@ -141,11 +145,14 @@ void ThermalProblem::solve_transient(double time_step, double theta)
     const NonlinearSolverConfig& picard = solver_system_.nonlinear_config("thermal");
     const int max_iterations = nonlinear ? picard.max_iterations : 1;
 
-    if (theta > 0.0) // theta=0 使用旧时刻全部系数; theta>0 才需要新时刻的源和边界。
+    if (theta > 0.0) // 新时刻的自然边界和源仅在 theta>0 时参与组装。
     {
         source_manager_.update(properties_system_.field_data());
-        boundary_manager_.update(properties_system_.field_data());
     }
+    // 无论 theta 取何值, 本质边界均约束为新时刻的指定温度; 旧温度向量保持不变。
+    boundary_manager_.update(properties_system_.field_data());
+    mfem::Array<int> essential_true_dofs;
+    boundary_manager_.apply_essential_conditions(trial_temperature, essential_true_dofs);
     for (int iteration = 0; iteration < max_iterations; ++iteration)
     {
         mfem::Vector previous_trial(trial_temperature);
@@ -188,6 +195,11 @@ void ThermalProblem::solve_transient(double time_step, double theta)
         old_conduction.SpMat().Mult(old_temperature, action); // action=KnTn
         right_hand_side.Add(-(1.0 - theta), action); // right_hand_side = right_hand_side - (1-theta)KnTn
         right_hand_side.Add(1.0 - theta, old_source); // right_hand_side = right_hand_side - (1-theta)KnTn + (1-theta)Fn
+        // 当前为共形串行 H1 空间, 总体自由度与真实自由度一致; 对最终矩阵对称消元。
+        for (const int dof : essential_true_dofs)
+        {
+            system_matrix->EliminateRowCol(dof, trial_temperature[dof], right_hand_side); // 在方程 AT=b 中，把编号为 dof 的温度固定为 trial_temperature[dof]
+        }
         solver_system_.solve_linear("thermal", *system_matrix, right_hand_side, trial_temperature);
 
         previous_trial -= trial_temperature;

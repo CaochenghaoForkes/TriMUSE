@@ -8,17 +8,11 @@
         </region>
     </external_property>
 
-    <external_property name="environment_temperature">
+    <external_property name="surface_temperature">
         <zone name="environment_zone" model="constant">
             <parameter name="constant_value" value="293.15" unit="[K]" si_unit="[K]"/>
         </zone>
     </external_property>
-
-    <derived_property name="heat_transfer_coef">
-        <zone name="environment_zone" model="constant">
-            <parameter name="constant_value" value="500.0" unit="[W]/[m]^2[K]" si_unit="[W]/[m]^2[K]"/>
-        </zone>
-    </derived_property>
 
     <!-- 按实际三维核心体积换算 Q=P/V, 在核心内均匀分布, 单位 W/m³ -->
     <derived_property name="volumetric_power">

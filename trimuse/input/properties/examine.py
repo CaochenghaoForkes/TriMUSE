@@ -18,7 +18,7 @@ class PropertiesCardExamine:
         location = f"{category}.{property_config.name}"
         if not property_config.region and not property_config.zone and property_config.global_ is None:
             raise ValueError(f"{location}: 至少需要一个 region、zone 或 global")
-        if property_config.name in ("environment_temperature", "heat_flux", "heat_transfer_coef") and (property_config.region or property_config.global_ is not None):
+        if property_config.name in ("environment_temperature", "surface_temperature", "heat_flux", "heat_transfer_coef") and (property_config.region or property_config.global_ is not None):
             raise ValueError(f"{location}: 请按 zone 配置边界属性")
         region_names = [region.name for region in property_config.region]
         if len(region_names) != len(set(region_names)):
@@ -28,7 +28,7 @@ class PropertiesCardExamine:
             raise ValueError(f"{location}: 外表面分区名称不能重复")
         for zone in property_config.zone:
             zone_location = f"{location}.{zone.name}"
-            if (category, property_config.name) not in (("external_property", "environment_temperature"), ("external_property", "heat_flux"), ("derived_property", "heat_transfer_coef")):
+            if (category, property_config.name) not in (("external_property", "environment_temperature"), ("external_property", "surface_temperature"), ("external_property", "heat_flux"), ("derived_property", "heat_transfer_coef")):
                 raise ValueError(f"{zone_location}: 当前属性不支持 zone 配置")
             cls.check_time_model(zone, zone_location)
         if property_config.global_ is not None:

@@ -7,6 +7,7 @@
 #include "properties/external/environment_temperature/environment_temperature_model_manager.hpp"
 #include "properties/external/heat_flux/heat_flux_model_manager.hpp"
 #include "properties/external/power/power_model_manager.hpp"
+#include "properties/external/surface_temperature/surface_temperature_model_manager.hpp"
 
 namespace trimuse
 {
@@ -27,6 +28,7 @@ public:
 private:
     PowerModelManager power_model_manager_;
     EnvironmentTemperatureModelManager environment_temperature_model_manager_;
+    SurfaceTemperatureModelManager surface_temperature_model_manager_;
     HeatFluxModelManager heat_flux_model_manager_;
     BurnupPercentFimaModelManager burnup_percent_fima_model_manager_;
 };

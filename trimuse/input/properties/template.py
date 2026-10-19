@@ -27,6 +27,18 @@ class PropertiesCardTemplate:
         </zone>
         -->
     </external_property>
+    <!-- Dirichlet 边界使用同名 zone 的 surface_temperature, 内部单位 K -->
+    <external_property name="surface_temperature">
+        <zone name="[str]" model="constant">
+            <parameter name="constant_value" value="[float]" unit="[K]" si_unit="[K]"/>
+        </zone>
+        <!-- 时间表可替换上面的常数模型, 或用于另一分区; times 严格递增。
+        <zone name="[str]" model="time_series">
+            <parameter name="times" value="[float] [float]" unit="[s]" si_unit="[s]"/>
+            <parameter name="values" value="[float] [float]" unit="[K]" si_unit="[K]"/>
+        </zone>
+        -->
+    </external_property>
     <!-- Neumann 边界使用同名 zone 的 heat_flux, 单位 W/m²; 正值向外散热, 负值向内加热, 0 为绝热 -->
     <external_property name="heat_flux">
         <zone name="[str]" model="constant">

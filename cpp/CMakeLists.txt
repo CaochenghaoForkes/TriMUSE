@@ -26,6 +26,7 @@ add_library(
     physics/thermal/boundary/thermal_boundary_manager.cpp
     physics/thermal/boundary/thermal_robin_boundary.cpp
     physics/thermal/boundary/thermal_neumann_boundary.cpp
+    physics/thermal/boundary/thermal_dirichlet_boundary.cpp
     physics/thermal/source/volumetric_power_source.cpp
     physics/thermal/source/thermal_source_manager.cpp
     physics/thermal/thermal_conduction_manager.cpp

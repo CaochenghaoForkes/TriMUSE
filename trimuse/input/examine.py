@@ -48,6 +48,8 @@ class InputCardsExamine:
                 required = (("environment_temperature", properties.external_property), ("heat_transfer_coef", properties.derived_property))
             elif boundary.model == "neumann":
                 required = (("heat_flux", properties.external_property),)
+            elif boundary.model == "dirichlet":
+                required = (("surface_temperature", properties.external_property),)
             else:
                 continue
             for property_name, configs in required:

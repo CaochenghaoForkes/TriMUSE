@@ -14,6 +14,7 @@ void ExternalModelManager::register_models()
 {
     power_model_manager_.register_models();
     environment_temperature_model_manager_.register_models();
+    surface_temperature_model_manager_.register_models();
     heat_flux_model_manager_.register_models();
     burnup_percent_fima_model_manager_.register_models();
 }
@@ -33,6 +34,11 @@ void ExternalModelManager::assign(const std::string& name, int attribute, const 
     if (name == "heat_flux")
     {
         heat_flux_model_manager_.assign(attribute, model_name, parameters, value_type);
+        return;
+    }
+    if (name == "surface_temperature")
+    {
+        surface_temperature_model_manager_.assign(attribute, model_name, parameters, value_type);
         return;
     }
     if (name == "burnup_percent_fima")
@@ -57,6 +63,10 @@ StateValue ExternalModelManager::evaluate(const std::string& name, const Propert
     {
         return heat_flux_model_manager_.evaluate(point);
     }
+    if (name == "surface_temperature")
+    {
+        return surface_temperature_model_manager_.evaluate(point);
+    }
     if (name == "burnup_percent_fima")
     {
         return burnup_percent_fima_model_manager_.evaluate(point);
@@ -77,6 +87,10 @@ const std::vector<std::string>& ExternalModelManager::required_states(const std:
     if (name == "heat_flux")
     {
         return heat_flux_model_manager_.required_states(model_name);
+    }
+    if (name == "surface_temperature")
+    {
+        return surface_temperature_model_manager_.required_states(model_name);
     }
     if (name == "burnup_percent_fima")
     {

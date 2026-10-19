@@ -17,7 +17,9 @@ class ThermalCardTemplate:
     </initial>
     <!-- 每个外表面分区配置一个边界; robin 使用同名 zone 的 environment_temperature 和 heat_transfer_coef -->
     <!-- neumann 使用 properties 卡同名 zone 的 heat_flux, 外流为正、流入为负; 此处不重复输入模型参数 -->
+    <!-- dirichlet 使用 properties 卡同名 zone 的 surface_temperature, 指定表面温度 -->
     <boundaries>
+        <boundary name="[str]" model="dirichlet"/>
         <boundary name="[str]" model="neumann"/>
         <boundary name="[str]" model="robin"/>
     </boundaries>
