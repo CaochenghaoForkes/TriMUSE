@@ -17,7 +17,7 @@ class GeometryMeshBuilder:
         gmsh.initialize()
         try:
             if mesh_path.is_file():
-                mesh_info = GmshMesh.read(mesh_path)
+                mesh_info = GmshMesh.read(mesh_path, config.mesh.output.formats)
                 print(f"复用已有网格: {mesh_path}", flush=True)
                 return mesh_info
             gmsh.model.add("trimuse_geometry")

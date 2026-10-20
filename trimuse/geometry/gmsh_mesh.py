@@ -11,13 +11,12 @@ class GmshMesh:
     _ALGORITHMS_3D = {"del3d": 1, "front3d": 4, "mmg3d": 7, "hxt": 10}
     _OPTIMIZERS = {"gmsh": "", "netgen": "Netgen"}
 
-    @staticmethod
-    def read(path: str | Path) -> MeshInfo:
-        """读取已有网格及其物理组名称编号, 不重新生成几何或网格"""
+    @classmethod
+    def read(cls, path: str | Path, formats: list[str] | tuple[str, ...] = ("vtk",)) -> MeshInfo:
+        """读取已有网格及其物理组名称编号, 补导出缺失格式, 不重新划分网格"""
         path = Path(path).expanduser().resolve()
         gmsh.open(str(path))
-        if not path.with_suffix(".vtk").is_file():
-            gmsh.write(str(path.with_suffix(".vtk")))
+        cls._write_formats(path, formats, missing_only=True)
         dimension = gmsh.model.getDimension()
         regions = {gmsh.model.getPhysicalName(dim, tag): tag for dim, tag in gmsh.model.getPhysicalGroups(dimension)}
         boundaries = {gmsh.model.getPhysicalName(dim, tag): tag for dim, tag in gmsh.model.getPhysicalGroups(dimension - 1)}
@@ -33,7 +32,7 @@ class GmshMesh:
         cls._optimize(topology.dimension, config.gmsh.optimizer)
         cls._set_order(config.element.geometry_order, config.gmsh.optimizer)
         cls._check_mesh(topology)
-        path = cls._write(mesh_path)
+        path = cls._write(mesh_path, config.output.formats)
         mesh_info = MeshInfo(
             path=path,
             dimension=topology.dimension,
@@ -117,13 +116,27 @@ class GmshMesh:
             if element_count == 0:
                 raise RuntimeError(f"材料区域 {name!r} 未生成 {topology.dimension}D 单元")
 
-    @staticmethod
-    def _write(mesh_path: str | Path) -> Path:
-        """固定输出 MSH 2.2 ASCII 和同名 VTK"""
+    @classmethod
+    def _write(cls, mesh_path: str | Path, formats: list[str] | tuple[str, ...] = ("vtk",)) -> Path:
+        """输出 MSH 2.2 ASCII、VTK 及用户要求的附加格式"""
         path = Path(mesh_path).expanduser().resolve()
         path.parent.mkdir(parents=True, exist_ok=True)
         gmsh.option.setNumber("Mesh.MshFileVersion", 2.2)
         gmsh.option.setNumber("Mesh.Binary", 0)
-        gmsh.write(str(path))
-        gmsh.write(str(path.with_suffix(".vtk")))
+        cls._write_formats(path, formats)
         return path
+
+    @staticmethod
+    def _write_formats(path: Path, formats: list[str] | tuple[str, ...], missing_only: bool = False) -> None:
+        """同名输出各格式, 重复格式只写一次; BDF 使用物理组编号作为标识"""
+        for format_name in dict.fromkeys(("msh", "vtk", *formats)):
+            target = path.with_suffix(f".{format_name}")
+            if missing_only and target.is_file():
+                continue
+            if format_name == "bdf":
+                previous_tag_type = gmsh.option.getNumber("Mesh.SaveElementTagType")
+                gmsh.option.setNumber("Mesh.SaveElementTagType", 2)
+                gmsh.write(str(target))
+                gmsh.option.setNumber("Mesh.SaveElementTagType", previous_tag_type)
+            else:
+                gmsh.write(str(target))

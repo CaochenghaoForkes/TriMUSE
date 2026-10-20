@@ -166,3 +166,6 @@ class GeometryMeshCardExamine:
             raise ValueError("algorithm_3d 必须为 [hxt,mmg3d,del3d,front3d]")
         if mesh.gmsh.optimizer not in ("gmsh", "netgen", "none"):
             raise ValueError("optimizer 必须为 [gmsh,netgen,none]")
+        for format_name in mesh.output.formats:
+            if not format_name.isalnum():
+                raise ValueError("网格输出格式应为不带点号的扩展名, 如 vtk bdf inp")

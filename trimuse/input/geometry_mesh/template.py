@@ -110,6 +110,8 @@ class GeometryMeshCardTemplate:
         <!-- algorithm_3d 仅 3D 使用, 默认 hxt, optimizer 默认 gmsh -->
         <!-- 输出格式内部固定为 MSH 2.2 ASCII -->
         <gmsh algorithm_3d="[hxt][mmg3d][del3d][front3d]" optimizer="[gmsh][netgen][none]"/>
+        <!-- 可选, 空格分隔 Gmsh 支持的格式扩展名; 默认 vtk, MSH 和 VTK 始终输出 -->
+        <output formats="vtk bdf"/>
     </mesh>
 </geometry_mesh>
 '''

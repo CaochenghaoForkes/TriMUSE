@@ -202,6 +202,7 @@ class OutputManager:
         cls._node(mesh, "space_sampler", **sampler)
         cls._node(mesh, "element", **asdict(card.mesh.element))
         cls._node(mesh, "gmsh", **asdict(card.mesh.gmsh))
+        cls._node(mesh, "output", formats=card.mesh.output.formats)
         sizing = cls._node(mesh, "sizing")
         global_node = cls._node(sizing, "global")
         for name, value in asdict(card.mesh.sizing.global_).items():

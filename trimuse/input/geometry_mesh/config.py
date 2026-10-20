@@ -167,10 +167,17 @@ class GeometryMeshCard:
             algorithm_3d: str = "hxt"  # [hxt,mmg3d,del3d,front3d]
             optimizer: str = "gmsh"  # [gmsh,netgen,none]
 
+        @dataclass
+        class Output:
+            """附加网格格式; MSH 和 VTK 始终保留"""
+
+            formats: list[str] = field(default_factory=lambda: ["vtk"])
+
         element: Element = field(default_factory=Element)
         sizing: Sizing = field(default_factory=Sizing)
         gmsh: Gmsh = field(default_factory=Gmsh)
         space_sampler: SpaceSampler = field(default_factory=SpaceSampler)
+        output: Output = field(default_factory=Output)
 
     model: Model
     geometry: Geometry
@@ -362,6 +369,7 @@ class GeometryMeshCardLoader:
         """读取公共网格选项, 未提供的部分使用配置类默认值"""
         defaults = GeometryMeshCard.Mesh()
         space_sampler = defaults.space_sampler
+        output = defaults.output
         mesh_element, sizing, gmsh = defaults.element, defaults.sizing, defaults.gmsh
         if element is not None:
             child = XmlUtils.read_child(element, "space_sampler", required=False)
@@ -379,11 +387,16 @@ class GeometryMeshCardLoader:
             child = XmlUtils.read_child(element, "gmsh", required=False)
             if child is not None:
                 gmsh = cls.read_gmsh(child)
+            child = XmlUtils.read_child(element, "output", required=False)
+            if child is not None:
+                formats = XmlUtils.read_attribute(child, "formats", list[str], required=True)
+                output = GeometryMeshCard.Mesh.Output(formats=formats)
         mesh = GeometryMeshCard.Mesh(
             space_sampler=space_sampler,
             element=mesh_element,
             sizing=sizing,
-            gmsh=gmsh
+            gmsh=gmsh,
+            output=output
         )
         return mesh
 
