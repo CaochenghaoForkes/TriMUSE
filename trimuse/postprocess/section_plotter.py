@@ -3,7 +3,6 @@ from collections.abc import Iterator
 from pathlib import Path
 from typing import TYPE_CHECKING
 import numpy as np
-
 from vtkmodules.util.numpy_support import vtk_to_numpy
 from vtkmodules.vtkCommonDataModel import vtkPlane
 from vtkmodules.vtkFiltersCore import vtkCutter, vtkTriangleFilter
@@ -31,23 +30,27 @@ class SectionPlotter:
     @staticmethod
     def sample_section(mesh: vtkUnstructuredGrid, center: tuple[float, float, float], normal: tuple[float, float, float]) -> vtkPolyData:
         """保留截面实际单元连接关系, 不用散点重新三角化跨越计算域边界"""
-        if mesh.GetCell(0).GetCellDimension() == 2:
+        if mesh.GetCell(0).GetCellDimension() == 2: # 取第一个单元如果是 2d 的直接取原来的二维网格，无需再切割
             section = vtkDataSetSurfaceFilter()
-            section.SetNonlinearSubdivisionLevel(2)
+            section.SetNonlinearSubdivisionLevel(2) # 对于二次等高阶单元，将曲边进一步细分成小面片，使显示的边界更平滑。这是后处理细分，不会改变有限元计算网格或重新求解
         else:
-            plane = vtkPlane()
+            plane = vtkPlane() # 定义一个经过 center、法向为 normal 的平面
             plane.SetOrigin(center)
             plane.SetNormal(normal)
-            section = vtkCutter()
-            section.SetCutFunction(plane)
-        section.SetInputData(mesh)
-        triangles = vtkTriangleFilter()
-        triangles.SetInputConnection(section.GetOutputPort())
+            section = vtkCutter() # 创建切割器
+            section.SetCutFunction(plane) # 指定用这个平面切割网格
+        section.SetInputData(mesh) # 将原始网格交给上面创建的提取器或切割器
+        triangles = vtkTriangleFilter() # 创建三角化过滤器
+        # 切割四面体时，截面可能是三角形，也可能是四边形；这里统一拆成三角形，方便后面绘图
+        triangles.SetInputConnection(section.GetOutputPort()) # 原始网格 → 提取二维面 / 切割三维网格 → 三角形面片
+        # 不保留独立的线单元和点单元，只保留面片
         triangles.PassLinesOff()
         triangles.PassVertsOff()
+        # 前面是配置 下面是真正执行整条处理流程
         triangles.Update()
+        # 取得结果
         result = triangles.GetOutput()
-        if result.GetNumberOfPolys() == 0:
+        if result.GetNumberOfPolys() == 0: # 如果没有得到任何面片，就报错
             raise ValueError("指定平面未与计算域形成截面")
         return result
 
@@ -70,13 +73,12 @@ class SectionPlotter:
         directory = self.postprocess_directory / "sections" / section_name / property_name
         directory.mkdir(parents=True, exist_ok=True)
         path = directory / f"{frame_directory}.csv"
-        np.savetxt(path, data, delimiter=",", fmt=["%d", "%.18e", "%.18e", "%.18e", "%.18e", "%.18e"],
-                   header=f"index,x_m,y_m,z_m,r_m,{property_name}", comments="")
+        np.savetxt(path, data, delimiter=",", fmt=["%d", "%.18e", "%.18e", "%.18e", "%.18e", "%.18e"], header=f"index,x_m,y_m,z_m,r_m,{property_name}", comments="")
         return path
 
     @staticmethod
     def value_range(section: vtkPolyData, property_name: str) -> tuple[float, float]:
-        values = section.GetPointData().GetArray(property_name)
+        values = section.GetPointData().GetArray(property_name) # 取得当前截面上指定属性的数值范围
         if values is None:
             values = section.GetCellData().GetArray(property_name)
         return values.GetRange()

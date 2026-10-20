@@ -40,7 +40,7 @@ def annotate_details(axes, lines: list[str], position: tuple[float, float] = (0.
     """逐行斜体注释, 默认 12 pt, 在框内顶对齐"""
     axes.text(*position, "\n".join(lines), transform=axes.transAxes, ha=align, va="top",
               fontsize=fontsize, fontstyle="italic", linespacing=1.25,
-              bbox={"facecolor": "white", "edgecolor": "none", "alpha": 0.8})
+              bbox={"facecolor": "white", "edgecolor": "none", "alpha": 0.0})
 
 
 def annotate_time(axes, time: float, position: tuple[float, float] = (0.97, 0.94), details: list[str] | None = None, fontsize: float = 12) -> None:

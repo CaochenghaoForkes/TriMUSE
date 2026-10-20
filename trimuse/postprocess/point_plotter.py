@@ -2,7 +2,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 import numpy as np
-
 from vtkmodules.vtkCommonCore import reference
 from vtkmodules.vtkCommonDataModel import vtkGenericCell, vtkStaticCellLocator
 
@@ -24,25 +23,25 @@ class PointPlotter:
 
     def sample_points(self, mesh: vtkUnstructuredGrid, points: list[tuple[float, float, float]] | np.ndarray, property_name: str, locator: vtkStaticCellLocator) -> tuple[list[float], list[float]]:
         """返回对应各点的 (属性值列表, 到中心的距离列表); 网格及编号须一致, 坐标和距离单位 m"""
-        cell = vtkGenericCell()
-        weights = [0.0] * mesh.GetMaxCellSize()
-        parametric_coordinates = [0.0, 0.0, 0.0]
-        sub_id = reference(0)
-        tolerance = 1e-9 * mesh.GetLength()
+        cell = vtkGenericCell() # 创建通用单元对象 找到采样点所在单元后，VTK 会把该单元的信息填进去
+        weights = [0.0] * mesh.GetMaxCellSize() # 该数组将被填入每个节点的插值权重函数 即形函数值
+        parametric_coordinates = [0.0, 0.0, 0.0] # 接收局部参数坐标
+        sub_id = reference(0) # 接收 VTK 返回的子单元编号 reference(0) 相当于提供一个可以被函数修改的整数容器 对应 cpp 的 int& 这个目前没有用 因为普通三角形、四面体等不存在单元内部的子单元
+        tolerance = 1e-9 * mesh.GetLength() # 设置定位时的几何容差(不把x=0.0010000000000000002认为在域0.001之外)，以处理浮点误差 GetLength() 是网格包围盒的对角线长度(笛卡尔坐标)
 
-        point_values = mesh.GetPointData().GetArray(property_name)
-        values = point_values if point_values is not None else mesh.GetCellData().GetArray(property_name)
+        point_values = mesh.GetPointData().GetArray(property_name) # 取每个输出节点的属性值
+        values = point_values if point_values is not None else mesh.GetCellData().GetArray(property_name) # 如果节点无该属性值 就读单元上该属性的值
 
         value_list = []
         radius_list = []
         for point in points:
-            cell_id = locator.FindCell(point, tolerance ** 2, cell, sub_id, parametric_coordinates, weights)
-            if cell_id < 0:
+            cell_id = locator.FindCell(point, tolerance ** 2, cell, sub_id, parametric_coordinates, weights) # 根据实际坐标 point 查找单元 返回单元编号 cell_id 单元信息 cell 点在单元内的局部坐标 parametric_coordinates 插值权重 weights 需要时使用的子单元编号 sub_id
+            if cell_id < 0: # 负数表示没找到单元
                 raise ValueError(f"采样点 {point} 不在计算域内: {property_name}")
-            if point_values is not None:
+            if point_values is not None:  # cell.GetPointId(index) 把单元内部的局部节点编号转换成整个输出网格的节点编号 values.GetTuple1() 根据这个全局编号，读取节点属性值
                 value = sum(weights[index] * values.GetTuple1(cell.GetPointId(index)) for index in range(cell.GetNumberOfPoints()))
             else:
-                # 单元数据按所在单元取值, 不擅自转换为节点平均值。
+                # 单元数据按所在单元取值, 不擅自转换为节点平均值
                 value = values.GetTuple1(cell_id)
             value_list.append(value)
             radius_list.append(float(np.linalg.norm(np.asarray(point) - self.center)))

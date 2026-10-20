@@ -46,7 +46,7 @@ class PostprocessManager:
             self.lines.append(PostprocessCard.Line(name="radial", sample_count=100))
         if self.dimension == 2 and not self.sections:
             self.sections.append(PostprocessCard.Section(name="whole_domain"))
-        # 每个属性使用自己的首帧输出网格, 同一属性的全部位置和时间帧共用定位器。
+        # 每个属性使用自己的首帧输出网格, 同一属性的全部位置和时间帧共用定位器
         self.locators: dict[str, vtkStaticCellLocator] = {}
         for name in self.config.properties:
             mesh = self.reader.read_frame(name, 0)

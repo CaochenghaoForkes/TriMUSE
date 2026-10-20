@@ -28,24 +28,30 @@ class LinePlotter:
     @staticmethod
     def find_endpoints(mesh: vtkUnstructuredGrid, center: tuple[float, float, float], direction: tuple[float, float, float], locator: vtkStaticCellLocator) -> tuple[tuple[float, float, float], tuple[float, float, float]]:
         """起点固定为颗粒中心, 沿指定方向找到外表面终点; 固定网格只需调用一次"""
-        bounds = np.asarray(mesh.GetBounds()).reshape(3, 2)
+        bounds = np.asarray(mesh.GetBounds()).reshape(3, 2) # 把网格包围盒长度整理为 (x_min, x_max, y_min, y_max, z_min, z_max).reshape(3,2)
         if mesh.GetCell(0).GetCellDimension() == 1:
             return tuple(center), tuple(bounds[:, 1])
 
         center = np.asarray(center, dtype=float)
         direction = np.asarray(direction, dtype=float)
         direction = direction / np.linalg.norm(direction)
-        # 从射线远端朝中心求交, 取得该方向的外表面位置。
+        # 从射线远端朝中心求交, 取得该方向的外表面位置
+        # bounds.mean(axis=1)=[(x_min + x_max) / 2,(y_min + y_max) / 2,(z_min + z_max) / 2] 相当于得到包围盒中心
+        # 然后计算采样起点 center 到该包围盒中心距离
+        # 最后再加上包围盒对角线长度 这串操作能保证从中心沿归一化的 direction 走 reach 一定能走到网格外
         reach = np.linalg.norm(center - bounds.mean(axis=1)) + mesh.GetLength()
-        outside = center + reach * direction
+        outside = center + reach * direction # 沿指定方向取的那个网格外的辅助点
         tolerance = 1e-9 * mesh.GetLength()
         position = [0.0, 0.0, 0.0]
+        # 查找从 outside 到 center 的线段与网格的第一个交点，并将交点坐标写入 position
         hit = locator.IntersectWithLine(outside, center, tolerance, reference(0.0), position, [0.0, 0.0, 0.0], reference(0), reference(0), vtkGenericCell())
         if not hit:
             raise ValueError("指定方向未与计算域外表面相交")
-        cell_id = locator.FindCell(position, tolerance ** 2, vtkGenericCell(), reference(0),
-                                   [0.0, 0.0, 0.0], [0.0] * mesh.GetMaxCellSize())
+        # 检查 position 是否能被定位到某个网格单元
+        cell_id = locator.FindCell(position, tolerance ** 2, vtkGenericCell(), reference(0), [0.0, 0.0, 0.0], [0.0] * mesh.GetMaxCellSize())
         if cell_id < 0:
+            # 如果没找到说明交点虽然理论上位于表面，但浮点计算误差可能让它稍微落在网格外侧
+            # 因为 direction 是从中心指向外部的单位向量，减去它就相当于朝中心移动 tolerance 的距离
             position = np.asarray(position) - tolerance * direction
         return tuple(center), tuple(position)
 

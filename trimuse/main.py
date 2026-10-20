@@ -10,7 +10,7 @@ from trimuse.output import OutputManager
 if __name__ == "__main__":
 
     # 读取输入
-    chief_path = project_directory / "cases/transient_constant_power_ideal_sphere_3d/case.xml"
+    chief_path: Path = project_directory / "cases/steady_constant_power_ideal_sphere_1d/case.xml"
     input_cards = load_input_cards(chief_path)
 
     output_manager = OutputManager(input_cards)
