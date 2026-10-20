@@ -20,6 +20,7 @@ class CouplingManager:
         self.properties_manager = properties_manager
         self.problems = problems
         self.output_manager = output_manager
+        # 初始化控制变量
         self.cycle = 0
         self.time = 0.0
         self.time_step = 0.0
@@ -63,8 +64,6 @@ class CouplingManager:
         self.properties_manager.update_derived()
         self.properties_manager.update_material()
         for step in self.steps:
-            if step.method != "single":
-                raise NotImplementedError("交错耦合迭代尚未实现")
             for field_name in step.fields:
                 problem = self.problems[field_name]
                 theta = self.field_theta[field_name]
