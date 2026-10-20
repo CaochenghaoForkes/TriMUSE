@@ -9,9 +9,17 @@
         </thermal>
     </mat>
 
+    <mat name="material2">
+        <thermal>
+            <conductivity model="common.constant">
+                <parameter name="constant_value" value="2.0" unit="[W]/[m][K]" si_unit="[W]/[m][K]"/>
+            </conductivity>
+        </thermal>
+    </mat>
+
     <assign>
         <region name="fuel_region" mat="material1"/>
-        <region name="non_fuel_region" mat="material1"/>
+        <region name="non_fuel_region" mat="material2"/>
     </assign>
 
 </material>
