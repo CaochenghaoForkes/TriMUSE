@@ -135,8 +135,11 @@ class GmshMesh:
                 continue
             if format_name == "bdf":
                 previous_tag_type = gmsh.option.getNumber("Mesh.SaveElementTagType")
+                previous_field_format = gmsh.option.getNumber("Mesh.BdfFieldFormat")
                 gmsh.option.setNumber("Mesh.SaveElementTagType", 2)
+                gmsh.option.setNumber("Mesh.BdfFieldFormat", 2)
                 gmsh.write(str(target))
                 gmsh.option.setNumber("Mesh.SaveElementTagType", previous_tag_type)
+                gmsh.option.setNumber("Mesh.BdfFieldFormat", previous_field_format)
             else:
                 gmsh.write(str(target))

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<postprocess>
+    <!-- 二维默认逐帧输出整个轴对称计算截面 -->
+    <properties names="temperature"/>
+</postprocess>

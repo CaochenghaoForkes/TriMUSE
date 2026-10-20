@@ -61,8 +61,9 @@ def prepare_comparison_grid(section, comsol_coordinates: np.ndarray):
 @plot_style
 def plot_comparison(triangulation, comsol_values: np.ndarray, trimuse_values: np.ndarray,
                     time: float, temperature_limits: tuple[float, float], error_limit: float,
-                    boundaries: list, path: Path) -> Path:
-    """三图共用空间范围; 温度共用色标, 温度差共用全时段正负对称色标。"""
+                    boundaries: list, path: Path, single_values: np.ndarray | None = None,
+                    historical_errors: tuple[float, float] | None = None) -> Path:
+    """默认三联图; 提供 single_values 时绘制单次求解/Picard 五联图。"""
     from matplotlib.figure import Figure
     from matplotlib.backends.backend_agg import FigureCanvasAgg
     from matplotlib.collections import LineCollection
@@ -70,20 +71,28 @@ def plot_comparison(triangulation, comsol_values: np.ndarray, trimuse_values: np
     from matplotlib.colors import Normalize
     from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-    figure = Figure(figsize=(15, 7))
-    FigureCanvasAgg(figure)
-    axes = figure.subplots(1, 3, sharex=True, sharey=True)
     data = (comsol_values, trimuse_values, trimuse_values - comsol_values)
     titles = ("COMSOL", "TriMUSE", "TriMUSE - COMSOL")
+    temperature_count = 2
+    if single_values is not None:
+        data = (comsol_values, single_values, trimuse_values,
+                comsol_values - single_values, comsol_values - trimuse_values)
+        titles = ("COMSOL", "TriMUSE (single solve)", "TriMUSE (Picard)",
+                  "COMSOL - single solve", "COMSOL - Picard")
+        temperature_count = 3
+    figure = Figure(figsize=(5 * len(data), 7))
+    FigureCanvasAgg(figure)
+    axes = figure.subplots(1, len(data), sharex=True, sharey=True)
     xmin, xmax = triangulation.x.min(), triangulation.x.max()
     ymin, ymax = triangulation.y.min(), triangulation.y.max()
     for index, (axis, values, title) in enumerate(zip(axes, data, titles)):
-        limits = temperature_limits if index < 2 else (-error_limit, error_limit)
+        is_temperature = index < temperature_count
+        limits = temperature_limits if is_temperature else (-error_limit, error_limit)
         image = axis.tripcolor(triangulation, values, shading="gouraud",
-                               cmap="jet" if index < 2 else "PuOr_r", norm=Normalize(*limits))
+                               cmap="jet" if is_temperature else "PuOr_r", norm=Normalize(*limits))
         colorbar_axis = make_axes_locatable(axis).append_axes("right", size="5%", pad=0.10)
         colorbar = figure.colorbar(image, cax=colorbar_axis)
-        colorbar.set_label("Temperature (K)" if index < 2 else "ΔT (K)", fontstyle="italic", fontsize=12)
+        colorbar.set_label("Temperature (K)" if is_temperature else "ΔT (K)", fontstyle="italic", fontsize=12)
         colorbar.ax.tick_params(labelsize=10)
         handles = []
         for boundary_index, (name, segments) in enumerate(boundaries):
@@ -99,7 +108,12 @@ def plot_comparison(triangulation, comsol_values: np.ndarray, trimuse_values: np
             axis.set_ylabel("v (m)", fontstyle="italic")
         if handles:
             axis.legend(handles=handles, loc="lower left", ncols=2, fontsize=6, frameon=False)
-        annotate_time(axis, time, position=(0.96, 0.96), fontsize=10)
+        details = None
+        if not is_temperature and historical_errors is not None:
+            error = historical_errors[index - temperature_count]
+            coefficient, exponent = f"{error:.2e}".split("e")
+            details = [rf"$\max_{{\tau\leq t,\,\mathbf{{x}}}} |\Delta T| = {coefficient}\times10^{{{int(exponent)}}}\ \mathit{{K}}$"]
+        annotate_time(axis, time, position=(0.96, 0.96), details=details, fontsize=10)
         scientific_axes(axis)
         axis.tick_params(labelsize=10)
     figure.tight_layout()

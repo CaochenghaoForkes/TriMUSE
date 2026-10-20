@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<geometry_mesh>
+    <model dimension="2"/>
+    <geometry source="stochastic_multilayer_particle">
+        <stochastic_multilayer_particle>
+            <center>
+                <x value="0.0" unit="[um]"/>
+                <y value="0.0" unit="[um]"/>
+            </center>
+            <outer_surface>
+                <batch_mean_radius value="465" unit="[um]"/>
+                <target_sphericity value="0.995" unit="[1]"/>
+                <shape_expansion max_degree="30" spectrum_decay="3.0"/>
+            </outer_surface>
+            <layers>
+                <layer name="kernel">
+                    <outer_boundary name="kernel_buffer"/>
+                    <batch_mean_radius value="250.0" unit="[um]"/>
+                    <batch_radius_std value="4.4" unit="[um]"/>
+                </layer>
+                <layer name="buffer">
+                    <outer_boundary name="buffer_ipyc"/>
+                    <batch_mean_thickness value="100" unit="[um]"/>
+                    <batch_thickness_std value="8.4" unit="[um]"/>
+                    <within_particle_thickness_std value="10.0" unit="[um]"/>
+                    <within_particle_radius_std value="14.0" unit="[um]"/>
+                    <unwrapping_coefficient value="0.8767" unit="[1]"/>
+                </layer>
+                <layer name="ipyc">
+                    <outer_boundary name="ipyc_sic"/>
+                    <batch_mean_thickness value="40" unit="[um]"/>
+                    <batch_thickness_std value="2.5" unit="[um]"/>
+                    <within_particle_thickness_std value="5.0" unit="[um]"/>
+                    <within_particle_radius_std value="10.0" unit="[um]"/>
+                    <unwrapping_coefficient value="0.9034" unit="[1]"/>
+                </layer>
+                <layer name="sic">
+                    <outer_boundary name="sic_opyc"/>
+                    <batch_mean_thickness value="35" unit="[um]"/>
+                    <batch_thickness_std value="1.2" unit="[um]"/>
+                    <within_particle_thickness_std value="1.5" unit="[um]"/>
+                    <within_particle_radius_std value="10.0" unit="[um]"/>
+                    <unwrapping_coefficient value="0.86415" unit="[1]"/>
+                </layer>
+                <layer name="opyc">
+                    <outer_boundary name="particle_outer_surface"/>
+                    <batch_mean_thickness value="40" unit="[um]"/>
+                    <batch_thickness_std value="2.9" unit="[um]"/>
+                    <within_particle_thickness_std value="6.0" unit="[um]"/>
+                    <within_particle_radius_std value="14.0" unit="[um]"/>
+                    <unwrapping_coefficient value="0.94205" unit="[1]"/>
+                </layer>
+            </layers>
+        </stochastic_multilayer_particle>
+        <surface_zones outer_boundary="particle_outer_surface">
+            <residual_zone name="heat_zone"/>
+        </surface_zones>
+    </geometry>
+    <mesh>
+        <element geometry_order="2"/>
+        <sizing>
+            <!-- 二次曲边几何逼近圆弧; H1 场仍为一次; 目标尺寸不等于严格单元边长 -->
+            <global>
+                <min_edge_length value="8.0" unit="[um]"/>
+                <max_edge_length value="30.0" unit="[um]"/>
+            </global>
+            <region name="kernel"><target_edge_length value="30.0" unit="[um]"/></region>
+            <region name="buffer"><target_edge_length value="20.0" unit="[um]"/></region>
+            <region name="ipyc"><target_edge_length value="10.0" unit="[um]"/></region>
+            <region name="sic"><target_edge_length value="8.0" unit="[um]"/></region>
+            <region name="opyc"><target_edge_length value="10.0" unit="[um]"/></region>
+        </sizing>
+        <gmsh algorithm_3d="hxt" optimizer="gmsh"/>
+        <output formats="vtk bdf"/>
+    </mesh>
+</geometry_mesh>

@@ -1,4 +1,5 @@
 from pathlib import Path
+import argparse
 import sys
 
 project_directory = Path(__file__).resolve().parents[1]
@@ -7,10 +8,16 @@ sys.path.insert(0, str(project_directory / "build" / "bindings"))
 from trimuse.input import load_input_cards
 from trimuse.output import OutputManager
 
-if __name__ == "__main__":
+def main(argv: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(description="TriMUSE: 指定总调度 XML 卡运行模拟与后处理")
+    parser.add_argument("chief_path", nargs="?", type=Path, help="总调度卡路径, 相对路径以当前工作目录为基准")
+    parser.add_argument("-i", "--input", dest="input_path", type=Path, help="总调度卡路径, 与位置参数二选一")
+    args = parser.parse_args(argv)
+    if args.chief_path is not None and args.input_path is not None:
+        parser.error("请使用位置参数或 -i/--input 指定输入卡, 不要同时使用")
 
     # 读取输入
-    chief_path: Path = project_directory / "cases/transient_half_heat_2d/case.xml"
+    chief_path = args.input_path or args.chief_path or project_directory / "cases/transient_real_particle_source_2d/case.xml"
     input_cards = load_input_cards(chief_path)
 
     # 创建输出对象
@@ -68,3 +75,7 @@ if __name__ == "__main__":
     postprocess_manager = PostprocessManager(input_cards)
     postprocess_manager.run()
     print(f"后处理完成: {postprocess_manager.postprocess_directory}", flush=True)
+
+
+if __name__ == "__main__":
+    main()

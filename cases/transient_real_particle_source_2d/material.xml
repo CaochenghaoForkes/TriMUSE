@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<material>
+
+    <mat name="uo2">
+        <thermal>
+            <conductivity model="kernel.bison_2021_uco"/>
+            <specific_heat model="kernel.fink_2000_uo2">
+                <parameter name="u235_enrichment" value="0.155" unit="[1]" si_unit="[1]"/>
+            </specific_heat>
+        </thermal>
+        <general>
+            <porosity model="common.constant">
+                <parameter name="constant_value" value="0.0" unit="[1]" si_unit="[1]"/>
+            </porosity>
+            <mass_density model="common.constant">
+                <parameter name="constant_value" value="10960.0" unit="[kg]/[m]^3" si_unit="[kg]/[m]^3"/>
+            </mass_density>
+        </general>
+    </mat>
+
+    <mat name="buffer">
+        <thermal>
+            <conductivity model="common.constant">
+                <parameter name="constant_value" value="0.5" unit="[W]/[m][K]" si_unit="[W]/[m][K]"/>
+            </conductivity>
+            <specific_heat model="common.constant">
+                <parameter name="constant_value" value="720.0" unit="[J]/[kg][K]" si_unit="[J]/[kg][K]"/>
+            </specific_heat>
+        </thermal>
+        <general>
+            <mass_density model="common.constant">
+                <parameter name="constant_value" value="1050.0" unit="[kg]/[m]^3" si_unit="[kg]/[m]^3"/>
+            </mass_density>
+        </general>
+    </mat>
+
+    <mat name="pyc">
+        <thermal>
+            <conductivity model="common.constant">
+                <parameter name="constant_value" value="4.0" unit="[W]/[m][K]" si_unit="[W]/[m][K]"/>
+            </conductivity>
+            <specific_heat model="common.constant">
+                <parameter name="constant_value" value="720.0" unit="[J]/[kg][K]" si_unit="[J]/[kg][K]"/>
+            </specific_heat>
+        </thermal>
+        <general>
+            <mass_density model="common.constant">
+                <parameter name="constant_value" value="1900.0" unit="[kg]/[m]^3" si_unit="[kg]/[m]^3"/>
+            </mass_density>
+        </general>
+    </mat>
+
+    <mat name="sic">
+        <thermal>
+            <conductivity model="common.constant">
+                <parameter name="constant_value" value="22.4833" unit="[W]/[m][K]" si_unit="[W]/[m][K]"/>
+            </conductivity>
+            <specific_heat model="common.constant">
+                <parameter name="constant_value" value="1152.6735" unit="[J]/[kg][K]" si_unit="[J]/[kg][K]"/>
+            </specific_heat>
+        </thermal>
+        <general>
+            <mass_density model="common.constant">
+                <parameter name="constant_value" value="3200.0" unit="[kg]/[m]^3" si_unit="[kg]/[m]^3"/>
+            </mass_density>
+        </general>
+    </mat>
+
+    <assign>
+        <region name="kernel" mat="uo2"/>
+        <region name="buffer" mat="buffer"/>
+        <region name="ipyc" mat="pyc"/>
+        <region name="sic" mat="sic"/>
+        <region name="opyc" mat="pyc"/>
+    </assign>
+
+</material>

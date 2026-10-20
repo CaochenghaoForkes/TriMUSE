@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<trimuse_chief name="transient_real_particle_source_2d">
+
+    <!-- 1. 算例说明 -->
+    <random seed="202609134"/>
+    <output directory="./output_transient_real_particle_source_2d_max_iteration_1"/>
+
+    <!-- 2. 本算例使用的输入卡 -->
+    <input_files>
+        <geometry_mesh file="./geometry_mesh.xml"/>
+        <material file="./material.xml"/>
+        <properties file="./properties.xml"/>
+        <thermal file="./thermal.xml"/>
+        <simulation file="./simulation_max_iteration_1.xml"/>
+        <postprocess file="./postprocess.xml"/>
+    </input_files>
+
+</trimuse_chief>

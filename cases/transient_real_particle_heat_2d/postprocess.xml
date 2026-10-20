@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<postprocess>
+    <!-- 与一维算例相同的径向位置: r=250、750 um -->
+    <points>
+     
+    </points>
+    <!-- 从颗粒中心沿 +x 方向采样, 便于与 T(r) 解析解比较 -->
+    <lines>
+        
+    </lines>
+    <!-- 二维默认逐帧输出整个轴对称计算截面 -->
+    <properties names="temperature"/>
+</postprocess>
