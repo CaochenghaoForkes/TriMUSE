@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<material>
+
+    <!-- 解析验证用均匀常物性, 两区共用同一材料; 不代表具体真实燃料 -->
+    <mat name="material1">
+        <thermal>
+            <conductivity model="common.constant">
+                <parameter name="constant_value" value="4.0" unit="[W]/[m][K]" si_unit="[W]/[m][K]"/>
+            </conductivity>
+            <specific_heat model="common.constant">
+                <parameter name="constant_value" value="500.0" unit="[J]/[kg][K]" si_unit="[J]/[kg][K]"/>
+            </specific_heat>
+        </thermal>
+        <general>
+            <mass_density model="common.constant">
+                <parameter name="constant_value" value="10000.0" unit="[kg]/[m]^3" si_unit="[kg]/[m]^3"/>
+            </mass_density>
+        </general>
+    </mat>
+
+    <assign>
+        <region name="fuel_region" mat="material1"/>
+        <region name="non_fuel_region" mat="material1"/>
+    </assign>
+
+</material>

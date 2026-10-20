@@ -1,4 +1,5 @@
 from __future__ import annotations
+from collections import Counter
 from dataclasses import asdict, fields
 from datetime import datetime
 from pathlib import Path
@@ -22,8 +23,7 @@ class OutputManager:
         self.completed_file = self.directory / "simulation_complete.flag"
         self.started_at = self._now()
         self.start_clock = perf_counter()
-        self.modules = {}
-        self.module_clocks = {}
+        self.mesh_statistics = None
         self.frame_count = 0
         self.field_output = None
 
@@ -34,15 +34,26 @@ class OutputManager:
     def is_complete(self) -> bool:
         return self.completed_file.is_file()
 
-    def start_module(self, name: str) -> None:
-        self.modules[name] = {"started_at": self._now()}
-        self.module_clocks[name] = perf_counter()
+    def record_mesh(self, mesh_path: str | Path) -> None:
+        """统计实际导出的原始网格, 不统计后处理细分单元; 总数包含各维数单元"""
+        from vtkmodules.vtkCommonDataModel import vtkCellTypes
+        from vtkmodules.vtkIOLegacy import vtkUnstructuredGridReader
 
-    def finish_module(self, name: str) -> None:
-        self.modules[name].update(
-            finished_at=self._now(),
-            elapsed_seconds=perf_counter() - self.module_clocks[name]
-        )
+        reader = vtkUnstructuredGridReader()
+        reader.SetFileName(str(Path(mesh_path).with_suffix(".vtk")))
+        reader.Update()
+        mesh = reader.GetOutput()
+        counts = Counter(mesh.GetCellType(index) for index in range(mesh.GetNumberOfCells()))
+        dimension = self.input_cards.geometry_mesh.model.dimension
+        self.mesh_statistics = {
+            "total_element_count": sum(counts.values()),
+            "domain_element_count": sum(count for cell_type, count in counts.items() if vtkCellTypes.GetDimension(cell_type) == dimension),
+            "boundary_element_count": sum(count for cell_type, count in counts.items() if vtkCellTypes.GetDimension(cell_type) == dimension - 1),
+            "element_counts_by_type": {
+                vtkCellTypes.GetClassNameFromTypeId(cell_type).removeprefix("vtk"): count
+                for cell_type, count in sorted(counts.items())
+            }
+        }
 
     def initialize_field_output(self, fem_system: FemSystem) -> None:
         """只在求解分支创建 C++ 输出对象, 后处理分支不加载内核"""
@@ -61,6 +72,7 @@ class OutputManager:
             "name": cards.chief.name,
             "random_seed": cards.chief.random_seed,
             "dimension": cards.geometry_mesh.model.dimension,
+            "mesh": self.mesh_statistics,
             "fields": [item.name for item in cards.simulation.problem.field],
             "simulation_time_s": simulation_time,
             "configured_duration_s": sum(cards.simulation.problem.time_span),
@@ -68,8 +80,7 @@ class OutputManager:
             "output_frames": self.frame_count,
             "started_at": self.started_at,
             "finished_at": self._now(),
-            "elapsed_seconds": perf_counter() - self.start_clock,
-            "modules": self.modules
+            "elapsed_seconds": perf_counter() - self.start_clock
         }
         temporary = self.completed_file.with_suffix(".tmp")
         temporary.write_text(json.dumps(info, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

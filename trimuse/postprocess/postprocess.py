@@ -2,7 +2,6 @@ from __future__ import annotations
 from math import cos, sin
 from pathlib import Path
 import numpy as np
-
 from vtkmodules.vtkCommonDataModel import vtkStaticCellLocator
 
 from trimuse.input.xml_loader import InputCards
@@ -20,6 +19,7 @@ class PostprocessManager:
     """接收已读取的输入卡, 调度点、线和截面后处理, 不依赖有限元内核对象"""
 
     def __init__(self, input_cards: InputCards) -> None:
+        # 基本配置输入
         self.config = input_cards.postprocess
         self.property_metadata = {"temperature": {"unit": "K", "color": "jet"}}
         self.output_directory = Path(input_cards.chief.output.directory).expanduser().resolve()
@@ -28,15 +28,15 @@ class PostprocessManager:
         geometry = input_cards.geometry_mesh.geometry
         center = getattr(geometry, geometry.source).center
         self.center = (center.x, center.y if self.dimension > 1 else 0.0, center.z if self.dimension > 2 else 0.0)
-
+        # 初始化类对象
         self.reader = OutputReader(self.output_directory, self.config.properties)
         self.point_plotter = PointPlotter(self.output_directory, self.postprocess_directory, self.reader, self.center, self.property_metadata)
         self.line_plotter = LinePlotter(self.output_directory, self.postprocess_directory, self.reader, self.center, self.property_metadata)
         self.section_plotter = SectionPlotter(self.output_directory, self.postprocess_directory, self.reader, self.center, self.property_metadata)
+        self.section_plotter.annotation_fontsize = 10 if self.dimension == 3 else 12
         mesh_path = self.output_directory / "mesh" / f"{geometry.source}.vtk"
         self.boundary_geometry = BoundaryGeometry(mesh_path, self.dimension)
-        colors = {name: BOUNDARY_COLORS[index % len(BOUNDARY_COLORS)]
-                  for index, (name, _) in enumerate(self.boundary_geometry.boundaries)}
+        colors = {name: BOUNDARY_COLORS[index % len(BOUNDARY_COLORS)] for index, (name, _) in enumerate(self.boundary_geometry.boundaries)}
         self.line_plotter.boundary_colors = colors
         self.section_plotter.boundary_colors = colors
         self.animation_jobs: list[tuple[list[Path], Path]] = []

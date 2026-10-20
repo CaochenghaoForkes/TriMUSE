@@ -3,7 +3,6 @@ from collections.abc import Iterator
 from pathlib import Path
 from typing import TYPE_CHECKING
 from xml.etree import ElementTree as ET
-
 from vtkmodules.vtkIOXML import vtkXMLPUnstructuredGridReader, vtkXMLUnstructuredGridReader
 
 if TYPE_CHECKING:
@@ -16,8 +15,8 @@ class OutputReader:
 
     def __init__(self, output_directory: str | Path, properties: list[str]) -> None:
         """output_directory 为包含 seed 子目录后实际使用的输出根目录"""
-        self.directory = Path(output_directory).expanduser().resolve()
-        self.series: dict[str, list[tuple[float, Path]]] = {}
+        self.directory = Path(output_directory).expanduser().resolve() # expanduser() 若传入包含“~”则展开为系统当前用户主目录 resolve() 转为规范的绝对路径
+        self.series: dict[str, list[tuple[float, Path]]] = {} # 每个属性对应的“时间—数据文件路径”列表
         for name in properties:
             field = self.property_field_map[name]
             path = self.directory / field / name / f"{name}.pvd"

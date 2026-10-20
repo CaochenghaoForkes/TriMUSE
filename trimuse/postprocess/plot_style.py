@@ -36,15 +36,17 @@ def plot_style(method):
     return wrapped
 
 
-def annotate_details(axes, lines: list[str], position: tuple[float, float] = (0.97, 0.94), align: str = "right") -> None:
-    """逐行注释统一使用 12 pt 斜体, 在框内顶对齐"""
+def annotate_details(axes, lines: list[str], position: tuple[float, float] = (0.97, 0.94), align: str = "right", fontsize: float = 12) -> None:
+    """逐行斜体注释, 默认 12 pt, 在框内顶对齐"""
     axes.text(*position, "\n".join(lines), transform=axes.transAxes, ha=align, va="top",
-              fontsize=12, fontstyle="italic", linespacing=1.25,
+              fontsize=fontsize, fontstyle="italic", linespacing=1.25,
               bbox={"facecolor": "white", "edgecolor": "none", "alpha": 0.8})
 
 
-def annotate_time(axes, time: float, position: tuple[float, float] = (0.97, 0.94), details: list[str] | None = None) -> None:
-    annotate_details(axes, [f"t = {time:.8g} s", *(details or [])], position)
+def annotate_time(axes, time: float, position: tuple[float, float] = (0.97, 0.94), details: list[str] | None = None, fontsize: float = 12) -> None:
+    coefficient, exponent = f"{time:.2e}".split("e")
+    label = rf"$t = {coefficient}\times10^{{{int(exponent)}}}\ \mathit{{s}}$"
+    annotate_details(axes, [label, *(details or [])], position, fontsize=fontsize)
 
 
 def coordinate_labels(point: tuple[float, float, float]) -> list[str]:
@@ -61,3 +63,8 @@ def direction_labels(theta: float, phi: float | None = None) -> list[str]:
 def property_label(name: str, metadata: dict[str, dict[str, str]]) -> str:
     unit = metadata.get(name, {}).get("unit")
     return f"{name} ({unit})" if unit else name
+
+
+def scientific_axes(axes) -> None:
+    """x、y 轴统一显示科学计数法, 不使用加法偏移量"""
+    axes.ticklabel_format(axis="both", style="sci", scilimits=(0, 0), useOffset=False, useMathText=True)

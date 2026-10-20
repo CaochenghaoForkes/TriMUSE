@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<geometry_mesh>
+    <!-- 三维同心球, 与一维、二维版本采用相同物理参数 -->
+    <model dimension="3"/>
+    <geometry source="ideal_multilayer_sphere">
+        <ideal_multilayer_sphere>
+            <center>
+                <x value="0.0" unit="[um]"/>
+                <y value="0.0" unit="[um]"/>
+                <z value="0.0" unit="[um]"/>
+            </center>
+            <layers>
+                <layer name="fuel_region">
+                    <outer_boundary name="interface"/>
+                    <outer_radius value="500" unit="[um]"/>
+                </layer>
+                <layer name="non_fuel_region">
+                    <outer_boundary name="outer_boundary"/>
+                    <outer_radius value="1000" unit="[um]"/>
+                </layer>
+            </layers>
+        </ideal_multilayer_sphere>
+        <surface_zones outer_boundary="outer_boundary">
+            <residual_zone name="surface_zone"/>
+        </surface_zones>
+    </geometry>
+    <mesh>
+        <element geometry_order="2"/>
+        <sizing>
+            <!-- 二次曲面几何逼近球面; 三维起始网格适当放粗, 后续可逐级加密做收敛验证 -->
+            <global>
+                <min_edge_length value="20.0" unit="[um]"/>
+                <max_edge_length value="60.0" unit="[um]"/>
+            </global>
+            <region name="fuel_region"><target_edge_length value="40.0" unit="[um]"/></region>
+            <region name="non_fuel_region"><target_edge_length value="60.0" unit="[um]"/></region>
+        </sizing>
+        <gmsh algorithm_3d="hxt" optimizer="gmsh"/>
+    </mesh>
+</geometry_mesh>

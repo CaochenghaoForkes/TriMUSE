@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<simulation>
+
+    <problem>
+        <time_span value="2.0" unit="[s]"/>
+        <min_time_step value="1.0" unit="[s]"/>
+        <field name="thermal" model="steady"/>
+    </problem>
+
+    <solver>
+        <quadrature domain_order="4" boundary_order="3"/>
+        <field name="thermal">
+            <fem_space family="H1" order="1"/>
+            <linear_solver method="cg" preconditioner="none" relative_tolerance="1e-9" max_iterations="5000"/>
+            <nonlinear_solver method="picard" relative_tolerance="1e-6" max_iterations="50">
+                <absolute_tolerance value="1e-4" unit="[K]"/>
+            </nonlinear_solver>
+        </field>
+    </solver>
+
+    <coupling exchange_interval="1">
+        <step fields="thermal" method="single"/>
+    </coupling>
+
+    <output>
+        <write_interval value="-1" unit="[s]"/>
+    </output>
+
+</simulation>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<thermal>
+
+    <initial>
+        <temperature region="fuel_region" model="uniform">
+            <parameter name="uniform_value" value="293.15" unit="[K]" si_unit="[K]"/>
+        </temperature>
+        <temperature region="non_fuel_region" model="uniform">
+            <parameter name="uniform_value" value="293.15" unit="[K]" si_unit="[K]"/>
+        </temperature>
+    </initial>
+
+    <boundaries>
+        <boundary name="surface_zone" model="dirichlet"/>
+    </boundaries>
+
+    <interfaces>
+        <interface name="interface" model="perfect_contact"/>
+    </interfaces>
+
+    <source>
+        <region name="fuel_region" model="volumetric_power"/>
+    </source>
+
+</thermal>

@@ -10,7 +10,7 @@ from trimuse.output import OutputManager
 if __name__ == "__main__":
 
     # 读取输入
-    chief_path = project_directory / "cases/source/case.xml"
+    chief_path = project_directory / "cases/transient_constant_power_ideal_sphere_3d/case.xml"
     input_cards = load_input_cards(chief_path)
 
     output_manager = OutputManager(input_cards)
@@ -30,37 +30,22 @@ if __name__ == "__main__":
 
         rng = np.random.default_rng(input_cards.chief.random_seed)
 
-        output_manager.start_module("input_snapshot")
         output_manager.write_input_cards()
-        output_manager.finish_module("input_snapshot")
 
         # 生成或复用网格, 创建公共有限元对象。
-        output_manager.start_module("geometry_mesh")
         mesh_info = GeometryMeshBuilder.build(input_cards.geometry_mesh, output_directory, rng)
-        output_manager.finish_module("geometry_mesh")
-        output_manager.start_module("fem")
+        output_manager.record_mesh(mesh_info.path)
         fem_manager = FemManager(mesh_info, input_cards.simulation.solver)
-        output_manager.finish_module("fem")
 
         # 配置属性、求解器和热问题, 同时初始化温度场。
-        output_manager.start_module("properties")
         properties_manager = PropertiesManager(input_cards, mesh_info, fem_manager.fem_system)
-        output_manager.finish_module("properties")
-        output_manager.start_module("solver")
         solver_manager = SolverManager(input_cards.simulation.solver)
-        output_manager.finish_module("solver")
-        output_manager.start_module("thermal_initialization")
         thermal_problem = Thermal(input_cards, mesh_info, fem_manager.fem_system, properties_manager.properties_system, solver_manager.solver_system)
-        output_manager.finish_module("thermal_initialization")
 
         # 推进全部时间步并保存结果; 只有正常结束后才标记完成。
-        output_manager.start_module("field_output_initialization")
         output_manager.initialize_field_output(fem_manager.fem_system)
-        output_manager.finish_module("field_output_initialization")
         coupling_manager = CouplingManager(input_cards.simulation, properties_manager, {"thermal": thermal_problem}, output_manager)
-        output_manager.start_module("solve")
         coupling_manager.run()
-        output_manager.finish_module("solve")
         output_manager.finish_simulation(coupling_manager.time, coupling_manager.cycle)
 
     # 新计算及已有完整结果均进入后处理, 不依赖本次创建求解对象。

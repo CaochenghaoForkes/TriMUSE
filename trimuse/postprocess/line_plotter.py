@@ -8,7 +8,7 @@ from vtkmodules.vtkCommonDataModel import vtkGenericCell
 
 from .output_reader import OutputReader
 from .point_plotter import PointPlotter
-from .plot_style import plot_style, annotate_time, property_label, BOUNDARY_COLORS
+from .plot_style import plot_style, annotate_time, property_label, BOUNDARY_COLORS, scientific_axes
 
 if TYPE_CHECKING:
     from vtkmodules.vtkCommonDataModel import vtkStaticCellLocator, vtkUnstructuredGrid
@@ -100,6 +100,7 @@ class LinePlotter:
             axis.legend(loc="lower left", ncols=2, fontsize=9, frameon=False, labelspacing=0.7)
         annotate_time(axis, time, details=annotation)
         axis.grid(False)
+        scientific_axes(axis)
         figure.tight_layout()
         directory = self.postprocess_directory / "lines" / line_name / property_name
         directory.mkdir(parents=True, exist_ok=True)

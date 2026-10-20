@@ -10,7 +10,7 @@ from vtkmodules.vtkFiltersCore import vtkCutter, vtkTriangleFilter
 from vtkmodules.vtkFiltersGeometry import vtkDataSetSurfaceFilter
 
 from .output_reader import OutputReader
-from .plot_style import plot_style, annotate_time, property_label, BOUNDARY_COLORS
+from .plot_style import plot_style, annotate_time, property_label, BOUNDARY_COLORS, scientific_axes
 
 if TYPE_CHECKING:
     from vtkmodules.vtkCommonDataModel import vtkPolyData, vtkUnstructuredGrid
@@ -26,6 +26,7 @@ class SectionPlotter:
         self.center = np.asarray(center, dtype=float)
         self.property_metadata = property_metadata if property_metadata is not None else {}
         self.boundary_colors: dict[str, str] = {}
+        self.annotation_fontsize = 12
 
     @staticmethod
     def sample_section(mesh: vtkUnstructuredGrid, center: tuple[float, float, float], normal: tuple[float, float, float]) -> vtkPolyData:
@@ -89,6 +90,7 @@ class SectionPlotter:
         from matplotlib.collections import LineCollection
         from matplotlib.lines import Line2D
         from matplotlib.colors import Normalize
+        from mpl_toolkits.axes_grid1 import make_axes_locatable
 
         coordinates = vtk_to_numpy(section.GetPoints().GetData())
         normal = np.asarray(normal, dtype=float)
@@ -110,7 +112,10 @@ class SectionPlotter:
             image = axes.tripcolor(triangulation, vtk_to_numpy(values), shading="gouraud", norm=norm, cmap=color)
         else:
             image = axes.tripcolor(triangulation, facecolors=vtk_to_numpy(section.GetCellData().GetArray(property_name)), shading="flat", norm=norm, cmap=color)
-        colorbar = figure.colorbar(image, ax=axes, pad=0.04)
+        # 随等比例主图一起布局, 避免色标保留原始子图高度而明显长于截面。
+        divider = make_axes_locatable(axes)
+        colorbar_axes = divider.append_axes("right", size="5%", pad=0.12)
+        colorbar = figure.colorbar(image, cax=colorbar_axes)
         colorbar.set_label(property_label(property_name, self.property_metadata), fontstyle="italic")
         if boundaries:
             handles = []
@@ -128,10 +133,11 @@ class SectionPlotter:
         axes.set_aspect("equal")
         axes.set_xlabel("u(m)", fontstyle="italic")
         axes.set_ylabel("v(m)", fontstyle="italic")
-        annotate_time(axes, time, position=(0.90, 0.94), details=annotation)
+        annotate_time(axes, time, position=(0.90, 0.94), details=annotation, fontsize=self.annotation_fontsize)
+        scientific_axes(axes)
         figure.tight_layout()
         directory = self.postprocess_directory / "sections" / section_name / property_name
         directory.mkdir(parents=True, exist_ok=True)
         path = directory / f"{frame_directory}.png"
-        figure.savefig(path)
+        figure.savefig(path, bbox_inches="tight")
         return path

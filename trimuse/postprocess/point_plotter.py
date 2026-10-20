@@ -7,7 +7,7 @@ from vtkmodules.vtkCommonCore import reference
 from vtkmodules.vtkCommonDataModel import vtkGenericCell, vtkStaticCellLocator
 
 from .output_reader import OutputReader
-from .plot_style import plot_style, property_label, annotate_details, coordinate_labels
+from .plot_style import plot_style, property_label, annotate_details, coordinate_labels, scientific_axes
 
 if TYPE_CHECKING:
     from vtkmodules.vtkCommonDataModel import vtkUnstructuredGrid
@@ -79,6 +79,7 @@ class PointPlotter:
         axis.grid(False)
         if point is not None:
             annotate_details(axis, coordinate_labels(point), position=(0.03, 0.94), align="left")
+        scientific_axes(axis)
         figure.tight_layout()
         directory = self.postprocess_directory / "points" / point_name
         directory.mkdir(parents=True, exist_ok=True)

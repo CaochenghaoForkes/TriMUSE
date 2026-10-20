@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<postprocess>
+
+    <points>
+        <!-- 球心用于观察最明显的升温过程 -->
+        <point name="center">
+            <center>
+                <x value="0.0" unit="[um]"/>
+            </center>
+        </point>
+        <point name="fuel">
+            <center>
+                <x value="250" unit="[um]"/>
+            </center>
+        </point>
+        <point name="non_fuel">
+            <center>
+                <x value="750" unit="[um]"/>
+            </center>
+        </point>
+    </points>
+
+    <properties names="temperature"/>
+
+</postprocess>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<trimuse_chief name="output_steady_constant_power_ideal_sphere_3d">
+
+    <!-- 1. 算例说明 -->
+    <random seed="202609134"/>
+    <output directory="./output_steady_constant_power_ideal_sphere_3d"/>
+
+    <!-- 2. 本算例使用的输入卡 -->
+    <input_files>
+        <geometry_mesh file="./geometry_mesh.xml"/>
+        <material file="./material.xml"/>
+        <properties file="./properties.xml"/>
+        <thermal file="./thermal.xml"/>
+        <simulation file="./simulation.xml"/>
+        <postprocess file="./postprocess.xml"/>
+    </input_files>
+
+</trimuse_chief>
