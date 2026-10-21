@@ -335,15 +335,17 @@ bool PropertiesSystem::required_states_changed(int attribute, const std::vector<
         {
             const auto& old_values = previous.integration_point_values.at(name);
             const auto& new_values = current.integration_point_values.at(name);
-            for (const auto& [key, value] : new_values)
+            for (const int element : fem_system_.mesh_data().region_elements(attribute))
             {
-                if (fem_system_.mesh_data().mfem_mesh().GetAttribute(std::get<0>(key)) != attribute)
+                // 积分点表按单元编号排序, 只比较当前单元已有的积分点。
+                for (auto point = new_values.lower_bound({element, 0, 0});
+                     point != new_values.end() && std::get<0>(point->first) == element; ++point)
                 {
-                    continue;
-                }
-                if (old_values.at(key) != value)
-                {
-                    return true;
+                    const auto& [key, value] = *point;
+                    if (old_values.at(key) != value)
+                    {
+                        return true;
+                    }
                 }
             }
         }
@@ -370,12 +372,8 @@ void PropertiesSystem::evaluate_and_store_points(const Manager& manager, const P
     PropertiesStatePoint common_point;
     common_point.region_attribute = region_attribute;
     load_required_states(common_point, common_required);
-    for (int element = 0; element < mesh.GetNE(); ++element)
+    for (const int element : fem_system_.mesh_data().region_elements(region_attribute))
     {
-        if (mesh.GetAttribute(element) != region_attribute)
-        {
-            continue;
-        }
         const mfem::Geometry::Type geometry = mesh.GetElementBaseGeometry(element);
         const mfem::IntegrationRule* rule = fem_system_.domain_quadrature_rule(geometry);
         mfem::IsoparametricTransformation transformation;

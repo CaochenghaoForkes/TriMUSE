@@ -9,6 +9,7 @@ namespace trimuse
 MeshData::MeshData(const std::string& mesh_path)
     : mfem_mesh_(mesh_path, 1, 1, true) // 网格路径, 生成边, 准备细化数据, 修正反向单元
 {
+    build_region_elements();
     calculate_region_volumes();
 }
 
@@ -50,6 +51,20 @@ std::vector<int> MeshData::boundary_attributes() const
 const std::unordered_map<int, double>& MeshData::region_volumes() const
 {
     return region_volumes_;
+}
+
+const std::vector<int>& MeshData::region_elements(int region_attribute) const
+{
+    return region_elements_.at(region_attribute);
+}
+
+void MeshData::build_region_elements()
+{
+    region_elements_.clear();
+    for (int element = 0; element < mfem_mesh_.GetNE(); ++element)
+    {
+        region_elements_[mfem_mesh_.GetAttribute(element)].push_back(element);
+    }
 }
 
 void MeshData::calculate_region_volumes()

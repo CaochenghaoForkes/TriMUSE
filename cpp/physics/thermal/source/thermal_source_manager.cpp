@@ -44,13 +44,10 @@ ThermalSourceManager::ThermalSourceManager(FemSystem& fem_system, const std::vec
         marker.SetSize(mesh.attributes.Max());
         marker = 0;
         marker[region_attribute - 1] = 1;
-        for (int element = 0; element < mesh.GetNE(); ++element)
+        for (const int element : fem_system_.mesh_data().region_elements(region_attribute))
         {
-            if (mesh.GetAttribute(element) == region_attribute)
-            {
-                const mfem::IntegrationRule* rule = fem_system_.domain_quadrature_rule(mesh.GetElementBaseGeometry(element));
-                source_coefficient_.values[element].resize(rule->GetNPoints(), 0.0);
-            }
+            const mfem::IntegrationRule* rule = fem_system_.domain_quadrature_rule(mesh.GetElementBaseGeometry(element));
+            source_coefficient_.values[element].resize(rule->GetNPoints(), 0.0);
         }
     }
 }
@@ -64,12 +61,8 @@ void ThermalSourceManager::update(const PropertiesFieldData& properties_field_da
         {
             continue;
         }
-        for (int element = 0; element < mesh.GetNE(); ++element)
+        for (const int element : fem_system_.mesh_data().region_elements(config.region_attribute))
         {
-            if (mesh.GetAttribute(element) != config.region_attribute)
-            {
-                continue;
-            }
             const mfem::IntegrationRule* rule = fem_system_.domain_quadrature_rule(mesh.GetElementBaseGeometry(element));
             for (int point_index = 0; point_index < rule->GetNPoints(); ++point_index)
             {

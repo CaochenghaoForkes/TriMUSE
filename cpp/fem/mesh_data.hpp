@@ -27,6 +27,8 @@ public:
 
     std::vector<int> boundary_attributes() const;
 
+    const std::vector<int>& region_elements(int region_attribute) const; // 指定材料区域的域内单元编号
+
     const std::unordered_map<int, double>& region_volumes() const; // 各材料区域的实际体积, 单位 m³
 
     mfem::Mesh& mfem_mesh();
@@ -34,9 +36,13 @@ public:
     const mfem::Mesh& mfem_mesh() const;
 
 private:
+    void build_region_elements();
+
     void calculate_region_volumes();
 
     mfem::Mesh mfem_mesh_;
+
+    std::unordered_map<int, std::vector<int>> region_elements_;
 
     std::unordered_map<int, double> region_volumes_;
 };
