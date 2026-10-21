@@ -14,9 +14,12 @@ void ExternalModelManager::register_models()
 {
     power_model_manager_.register_models();
     environment_temperature_model_manager_.register_models();
+    environment_nuclide_concentration_model_manager_.register_models();
     surface_temperature_model_manager_.register_models();
     heat_flux_model_manager_.register_models();
     burnup_fima_fraction_model_manager_.register_models();
+    uranium_fraction_model_manager_.register_models();
+    nuclide_birth_rate_model_manager_.register_models();
 }
 
 void ExternalModelManager::assign(const std::string& name, int attribute, const std::string& model_name, const ModelParameterMap& parameters, const std::string& value_type)
@@ -46,6 +49,21 @@ void ExternalModelManager::assign(const std::string& name, int attribute, const 
         burnup_fima_fraction_model_manager_.assign(model_name, parameters, value_type);
         return;
     }
+    if (name == "uranium_fraction")
+    {
+        uranium_fraction_model_manager_.assign(attribute, model_name, parameters, value_type);
+        return;
+    }
+    if (name == "nuclide_birth_rate")
+    {
+        nuclide_birth_rate_model_manager_.assign(model_name, parameters, value_type);
+        return;
+    }
+    if (name == "environment_nuclide_concentration")
+    {
+        environment_nuclide_concentration_model_manager_.assign(attribute, model_name, parameters, value_type);
+        return;
+    }
     throw std::out_of_range("尚未支持的外部量: " + name);
 }
 
@@ -71,6 +89,18 @@ StateValue ExternalModelManager::evaluate(const std::string& name, const Propert
     {
         return burnup_fima_fraction_model_manager_.evaluate(point);
     }
+    if (name == "uranium_fraction")
+    {
+        return uranium_fraction_model_manager_.evaluate(point);
+    }
+    if (name == "nuclide_birth_rate")
+    {
+        return nuclide_birth_rate_model_manager_.evaluate(point);
+    }
+    if (name == "environment_nuclide_concentration")
+    {
+        return environment_nuclide_concentration_model_manager_.evaluate(point);
+    }
     throw std::out_of_range("尚未支持的外部量: " + name);
 }
 
@@ -95,6 +125,18 @@ const std::vector<std::string>& ExternalModelManager::required_states(const std:
     if (name == "burnup_fima_fraction")
     {
         return burnup_fima_fraction_model_manager_.required_states(model_name);
+    }
+    if (name == "uranium_fraction")
+    {
+        return uranium_fraction_model_manager_.required_states(model_name);
+    }
+    if (name == "nuclide_birth_rate")
+    {
+        return nuclide_birth_rate_model_manager_.required_states(model_name);
+    }
+    if (name == "environment_nuclide_concentration")
+    {
+        return environment_nuclide_concentration_model_manager_.required_states(model_name);
     }
     throw std::out_of_range("尚未支持的外部量: " + name);
 }

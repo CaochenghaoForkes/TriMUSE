@@ -86,12 +86,17 @@ private:
         {"region_volume", PropertyType::Precomputed, PropertyScope::Region},
         {"time", PropertyType::External, PropertyScope::Global},
         {"environment_temperature", PropertyType::External, PropertyScope::Zone},
+        {"environment_nuclide_concentration", PropertyType::External, PropertyScope::Zone}, // atom/m³
         {"surface_temperature", PropertyType::External, PropertyScope::Zone}, // K, 指定表面温度
         {"heat_flux", PropertyType::External, PropertyScope::Zone}, // W/m², 外流为正、流入为负
         {"burnup_fima_fraction", PropertyType::External, PropertyScope::Global},
         {"power", PropertyType::External, PropertyScope::Region},
+        {"nuclide_birth_rate", PropertyType::External, PropertyScope::Global}, // atom/s, 全局核素产生率
+        {"uranium_fraction", PropertyType::External, PropertyScope::Region}, // 各区域占全局产生率的份额
         {"heat_transfer_coef", PropertyType::Derived, PropertyScope::Zone},
+        {"mass_transfer_coef", PropertyType::Derived, PropertyScope::Zone}, // m/s
         {"volumetric_power", PropertyType::Derived, PropertyScope::IntegrationPoint},
+        {"volumetric_nuclide_birth_rate", PropertyType::Derived, PropertyScope::IntegrationPoint}, // atom/(m³·s)
         {"general.porosity", PropertyType::Material, PropertyScope::IntegrationPoint},
         {"general.mass_density", PropertyType::Material, PropertyScope::IntegrationPoint},
         {"thermal.conductivity", PropertyType::Material, PropertyScope::IntegrationPoint},

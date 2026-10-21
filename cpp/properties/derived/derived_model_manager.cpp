@@ -14,6 +14,8 @@ void DerivedModelManager::register_models()
 {
     volumetric_power_model_manager_.register_models();
     heat_transfer_coef_model_manager_.register_models();
+    mass_transfer_coef_model_manager_.register_models();
+    volumetric_nuclide_birth_rate_model_manager_.register_models();
 }
 
 void DerivedModelManager::assign(const std::string& name, int attribute, const std::string& model_name, const ModelParameterMap& parameters)
@@ -26,6 +28,16 @@ void DerivedModelManager::assign(const std::string& name, int attribute, const s
     if (name == "heat_transfer_coef")
     {
         heat_transfer_coef_model_manager_.assign(attribute, model_name, parameters);
+        return;
+    }
+    if (name == "volumetric_nuclide_birth_rate")
+    {
+        volumetric_nuclide_birth_rate_model_manager_.assign(attribute, model_name, parameters);
+        return;
+    }
+    if (name == "mass_transfer_coef")
+    {
+        mass_transfer_coef_model_manager_.assign(attribute, model_name, parameters);
         return;
     }
     throw std::out_of_range("尚未支持的派生量: " + name);
@@ -41,6 +53,14 @@ StateValue DerivedModelManager::evaluate(const std::string& name, const Properti
     {
         return heat_transfer_coef_model_manager_.evaluate(point);
     }
+    if (name == "volumetric_nuclide_birth_rate")
+    {
+        return volumetric_nuclide_birth_rate_model_manager_.evaluate(point);
+    }
+    if (name == "mass_transfer_coef")
+    {
+        return mass_transfer_coef_model_manager_.evaluate(point);
+    }
     throw std::out_of_range("尚未支持的派生量: " + name);
 }
 
@@ -53,6 +73,14 @@ const std::vector<std::string>& DerivedModelManager::required_states(const std::
     if (name == "heat_transfer_coef")
     {
         return heat_transfer_coef_model_manager_.required_states(model_name);
+    }
+    if (name == "volumetric_nuclide_birth_rate")
+    {
+        return volumetric_nuclide_birth_rate_model_manager_.required_states(model_name);
+    }
+    if (name == "mass_transfer_coef")
+    {
+        return mass_transfer_coef_model_manager_.required_states(model_name);
     }
     throw std::out_of_range("尚未支持的派生量: " + name);
 }
