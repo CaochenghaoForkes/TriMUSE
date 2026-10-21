@@ -28,10 +28,17 @@ class ChiefCard:
 
         directory: str
 
+    @dataclass
+    class Workflow:
+        """ask 交互选择, run 新计算, postprocess 复用完整结果"""
+
+        mode: str = "ask"
+
     name: str
     random_seed: int
     output: Output
     input_files: InputFiles = field(default_factory=InputFiles)
+    workflow: Workflow = field(default_factory=Workflow)
 
 class ChiefCardLoader:
     """读取总调度配置, 空路径在当前工作目录生成模板并退出"""
@@ -49,13 +56,21 @@ class ChiefCardLoader:
         random_seed = cls.read_random(XmlUtils.read_child(root, "random"))
         output = cls.read_output(XmlUtils.read_child(root, "output"), chief_path.parent, random_seed)
         input_files = cls.read_input_files(XmlUtils.read_child(root, "input_files"), chief_path.parent)
+        workflow = cls.read_workflow(XmlUtils.read_child(root, "workflow", required=False))
         chief_card = ChiefCard(
             name=name,
             random_seed=random_seed,
             output=output,
-            input_files=input_files
+            input_files=input_files,
+            workflow=workflow
         )
         return chief_card
+
+    @staticmethod
+    def read_workflow(element: ET.Element | None) -> ChiefCard.Workflow:
+        """读取可选运行模式, 省略时交互选择。"""
+        mode = XmlUtils.read_attribute(element, "mode", default="ask")
+        return ChiefCard.Workflow(mode=mode)
 
     @staticmethod
     def read_random(element: ET.Element) -> int:

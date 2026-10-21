@@ -5,6 +5,8 @@ class ChiefCardExamine:
 
     @staticmethod
     def examine(card: ChiefCard) -> None:
-        """检查随机种子"""
+        """检查随机种子和运行模式"""
         if card.random_seed < 0:
             raise ValueError("random seed 必须非负")
+        if card.workflow.mode not in ("ask", "run", "postprocess"):
+            raise ValueError("workflow.mode 必须为 ask、run 或 postprocess")

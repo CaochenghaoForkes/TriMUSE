@@ -140,6 +140,7 @@ class OutputManager:
         self._node(chief, "random", seed=cards.chief.random_seed)
         # Loader 会追加 seed 子目录, 此处写回用户目录, 避免重读后重复追加。
         self._node(chief, "output", directory=self.directory.parent)
+        self._node(chief, "workflow", mode=cards.chief.workflow.mode)
         input_files = self._node(chief, "input_files")
         writers = {
             "geometry_mesh": self._geometry_card,

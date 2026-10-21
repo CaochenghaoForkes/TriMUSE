@@ -11,6 +11,8 @@ class ChiefCardTemplate:
     <random seed="[int]"/>
     <!-- 相对路径以本卡所在目录为基准, 实际输出到该目录/seed_<随机种子>/ -->
     <output directory="[str]"/>
+    <!-- 可省略, 默认 ask; run 仅在空目录计算, postprocess 只处理已有完整结果 -->
+    <workflow mode="ask"/>
     <input_files>
         <!-- 子卡相对路径以本卡所在目录为基准, file 留空时生成对应模板并退出 -->
         <geometry_mesh file="[str]"/>

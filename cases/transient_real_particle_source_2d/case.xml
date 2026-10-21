@@ -4,6 +4,8 @@
     <!-- 1. 算例说明 -->
     <random seed="202609134"/>
     <output directory="./output_transient_real_particle_source_2d"/>
+    <!-- ask 交互选择; run 新计算; postprocess 复用已有完整结果 -->
+    <workflow mode="ask"/>
 
     <!-- 2. 本算例使用的输入卡 -->
     <input_files>
