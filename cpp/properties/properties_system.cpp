@@ -378,19 +378,19 @@ void PropertiesSystem::evaluate_and_store_points(const Manager& manager, const P
         const mfem::IntegrationRule* rule = fem_system_.domain_quadrature_rule(geometry);
         mfem::IsoparametricTransformation transformation;
         mesh.GetElementTransformation(element, &transformation);
-        mfem::Vector position(mesh.SpaceDimension());
+        const auto& positions = fem_system_.domain_quadrature_positions(element);
         for (int point_index = 0; point_index < rule->GetNPoints(); ++point_index)
         {
             const mfem::IntegrationPoint& integration_point = rule->IntPoint(point_index);
             transformation.SetIntPoint(&integration_point);
-            transformation.Transform(integration_point, position);
+            const auto& position = positions[point_index];
             const PropertiesFieldData::IntegrationPointKey key{element, rule->GetOrder(), point_index};
 
             PropertiesStatePoint point;
             point.region_attribute = region_attribute;
-            point.x = position.Size() > 0 ? position[0] : 0.0;
-            point.y = position.Size() > 1 ? position[1] : 0.0;
-            point.z = position.Size() > 2 ? position[2] : 0.0;
+            point.x = position[0];
+            point.y = position[1];
+            point.z = position[2];
             point.values = common_point.values;
             load_required_states(point, point_required, key);
             for (const std::string& name : field_required)

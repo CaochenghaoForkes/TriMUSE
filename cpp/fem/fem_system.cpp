@@ -19,6 +19,7 @@ FemSystem::FemSystem(const std::string& mesh_path, int domain_quadrature_order, 
             radial_origin_x_ = std::min(radial_origin_x_, mesh.GetVertex(vertex)[0]);
         }
     }
+    cache_domain_quadrature_positions();
 }
 
 FemSystem::FieldObjects::FieldObjects(MeshData& mesh_data, int order, int vector_dimension)
@@ -82,6 +83,31 @@ const mfem::IntegrationRule* FemSystem::domain_quadrature_rule(mfem::Geometry::T
 const mfem::IntegrationRule* FemSystem::boundary_quadrature_rule(mfem::Geometry::Type geometry) const
 {
     return boundary_quadrature_rules_.at(geometry);
+}
+
+void FemSystem::cache_domain_quadrature_positions()
+{
+    const mfem::Mesh& mesh = mesh_data_.mfem_mesh();
+    domain_quadrature_positions_.resize(mesh.GetNE());
+    mfem::Vector position(mesh.SpaceDimension());
+    for (int element = 0; element < mesh.GetNE(); ++element)
+    {
+        const mfem::IntegrationRule* rule = domain_quadrature_rule(mesh.GetElementBaseGeometry(element));
+        mfem::IsoparametricTransformation transformation;
+        mesh.GetElementTransformation(element, &transformation);
+        QuadraturePositions& positions = domain_quadrature_positions_[element];
+        positions.resize(rule->GetNPoints());
+        for (int point_index = 0; point_index < rule->GetNPoints(); ++point_index)
+        {
+            transformation.Transform(rule->IntPoint(point_index), position);
+            positions[point_index] = {position[0], position.Size() > 1 ? position[1] : 0.0, position.Size() > 2 ? position[2] : 0.0};
+        }
+    }
+}
+
+const FemSystem::QuadraturePositions& FemSystem::domain_quadrature_positions(int element) const
+{
+    return domain_quadrature_positions_[element];
 }
 
 double FemSystem::geometric_weight(mfem::ElementTransformation& transformation, const mfem::IntegrationPoint& point) const
