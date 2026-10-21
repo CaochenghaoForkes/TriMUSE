@@ -399,7 +399,7 @@ void PropertiesSystem::evaluate_and_store_points(const Manager& manager, const P
             {
                 const auto trial = trial_fields.find(name);
                 const mfem::GridFunction& field = trial != trial_fields.end()
-                    ? *trial->second : fem_system_.field_data(name == "temperature" ? "thermal" : name).mfem_grid_function();
+                    ? *trial->second : fem_system_.field_data(name).mfem_grid_function();
                 if (field.FESpace()->GetVDim() == 1)
                 {
                     point.values[name] = field.GetValue(transformation, integration_point);

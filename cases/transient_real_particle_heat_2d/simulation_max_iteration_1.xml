@@ -4,12 +4,12 @@
     <problem>
         <time_span value="0.5" unit="[s]"/>
         <min_time_step value="0.01" unit="[s]"/>
-        <field name="thermal" model="transient" theta="1.0"/>
+        <field name="temperature" model="transient" theta="1.0"/>
     </problem>
 
     <solver>
         <quadrature domain_order="4" boundary_order="3"/>
-        <field name="thermal">
+        <field name="temperature">
             <fem_space family="H1" order="1"/>
             <linear_solver method="cg" preconditioner="none" relative_tolerance="1e-9" max_iterations="5000"/>
             <nonlinear_solver method="picard" relative_tolerance="1e-6" max_iterations="1">
@@ -19,7 +19,7 @@
     </solver>
 
     <coupling exchange_interval="1">
-        <step fields="thermal" method="single"/>
+        <step fields="temperature" method="single"/>
     </coupling>
 
     <output>

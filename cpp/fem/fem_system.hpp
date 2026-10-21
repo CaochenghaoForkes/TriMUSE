@@ -21,7 +21,7 @@ public:
 
     FemSystem& operator=(FemSystem&&) = delete; // 内部空间引用公共网格, 管理对象保持固定地址
 
-    void add_field(const std::string& name, int order, int vector_dimension = 1); // 创建场的有限元空间与场变量
+    void add_field(const std::string& name, int order, int vector_dimension = 1); // 按求解变量名(如 temperature)创建有限元空间与场数据
 
     MeshData& mesh_data(); // 返回可写网格数据
 

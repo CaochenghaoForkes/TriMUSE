@@ -17,7 +17,7 @@ class Thermal:
     field_state = "temperature"
 
     def __init__(self, input_cards: InputCards, mesh_info: MeshInfo, fem: FemSystem, properties: PropertiesSystem, solver: SolverSystem) -> None:
-        problem_type = next(field.model for field in input_cards.simulation.problem.field if field.name == "thermal")
+        problem_type = next(field.model for field in input_cards.simulation.problem.field if field.name == self.field_state)
         initial_configs = self.prepare_initial(input_cards.thermal.initial, mesh_info.region_attributes)
         source_configs = self.prepare_source(input_cards.thermal.source, mesh_info.region_attributes)
         boundary_configs = self.prepare_boundary(input_cards.thermal.boundary, mesh_info.boundary_attributes)

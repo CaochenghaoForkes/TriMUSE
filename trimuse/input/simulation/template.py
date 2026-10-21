@@ -13,13 +13,14 @@ class SimulationCardTemplate:
         <!-- 各阶段公共时间步, 所有场在同一时间点求解 -->
         <min_time_step value="[float] [float]" unit="[str]"/>
         <!-- field 可重复, steady 表示在调度时刻重新求解的准稳态 -->
+        <!-- name 为求解变量名, 当前热问题填写 temperature, 不是物理模块名 thermal -->
         <!-- theta 仅用于 transient, steady 时删除该属性; 0 前向, 0.5 Crank-Nicolson, 1 后向; 省略时默认 1 -->
         <field name="[str]" model="[steady][transient]" theta="[0][0.5][1]"/>
     </problem>
     <solver>
         <!-- 全部场共用域与边界求积规则, 两个阶次均为必填 -->
         <quadrature domain_order="[int]" boundary_order="[int]"/>
-        <!-- 按 name 关联问题中的场, field 可重复 -->
+        <!-- 按求解变量名关联问题中的场, 热问题为 temperature, field 可重复 -->
         <field name="[str]">
             <!-- 默认 H1 一阶, 几何网格阶次与场阶次分别设置 -->
             <fem_space family="H1" order="[int]"/>

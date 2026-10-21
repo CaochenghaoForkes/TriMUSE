@@ -58,7 +58,7 @@ void ThermalProblem::solve_steady()
     {
         return properties_system_.coupled_with_field("thermal.conductivity", region, "temperature");
     });
-    const NonlinearSolverConfig& picard = solver_system_.nonlinear_config("thermal");
+    const NonlinearSolverConfig& picard = solver_system_.nonlinear_config("temperature");
     const int max_iterations = nonlinear ? picard.max_iterations : 1;
     source_manager_.update(properties_system_.field_data());
     boundary_manager_.update(properties_system_.field_data());
@@ -82,7 +82,7 @@ void ThermalProblem::solve_steady()
         mfem::SparseMatrix system_matrix;
         mfem::Vector true_temperature, true_right_hand_side;
         conduction_form.FormLinearSystem(essential_true_dofs, trial_temperature, source_form, system_matrix, true_temperature, true_right_hand_side, 1);
-        solver_system_.solve_linear("thermal", system_matrix, true_right_hand_side, true_temperature);
+        solver_system_.solve_linear("temperature", system_matrix, true_right_hand_side, true_temperature);
         conduction_form.RecoverFEMSolution(true_temperature, source_form, trial_temperature);
 
         previous_temperature -= trial_temperature;
@@ -142,7 +142,7 @@ void ThermalProblem::solve_transient(double time_step, double theta)
                properties_system_.coupled_with_field("thermal.specific_heat", region, "temperature") ||
                properties_system_.coupled_with_field("thermal.conductivity", region, "temperature");
     });
-    const NonlinearSolverConfig& picard = solver_system_.nonlinear_config("thermal");
+    const NonlinearSolverConfig& picard = solver_system_.nonlinear_config("temperature");
     const int max_iterations = nonlinear ? picard.max_iterations : 1;
 
     if (theta > 0.0) // 新时刻的自然边界和源仅在 theta>0 时参与组装。
@@ -200,7 +200,7 @@ void ThermalProblem::solve_transient(double time_step, double theta)
         {
             system_matrix->EliminateRowCol(dof, trial_temperature[dof], right_hand_side); // 在方程 AT=b 中，把编号为 dof 的温度固定为 trial_temperature[dof]
         }
-        solver_system_.solve_linear("thermal", *system_matrix, right_hand_side, trial_temperature);
+        solver_system_.solve_linear("temperature", *system_matrix, right_hand_side, trial_temperature);
 
         previous_trial -= trial_temperature;
         const double increment = previous_trial.Normlinf();

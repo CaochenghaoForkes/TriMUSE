@@ -60,7 +60,7 @@ def main(argv: list[str] | None = None) -> None:
         output_manager.initialize_field_output(fem_manager.fem_system)
 
         # 创建耦合求解对象
-        coupling_manager = CouplingManager(input_cards.simulation, properties_manager, {"thermal": thermal_problem}, output_manager)
+        coupling_manager = CouplingManager(input_cards.simulation, properties_manager, {thermal_problem.field_state: thermal_problem}, output_manager)
 
         # 运行模拟
         coupling_manager.run()

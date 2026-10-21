@@ -101,7 +101,7 @@ PYBIND11_MODULE(_core, module)
                          const std::vector<ThermalConfigEntry>& source_configs,
                          const std::vector<ThermalConfigEntry>& boundary_configs)
         {
-            return std::make_unique<trimuse::ThermalProblem>(fem, fem.field_data("thermal"), properties, solver, problem_type,
+            return std::make_unique<trimuse::ThermalProblem>(fem, fem.field_data("temperature"), properties, solver, problem_type,
                 thermal_configs<trimuse::ThermalInitialConfig>(initial_configs),
                 thermal_configs<trimuse::ThermalSourceConfig>(source_configs),
                 thermal_configs<trimuse::ThermalBoundaryConfig>(boundary_configs));
