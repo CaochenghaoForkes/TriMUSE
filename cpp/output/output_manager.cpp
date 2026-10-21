@@ -8,31 +8,38 @@ namespace trimuse
 {
 
 OutputManager::OutputManager(FemSystem& fem_system, const std::string& output_directory)
-    : temperature_output_("temperature", &fem_system.mesh_data().mfem_mesh())
+    : fem_system_(fem_system), output_directory_(output_directory)
 {
-    const auto directory = std::filesystem::path(output_directory) / "thermal";
-    std::filesystem::create_directories(directory);
-    temperature_output_.SetOwnData(false);
-    temperature_output_.SetPrefixPath(directory.string());
-    temperature_output_.RegisterField("temperature", &fem_system.field_data("temperature").mfem_grid_function());
-    const auto* nodes = fem_system.mesh_data().mfem_mesh().GetNodes();
-    const int geometry_order = nodes ? nodes->FESpace()->GetMaxElementOrder() : 1;
-    const int field_order = fem_system.finite_element_space("temperature").order();
-    temperature_output_.SetLevelsOfDetail(std::max(geometry_order, field_order));
-    temperature_output_.SetHighOrderOutput(true);
-    temperature_output_.SetDataFormat(mfem::VTKFormat::BINARY);
-    temperature_output_.SetPrecision(16);
 }
 
-void OutputManager::save(int cycle, double time, double time_step)
+void OutputManager::add_field(const std::string& field_name, const std::string& directory_name)
 {
-    temperature_output_.SetCycle(cycle);
-    temperature_output_.SetTime(time);
-    temperature_output_.SetTimeStep(time_step);
-    temperature_output_.Save();
-    if (temperature_output_.Error() != mfem::DataCollection::No_Error)
+    const auto directory = std::filesystem::path(output_directory_) / directory_name;
+    std::filesystem::create_directories(directory);
+    auto output = std::make_unique<mfem::ParaViewDataCollection>(field_name, &fem_system_.mesh_data().mfem_mesh());
+    output->SetOwnData(false);
+    output->SetPrefixPath(directory.string());
+    output->RegisterField(field_name, &fem_system_.field_data(field_name).mfem_grid_function());
+    const auto* nodes = fem_system_.mesh_data().mfem_mesh().GetNodes();
+    const int geometry_order = nodes ? nodes->FESpace()->GetMaxElementOrder() : 1;
+    const int field_order = fem_system_.finite_element_space(field_name).order();
+    output->SetLevelsOfDetail(std::max(geometry_order, field_order));
+    output->SetHighOrderOutput(true);
+    output->SetDataFormat(mfem::VTKFormat::BINARY);
+    output->SetPrecision(16);
+    field_outputs_[field_name] = std::move(output);
+}
+
+void OutputManager::save(const std::string& field_name, int cycle, double time, double time_step)
+{
+    mfem::ParaViewDataCollection& output = *field_outputs_.at(field_name);
+    output.SetCycle(cycle);
+    output.SetTime(time);
+    output.SetTimeStep(time_step);
+    output.Save();
+    if (output.Error() != mfem::DataCollection::No_Error)
     {
-        throw std::runtime_error("温度场 ParaView 输出失败");
+        throw std::runtime_error("场 ParaView 输出失败: " + field_name);
     }
 }
 

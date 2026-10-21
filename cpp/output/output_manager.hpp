@@ -1,6 +1,8 @@
 #pragma once
 
+#include <memory>
 #include <string>
+#include <unordered_map>
 
 #include "fem/fem_system.hpp"
 
@@ -12,11 +14,14 @@ class OutputManager
 public:
     OutputManager(FemSystem& fem_system, const std::string& output_directory);
 
-    void save(int cycle, double time, double time_step);
+    void add_field(const std::string& field_name, const std::string& directory_name);
+
+    void save(const std::string& field_name, int cycle, double time, double time_step);
 
 private:
-    // 引用 FemSystem 的网格与场, 不接管其所有权。
-    mfem::ParaViewDataCollection temperature_output_;
+    FemSystem& fem_system_;
+    std::string output_directory_;
+    std::unordered_map<std::string, std::unique_ptr<mfem::ParaViewDataCollection>> field_outputs_;
 };
 
 }

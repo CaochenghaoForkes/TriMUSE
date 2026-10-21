@@ -26,6 +26,7 @@ class OutputManager:
         self.mesh_statistics = None
         self.frame_count = 0
         self.field_output = None
+        self.field_directories = {"temperature": "thermal"}
 
     @staticmethod
     def _now() -> str:
@@ -59,9 +60,12 @@ class OutputManager:
         """只在求解分支创建 C++ 输出对象, 后处理分支不加载内核"""
         from _core import OutputManager as CoreOutputManager
         self.field_output = CoreOutputManager(fem_system, str(self.directory))
+        for field in self.input_cards.simulation.problem.field:
+            self.field_output.add_field(field.name, self.field_directories[field.name])
 
     def save(self, cycle: int, time: float, time_step: float) -> None:
-        self.field_output.save(cycle, time, time_step)
+        for field in self.input_cards.simulation.problem.field:
+            self.field_output.save(field.name, cycle, time, time_step)
         self.frame_count += 1
 
     def finish_simulation(self, simulation_time: float, step_count: int) -> None:

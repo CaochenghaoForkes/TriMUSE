@@ -56,8 +56,10 @@ PYBIND11_MODULE(_core, module)
     py::class_<trimuse::OutputManager>(module, "OutputManager")
         .def(py::init<trimuse::FemSystem&, const std::string&>(),
              py::arg("fem_system"), py::arg("output_directory"), py::keep_alive<1, 2>())
+        .def("add_field", &trimuse::OutputManager::add_field,
+             py::arg("field_name"), py::arg("directory_name"))
         .def("save", &trimuse::OutputManager::save,
-             py::arg("cycle"), py::arg("time"), py::arg("time_step"));
+             py::arg("field_name"), py::arg("cycle"), py::arg("time"), py::arg("time_step"));
 
     py::class_<trimuse::PropertiesSystem>(module, "PropertiesSystem")
         .def(py::init<const trimuse::FemSystem&>(), py::arg("fem_system"), py::keep_alive<1, 2>())
