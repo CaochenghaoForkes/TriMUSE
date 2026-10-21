@@ -20,7 +20,7 @@ class OutputManager:
         self.input_cards = input_cards
         self.directory = Path(input_cards.chief.output.directory).expanduser().resolve()
         self.directory.mkdir(parents=True, exist_ok=True)
-        self.completed_file = self.directory / "simulation_complete.flag"
+        self.report_file = self.directory / "simulation_report.txt"
         self.started_at = self._now()
         self.start_clock = perf_counter()
         self.mesh_statistics = None
@@ -32,8 +32,17 @@ class OutputManager:
     def _now() -> str:
         return datetime.now(ZoneInfo("Asia/Shanghai")).isoformat(timespec="seconds")
 
-    def is_complete(self) -> bool:
-        return self.completed_file.is_file()
+    @staticmethod
+    def is_complete(directory: str | Path) -> bool:
+        """只读取报告末尾, 最后一行固定标记表示模拟已完成"""
+        report_file = Path(directory) / "simulation_report.txt"
+        if not report_file.is_file():
+            return False
+        with report_file.open("rb") as report:
+            report.seek(0, 2)
+            report.seek(max(0, report.tell() - 128))
+            lines = report.read().splitlines()
+        return bool(lines) and lines[-1].strip() == b"simulation_completed"
 
     def record_mesh(self, mesh_path: str | Path) -> None:
         """统计实际导出的原始网格, 不统计后处理细分单元; 总数包含各维数单元"""
@@ -49,11 +58,7 @@ class OutputManager:
         self.mesh_statistics = {
             "total_element_count": sum(counts.values()),
             "domain_element_count": sum(count for cell_type, count in counts.items() if vtkCellTypes.GetDimension(cell_type) == dimension),
-            "boundary_element_count": sum(count for cell_type, count in counts.items() if vtkCellTypes.GetDimension(cell_type) == dimension - 1),
-            "element_counts_by_type": {
-                vtkCellTypes.GetClassNameFromTypeId(cell_type).removeprefix("vtk"): count
-                for cell_type, count in sorted(counts.items())
-            }
+            "boundary_element_count": sum(count for cell_type, count in counts.items() if vtkCellTypes.GetDimension(cell_type) == dimension - 1)
         }
 
     def initialize_field_output(self, fem_system: FemSystem) -> None:
@@ -62,33 +67,42 @@ class OutputManager:
         self.field_output = CoreOutputManager(fem_system, str(self.directory))
         for field in self.input_cards.simulation.problem.field:
             self.field_output.add_field(field.name, self.field_directories[field.name])
+        self.report_file.write_text("TriMUSE simulation report\n", encoding="utf-8")
 
     def save(self, cycle: int, time: float, time_step: float) -> None:
         for field in self.input_cards.simulation.problem.field:
             self.field_output.save(field.name, cycle, time, time_step)
         self.frame_count += 1
 
+    def _append_report(self, text: str) -> None:
+        with self.report_file.open("a", encoding="utf-8") as report:
+            report.write(text)
+
+    def save_solve_information(self, field_name: str, cycle: int, time: float, time_step: float) -> None:
+        """每次场求解后写入报告, 保留各轮 CG 的重复条目及原始顺序"""
+        information = self.field_output.solve_information(field_name)
+        if not information: # 瞬态初始时刻不进行求解
+            return
+        header = f"\n[solve] field={field_name}, cycle={cycle}, time_s={time:.12g}, time_step_s={time_step:.12g}\n"
+        self._append_report(header + "".join(f"  {name}: {value:.12g}\n" for name, value in information))
+
     def finish_simulation(self, simulation_time: float, step_count: int) -> None:
-        """全部计算和场输出成功后写入 JSON 完成标记"""
+        """追加模拟概况, 最后一行写入完成标记; 此后不再追加内容"""
         cards = self.input_cards
         info = {
-            "status": "completed",
-            "name": cards.chief.name,
             "random_seed": cards.chief.random_seed,
             "dimension": cards.geometry_mesh.model.dimension,
             "mesh": self.mesh_statistics,
             "fields": [item.name for item in cards.simulation.problem.field],
             "simulation_time_s": simulation_time,
-            "configured_duration_s": sum(cards.simulation.problem.time_span),
             "time_steps": step_count,
             "output_frames": self.frame_count,
             "started_at": self.started_at,
             "finished_at": self._now(),
             "elapsed_seconds": perf_counter() - self.start_clock
         }
-        temporary = self.completed_file.with_suffix(".tmp")
-        temporary.write_text(json.dumps(info, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-        temporary.replace(self.completed_file)
+        summary = json.dumps(info, ensure_ascii=False, indent=2) + "\n"
+        self._append_report("\n[simulation_summary]\n" + summary + "simulation_completed\n")
 
     @staticmethod
     def _text(value) -> str:

@@ -59,7 +59,8 @@ PYBIND11_MODULE(_core, module)
         .def("add_field", &trimuse::OutputManager::add_field,
              py::arg("field_name"), py::arg("directory_name"))
         .def("save", &trimuse::OutputManager::save,
-             py::arg("field_name"), py::arg("cycle"), py::arg("time"), py::arg("time_step"));
+             py::arg("field_name"), py::arg("cycle"), py::arg("time"), py::arg("time_step"))
+        .def("solve_information", &trimuse::OutputManager::solve_information, py::arg("field_name"));
 
     py::class_<trimuse::PropertiesSystem>(module, "PropertiesSystem")
         .def(py::init<const trimuse::FemSystem&>(), py::arg("fem_system"), py::keep_alive<1, 2>())
@@ -98,17 +99,17 @@ PYBIND11_MODULE(_core, module)
 
     py::class_<trimuse::ThermalProblem>(module, "ThermalProblem")
         .def(py::init([](trimuse::FemSystem& fem, trimuse::PropertiesSystem& properties,
-                         trimuse::SolverSystem& solver, const std::string& problem_type,
+                         trimuse::SolverSystem& solver, trimuse::OutputManager& output, const std::string& problem_type,
                          const std::vector<ThermalConfigEntry>& initial_configs,
                          const std::vector<ThermalConfigEntry>& source_configs,
                          const std::vector<ThermalConfigEntry>& boundary_configs)
         {
-            return std::make_unique<trimuse::ThermalProblem>(fem, fem.field_data("temperature"), properties, solver, problem_type,
+            return std::make_unique<trimuse::ThermalProblem>(fem, fem.field_data("temperature"), properties, solver, output, problem_type,
                 thermal_configs<trimuse::ThermalInitialConfig>(initial_configs),
                 thermal_configs<trimuse::ThermalSourceConfig>(source_configs),
                 thermal_configs<trimuse::ThermalBoundaryConfig>(boundary_configs));
-        }), py::arg("fem_system"), py::arg("properties_system"), py::arg("solver_system"), py::arg("problem_type"),
+        }), py::arg("fem_system"), py::arg("properties_system"), py::arg("solver_system"), py::arg("output_manager"), py::arg("problem_type"),
             py::arg("initial_configs"), py::arg("source_configs"), py::arg("boundary_configs"),
-            py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::keep_alive<1, 4>())
+            py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::keep_alive<1, 4>(), py::keep_alive<1, 5>())
         .def("solve", &trimuse::ThermalProblem::solve, py::arg("time_step") = 0.0, py::arg("theta") = 1.0);
 }

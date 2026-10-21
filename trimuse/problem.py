@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 from _core import ThermalProblem # type: ignore
 
 if TYPE_CHECKING:
-    from _core import FemSystem, PropertiesSystem, SolverSystem
+    from _core import FemSystem, PropertiesSystem, SolverSystem, OutputManager
     from .geometry.topology import MeshInfo
     from .input.thermal.config import ThermalCard
     from .input.xml_loader import InputCards
@@ -16,12 +16,12 @@ class Thermal:
 
     field_state = "temperature"
 
-    def __init__(self, input_cards: InputCards, mesh_info: MeshInfo, fem: FemSystem, properties: PropertiesSystem, solver: SolverSystem) -> None:
+    def __init__(self, input_cards: InputCards, mesh_info: MeshInfo, fem: FemSystem, properties: PropertiesSystem, solver: SolverSystem, output: OutputManager) -> None:
         problem_type = next(field.model for field in input_cards.simulation.problem.field if field.name == self.field_state)
         initial_configs = self.prepare_initial(input_cards.thermal.initial, mesh_info.region_attributes)
         source_configs = self.prepare_source(input_cards.thermal.source, mesh_info.region_attributes)
         boundary_configs = self.prepare_boundary(input_cards.thermal.boundary, mesh_info.boundary_attributes)
-        self.thermal_problem = ThermalProblem(fem, properties, solver, problem_type, initial_configs, source_configs, boundary_configs)
+        self.thermal_problem = ThermalProblem(fem, properties, solver, output, problem_type, initial_configs, source_configs, boundary_configs)
 
     @staticmethod
     def prepare_initial(initial: ThermalCard.Initial, region_attributes: dict[str, int]) -> list[ThermalConfigEntry]:

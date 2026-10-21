@@ -24,7 +24,7 @@ python trimuse/main.py -i cases/transient_real_particle_source_2d/case.xml --mod
 
 - `ask`: 空目录直接计算; 已有完整结果时选择换新目录重算、复用结果只后处理或取消; 非空但不完整的目录只能换目录重算或取消。
 - `run`: 新计算并后处理, 要求实际输出目录不存在或为空, 不覆盖旧文件。
-- `postprocess`: 仅后处理, 要求实际输出目录存在 `simulation_complete.flag`, 不加载 C++ 求解内核。
+- `postprocess`: 仅后处理, 要求实际输出目录的 `simulation_report.txt` 最后一行为 `simulation_completed`, 不加载 C++ 求解内核。
 
 交互选择新目录时输入的是用户输出根目录, 程序自动追加 `seed_<随机种子>`; 相对路径仍以总调度卡所在目录为基准。直接回车会使用带 `_2`、`_3` 等后缀的新根目录。无交互终端请显式使用 `run` 或 `postprocess`。
 
@@ -34,7 +34,7 @@ python trimuse/main.py -i cases/transient_real_particle_source_2d/case.xml --mod
 
 `trimuse/output.py` 统一管理场输出、输入快照和完成标记。`input/` 保存补全明确默认值后的各张 XML 卡, 长度、角度和时间分别使用 m、rad、s, 模型参数使用其声明的 `si_unit`。可通过其中的 `chief.xml` 重新读取; 不适用或未指定的物理参数不会凭空补值。
 
-`simulation_complete.flag` 内容为 JSON, 记录网格统计、模拟时长、时间步数、输出帧数、北京时间起止时间和总耗时。仅在全部时间步与输出成功后写入, 作为完整结果的标记。修改计算配置后请通过 `ask` 选择新目录重算, 或修改输出目录再使用 `run`; 仅删除完成标记不会把非空目录视为空目录。
+`simulation_report.txt` 按求解顺序记录各场的 CG、Picard 统计和耗时, 结束时追加网格统计、模拟时长、时间步数、输出帧数、北京时间起止时间和总耗时。全部计算和输出成功后, 最后一行写入 `simulation_completed`, 不再生成独立 flag 文件。完成检查只读取报告末尾; 旧结果仅有 `simulation_complete.flag` 时不会被判为完成。修改计算配置后请通过 `ask` 选择新目录重算, 或修改输出目录再使用 `run`; 仅删除完成标记不会把非空目录视为空目录。
 
 ## 项目移动或重命名后
 

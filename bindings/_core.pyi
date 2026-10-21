@@ -21,6 +21,8 @@ class OutputManager:
 
     def save(self, field_name: str, cycle: int, time: float, time_step: float) -> None: ...
 
+    def solve_information(self, field_name: str) -> list[tuple[str, float]]: ...
+
 class PropertiesSystem:
     """外部 派生与材料属性的统一配置及更新接口"""
 
@@ -49,7 +51,7 @@ class ThermalProblem:
     """初始化温度场并统一调度热问题求解"""
 
     def __init__(self, fem_system: FemSystem, properties_system: PropertiesSystem,
-                 solver_system: SolverSystem, problem_type: str,
+                 solver_system: SolverSystem, output_manager: OutputManager, problem_type: str,
                  initial_configs: list[ThermalConfigEntry], source_configs: list[ThermalConfigEntry],
                  boundary_configs: list[ThermalConfigEntry]) -> None: ...
 

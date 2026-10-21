@@ -23,7 +23,7 @@ def output_directory_state(directory: Path) -> str:
         raise NotADirectoryError(f"输出路径不是目录: {directory}")
     if not any(directory.iterdir()):
         return "available"
-    return "complete" if (directory / "simulation_complete.flag").is_file() else "occupied"
+    return "complete" if OutputManager.is_complete(directory) else "occupied"
 
 
 def prompt_choice(prompt: str, choices: set[str]) -> str:
@@ -74,7 +74,7 @@ def resolve_workflow(chief: ChiefCard, base_directory: Path) -> str | None:
         return "run"
     if mode == "postprocess":
         if state != "complete":
-            raise FileNotFoundError(f"后处理需要已有完整结果 (simulation_complete.flag): {directory}")
+            raise FileNotFoundError(f"后处理需要 simulation_report.txt 最后一行为 simulation_completed: {directory}")
         return "postprocess"
     if state == "available":
         return "run"
@@ -145,11 +145,11 @@ def main(argv: list[str] | None = None) -> None:
         # 求解器对象
         solver_manager = SolverManager(input_cards.simulation.solver)
 
-        # 热问题对象
-        thermal_problem = Thermal(input_cards, mesh_info, fem_manager.fem_system, properties_manager.properties_system, solver_manager.solver_system)
-
-        # 推进全部时间步并保存结果; 只有正常结束后才标记完成
+        # 创建 C++ 输出对象, 供热问题记录求解信息并保存场数据
         output_manager.initialize_field_output(fem_manager.fem_system)
+
+        # 热问题对象
+        thermal_problem = Thermal(input_cards, mesh_info, fem_manager.fem_system, properties_manager.properties_system, solver_manager.solver_system, output_manager.field_output)
 
         # 创建耦合求解对象
         coupling_manager = CouplingManager(input_cards.simulation, properties_manager, {thermal_problem.field_state: thermal_problem}, output_manager)

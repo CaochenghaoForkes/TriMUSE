@@ -9,6 +9,8 @@
 namespace trimuse
 {
 
+class OutputManager;
+
 struct LinearSolverConfig
 {
     std::string method = "cg";
@@ -39,7 +41,7 @@ public:
 
     const NonlinearSolverConfig& nonlinear_config(const std::string& field_name) const;
 
-    void solve_linear(const std::string& field_name, const mfem::Operator& matrix, const mfem::Vector& right_hand_side, mfem::Vector& solution) const;
+    void solve_linear(const std::string& field_name, const mfem::Operator& matrix, const mfem::Vector& right_hand_side, mfem::Vector& solution, OutputManager& output_manager) const;
 
 private:
     std::unordered_map<std::string, FieldSolverConfig> field_configs_;

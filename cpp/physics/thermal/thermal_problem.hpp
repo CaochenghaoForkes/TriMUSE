@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "fem/fem_system.hpp"
+#include "output/output_manager.hpp"
 #include "physics/thermal/boundary/thermal_boundary_manager.hpp"
 #include "physics/thermal/initial/thermal_initial_condition.hpp"
 #include "physics/thermal/source/thermal_source_manager.hpp"
@@ -19,7 +20,7 @@ class ThermalProblem
 {
 public:
     ThermalProblem(FemSystem& fem_system, FieldData& temperature_field, PropertiesSystem& properties_system,
-                   SolverSystem& solver_system,
+                   SolverSystem& solver_system, OutputManager& output_manager,
                    const std::string& problem_type,
                    const std::vector<ThermalInitialConfig>& initial_configs,
                    const std::vector<ThermalSourceConfig>& source_configs,
@@ -36,6 +37,7 @@ private:
     FieldData& temperature_field_;
     PropertiesSystem& properties_system_;
     SolverSystem& solver_system_;
+    OutputManager& output_manager_;
     std::string problem_type_; // [steady,transient]
     ThermalSourceManager source_manager_;
     ThermalBoundaryManager boundary_manager_;

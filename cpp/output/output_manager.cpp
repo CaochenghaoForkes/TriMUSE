@@ -28,6 +28,7 @@ void OutputManager::add_field(const std::string& field_name, const std::string& 
     output->SetDataFormat(mfem::VTKFormat::BINARY);
     output->SetPrecision(16);
     field_outputs_[field_name] = std::move(output);
+    solve_information_.try_emplace(field_name); // 如果没有键就对 field_name 插入个空的 SolveInformation 否则什么也不做
 }
 
 void OutputManager::save(const std::string& field_name, int cycle, double time, double time_step)
@@ -41,6 +42,21 @@ void OutputManager::save(const std::string& field_name, int cycle, double time, 
     {
         throw std::runtime_error("场 ParaView 输出失败: " + field_name);
     }
+}
+
+void OutputManager::clear_solve_information(const std::string& field_name)
+{
+    solve_information_[field_name].clear(); // 清空场对应的列表
+}
+
+void OutputManager::append_solve_information(const std::string& field_name, const std::string& name, double value)
+{
+    solve_information_[field_name].emplace_back(name, value); // 追加
+}
+
+const OutputManager::SolveInformation& OutputManager::solve_information(const std::string& field_name) const
+{
+    return solve_information_.at(field_name); // 读取
 }
 
 }

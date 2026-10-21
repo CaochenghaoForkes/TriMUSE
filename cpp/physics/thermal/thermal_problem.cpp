@@ -1,6 +1,7 @@
 #include "physics/thermal/thermal_problem.hpp"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <memory>
 #include <stdexcept>
@@ -9,7 +10,7 @@ namespace trimuse
 {
 
 ThermalProblem::ThermalProblem(FemSystem& fem_system, FieldData& temperature_field, PropertiesSystem& properties_system,
-                               SolverSystem& solver_system,
+                               SolverSystem& solver_system, OutputManager& output_manager,
                                const std::string& problem_type,
                                const std::vector<ThermalInitialConfig>& initial_configs,
                                const std::vector<ThermalSourceConfig>& source_configs,
@@ -18,6 +19,7 @@ ThermalProblem::ThermalProblem(FemSystem& fem_system, FieldData& temperature_fie
       temperature_field_(temperature_field),
       properties_system_(properties_system),
       solver_system_(solver_system),
+      output_manager_(output_manager),
       problem_type_(problem_type),
       source_manager_(fem_system, source_configs),
       boundary_manager_(fem_system, boundary_configs),
@@ -37,6 +39,8 @@ ThermalProblem::ThermalProblem(FemSystem& fem_system, FieldData& temperature_fie
 
 void ThermalProblem::solve(double time_step, double theta)
 {
+    output_manager_.clear_solve_information("temperature");
+    const auto started = std::chrono::steady_clock::now();
     if (problem_type_ == "steady")
     {
         solve_steady();
@@ -44,6 +48,11 @@ void ThermalProblem::solve(double time_step, double theta)
     else
     {
         solve_transient(time_step, theta);
+    }
+    if (problem_type_ == "steady" || time_step != 0.0)
+    {
+        const double elapsed = std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count();
+        output_manager_.append_solve_information("temperature", "solve_elapsed_seconds", elapsed);
     }
 }
 
@@ -82,7 +91,7 @@ void ThermalProblem::solve_steady()
         mfem::SparseMatrix system_matrix;
         mfem::Vector true_temperature, true_right_hand_side;
         conduction_form.FormLinearSystem(essential_true_dofs, trial_temperature, source_form, system_matrix, true_temperature, true_right_hand_side, 1);
-        solver_system_.solve_linear("temperature", system_matrix, true_right_hand_side, true_temperature);
+        solver_system_.solve_linear("temperature", system_matrix, true_right_hand_side, true_temperature, output_manager_);
         conduction_form.RecoverFEMSolution(true_temperature, source_form, trial_temperature);
 
         previous_temperature -= trial_temperature;
@@ -94,6 +103,8 @@ void ThermalProblem::solve_steady()
         if (!nonlinear || increment <= picard.absolute_tolerance + picard.relative_tolerance * trial_temperature.Normlinf())
         {
             temperature = trial_temperature;
+            output_manager_.append_solve_information("temperature", "picard_iterations", iteration + 1);
+            output_manager_.append_solve_information("temperature", "final_temperature_increment_inf_norm_K", increment);
             return;
         }
     }
@@ -200,7 +211,7 @@ void ThermalProblem::solve_transient(double time_step, double theta)
         {
             system_matrix->EliminateRowCol(dof, trial_temperature[dof], right_hand_side); // 在方程 AT=b 中，把编号为 dof 的温度固定为 trial_temperature[dof]
         }
-        solver_system_.solve_linear("temperature", *system_matrix, right_hand_side, trial_temperature);
+        solver_system_.solve_linear("temperature", *system_matrix, right_hand_side, trial_temperature, output_manager_);
 
         previous_trial -= trial_temperature;
         const double increment = previous_trial.Normlinf();
@@ -211,6 +222,8 @@ void ThermalProblem::solve_transient(double time_step, double theta)
         if (!nonlinear || increment <= picard.absolute_tolerance + picard.relative_tolerance * trial_temperature.Normlinf())
         {
             temperature = trial_temperature;
+            output_manager_.append_solve_information("temperature", "picard_iterations", iteration + 1);
+            output_manager_.append_solve_information("temperature", "final_temperature_increment_inf_norm_K", increment);
             return;
         }
     }
