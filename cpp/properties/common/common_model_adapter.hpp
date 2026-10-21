@@ -34,9 +34,7 @@ private:
 
 // 各属性 manager 保留自己的注册表和模型名, 仅复用公共模型的实现。
 template<typename ModelBase, typename ValueType = double>
-void register_common_models(ModelRegistry<ModelBase>& registry,
-                            const std::string& constant_name = "common.constant",
-                            const std::string& time_series_name = "common.time_series")
+void register_common_models(ModelRegistry<ModelBase>& registry, const std::string& constant_name = "common.constant", const std::string& time_series_name = "common.time_series")
 {
     registry.template register_model<CommonModelAdapter<ModelBase, ConstantModel, ValueType>>(constant_name);
     registry.template register_model<CommonModelAdapter<ModelBase, TimeSeriesModel, ValueType>>(time_series_name, {"time"});
