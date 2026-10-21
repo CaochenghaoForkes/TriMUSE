@@ -22,9 +22,9 @@ const NonlinearSolverConfig& SolverSystem::nonlinear_config(const std::string& f
 void SolverSystem::solve_linear(const std::string& field_name, const mfem::Operator& matrix, const mfem::Vector& right_hand_side, mfem::Vector& solution, OutputManager& output_manager) const
 {
     const LinearSolverConfig& config = field_configs_.at(field_name).linear;
-    if (config.method != "cg" || config.preconditioner != "none")
+    if (config.method != "cg")
     {
-        throw std::invalid_argument("当前只支持无预条件的 CG 线性求解");
+        throw std::invalid_argument("当前只支持 CG 线性求解");
     }
 
     solve_cg(config, matrix, right_hand_side, solution, field_name, output_manager);

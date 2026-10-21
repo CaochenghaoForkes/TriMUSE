@@ -25,6 +25,7 @@ class SimulationCardTemplate:
             <!-- 默认 H1 一阶, 几何网格阶次与场阶次分别设置 -->
             <fem_space family="H1" order="[int]"/>
             <!-- 初版默认 cg, none, 1e-8, 1000, 可省略相应属性或整个节点 -->
+            <!-- preconditioner: none 不使用预条件, jacobi 对角缩放, symmetric_gauss_seidel 对称 Gauss-Seidel -->
             <linear_solver method="cg" preconditioner="none" relative_tolerance="[float]" max_iterations="[int]"/>
             <!-- Picard 容差比较相邻两轮温度, 绝对容差使用温差单位 -->
             <nonlinear_solver method="picard" relative_tolerance="[float]" max_iterations="[int]">

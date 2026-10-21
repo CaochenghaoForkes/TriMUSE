@@ -3,6 +3,7 @@
 #include "output/output_manager.hpp"
 
 #include <chrono>
+#include <memory>
 #include <stdexcept>
 
 namespace trimuse
@@ -13,8 +14,27 @@ void solve_cg(const LinearSolverConfig& config, const mfem::Operator& matrix,
               const std::string& field_name, OutputManager& output_manager)
 {
     const auto started = std::chrono::steady_clock::now();
+    std::unique_ptr<mfem::Solver> preconditioner;
+    if (config.preconditioner == "jacobi")
+    {
+        preconditioner = std::make_unique<mfem::DSmoother>();
+    }
+    else if (config.preconditioner == "symmetric_gauss_seidel")
+    {
+        preconditioner = std::make_unique<mfem::GSSmoother>(0); // 0 为对称模式
+    }
+    else if (config.preconditioner != "none")
+    {
+        throw std::invalid_argument("未知 CG 预条件器: " + config.preconditioner);
+    }
+
     mfem::CGSolver solver;
     solver.SetOperator(matrix);
+    if (preconditioner)
+    {
+        preconditioner->SetOperator(matrix); // 把 Ax=b 的 A 交给预条件器,使其能根据 A 执行预条件操作
+        solver.SetPreconditioner(*preconditioner); // 把预条件器交给 CG,后续每轮迭代 CG 调用它转换残差
+    }
     solver.SetRelTol(config.relative_tolerance);
     solver.SetAbsTol(config.relative_tolerance * right_hand_side.Norml2());
     solver.SetMaxIter(config.max_iterations);

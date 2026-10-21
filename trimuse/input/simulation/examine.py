@@ -33,8 +33,10 @@ class SimulationCardExamine:
         if card.solver.quadrature.domain_order < 1 or card.solver.quadrature.boundary_order < 1:
             raise ValueError("solver.quadrature: domain_order 和 boundary_order 必须为正整数")
         for item in card.solver.field:
-            if item.linear_solver.method != "cg" or item.linear_solver.preconditioner != "none":
-                raise ValueError(f"{item.name}: 当前线性求解使用 cg, preconditioner 使用 none")
+            if item.linear_solver.method != "cg":
+                raise ValueError(f"{item.name}: 当前线性求解使用 cg")
+            if item.linear_solver.preconditioner not in ("none", "jacobi", "symmetric_gauss_seidel"):
+                raise ValueError(f"{item.name}: preconditioner 必须为 [none,jacobi,symmetric_gauss_seidel]")
             if item.fem_space.family != "H1" or item.fem_space.order < 1:
                 raise ValueError(f"{item.name}: 初版使用 H1 空间, order 至少为 1")
             if item.linear_solver.max_iterations < 1:
