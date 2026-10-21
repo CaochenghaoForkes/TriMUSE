@@ -18,14 +18,14 @@ class GeometryMeshCardTemplate:
                 <y value="[float]" unit="[str]"/>
                 <z value="[float]" unit="[str]"/>
             </center>
-            <layers>
-                <!-- 按从内到外顺序重复 layer, 名称与层数自定, 外半径严格递增 -->
+            <regions>
+                <!-- 按从内到外顺序重复 region, 名称与层数自定, 外半径严格递增 -->
                 <!-- outer_boundary 为该层外界面名称, 最后一层为颗粒外表面 -->
-                <layer name="[str]">
+                <region name="[str]">
                     <outer_boundary name="[str]"/>
                     <outer_radius value="[float]" unit="[str]"/>
-                </layer>
-            </layers>
+                </region>
+            </regions>
         </ideal_multilayer_sphere>
         <stochastic_multilayer_particle>
             <!-- 随机种子在总调度卡中设置, center 规则同理想几何 -->
@@ -42,15 +42,15 @@ class GeometryMeshCardTemplate:
                 <!-- 1D 删除, 2D 和 3D 可省略, 默认 max_degree=30, spectrum_decay=4 -->
                 <shape_expansion max_degree="[int]" spectrum_decay="[float]"/>
             </outer_surface>
-            <layers>
+            <regions>
                 <!-- 第一层为核心, 使用半径的批次统计 -->
-                <layer name="[str]">
+                <region name="[str]">
                     <outer_boundary name="[str]"/>
                     <batch_mean_radius value="[float]" unit="[str]"/>
                     <batch_radius_std value="[float]" unit="[str]"/>
-                </layer>
+                </region>
                 <!-- 包覆层按从内到外顺序重复, 单层颗粒删除此项 -->
-                <layer name="[str]">
+                <region name="[str]">
                     <outer_boundary name="[str]"/>
                     <batch_mean_thickness value="[float]" unit="[str]"/>
                     <batch_thickness_std value="[float]" unit="[str]"/>
@@ -58,26 +58,26 @@ class GeometryMeshCardTemplate:
                     <within_particle_thickness_std value="[float]" unit="[str]"/>
                     <within_particle_radius_std value="[float]" unit="[str]"/>
                     <unwrapping_coefficient value="[float]" unit="[1]"/>
-                </layer>
-            </layers>
+                </region>
+            </regions>
         </stochastic_multilayer_particle>
         <!-- 必填: 外表面物理边界分区。outer_boundary 引用最外层 outer_boundary 名称。
              三种维数只保留对应的一种写法；不细分时仅填写 residual_zone。 -->
         <!-- 1D: 外端点只能作为 residual_zone。
-        <surface_zones outer_boundary="[str]">
+        <zones outer_boundary="[str]">
             <residual_zone name="[str]"/>
-        </surface_zones>
+        </zones>
         -->
         <!-- 2D 轴对称: theta 从上极点沿右侧截面至下极点，范围 0 到 180 度。 -->
-        <surface_zones outer_boundary="[str]">
+        <zones outer_boundary="[str]">
             <zone name="[str]">
                 <theta_min value="[float]" unit="[degree]"/>
                 <theta_max value="[float]" unit="[degree]"/>
             </zone>
             <residual_zone name="[str]"/>
-        </surface_zones>
+        </zones>
         <!-- 3D: theta/phi 指定中心方向，angular_distance_min/max 定义球面环带；min=0 为球冠。
-        <surface_zones outer_boundary="[str]">
+        <zones outer_boundary="[str]">
             <zone name="[str]">
                 <theta value="[float]" unit="[degree]"/>
                 <phi value="[float]" unit="[degree]"/>
@@ -85,7 +85,7 @@ class GeometryMeshCardTemplate:
                 <angular_distance_max value="[float]" unit="[degree]"/>
             </zone>
             <residual_zone name="[str]"/>
-        </surface_zones>
+        </zones>
         -->
     </geometry>
     <mesh>

@@ -16,7 +16,7 @@ void ExternalModelManager::register_models()
     environment_temperature_model_manager_.register_models();
     surface_temperature_model_manager_.register_models();
     heat_flux_model_manager_.register_models();
-    burnup_percent_fima_model_manager_.register_models();
+    burnup_fima_fraction_model_manager_.register_models();
 }
 
 void ExternalModelManager::assign(const std::string& name, int attribute, const std::string& model_name, const ModelParameterMap& parameters, const std::string& value_type)
@@ -41,9 +41,9 @@ void ExternalModelManager::assign(const std::string& name, int attribute, const 
         surface_temperature_model_manager_.assign(attribute, model_name, parameters, value_type);
         return;
     }
-    if (name == "burnup_percent_fima")
+    if (name == "burnup_fima_fraction")
     {
-        burnup_percent_fima_model_manager_.assign(model_name, parameters, value_type);
+        burnup_fima_fraction_model_manager_.assign(model_name, parameters, value_type);
         return;
     }
     throw std::out_of_range("尚未支持的外部量: " + name);
@@ -67,9 +67,9 @@ StateValue ExternalModelManager::evaluate(const std::string& name, const Propert
     {
         return surface_temperature_model_manager_.evaluate(point);
     }
-    if (name == "burnup_percent_fima")
+    if (name == "burnup_fima_fraction")
     {
-        return burnup_percent_fima_model_manager_.evaluate(point);
+        return burnup_fima_fraction_model_manager_.evaluate(point);
     }
     throw std::out_of_range("尚未支持的外部量: " + name);
 }
@@ -92,9 +92,9 @@ const std::vector<std::string>& ExternalModelManager::required_states(const std:
     {
         return surface_temperature_model_manager_.required_states(model_name);
     }
-    if (name == "burnup_percent_fima")
+    if (name == "burnup_fima_fraction")
     {
-        return burnup_percent_fima_model_manager_.required_states(model_name);
+        return burnup_fima_fraction_model_manager_.required_states(model_name);
     }
     throw std::out_of_range("尚未支持的外部量: " + name);
 }

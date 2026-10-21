@@ -4,7 +4,7 @@ from ..xml_utils import XmlUtils
 
 class PropertiesCardTemplate:
     CONTENT = '''<?xml version="1.0" encoding="UTF-8"?>
-<!-- 按 global、材料 region 或外表面 zone 配置属性；zone 名称来自 geometry_mesh 的 surface_zones -->
+<!-- 按 global、材料 region 或外表面 zone 配置属性；zone 名称来自 geometry_mesh 的 zones -->
 <properties>
     <external_property name="power">
         <region name="[str]" model="time_series">
@@ -51,8 +51,8 @@ class PropertiesCardTemplate:
         </zone>
         -->
     </external_property>
-    <!-- burnup_percent_fima 使用 0 到 1 的 FIMA 份额, 例如 0.2 表示 20% FIMA -->
-    <external_property name="burnup_percent_fima">
+    <!-- burnup_fima_fraction 使用 0 到 1 的 FIMA 份额, 例如 0.2 表示 20% FIMA -->
+    <external_property name="burnup_fima_fraction">
         <global model="constant">
             <parameter name="constant_value" value="[float]" unit="[1]" si_unit="[1]"/>
         </global>

@@ -15,7 +15,7 @@ void ConductivityModelManager::register_models()
 {
     registry_.register_model<ConstantConductivity>("common.constant");
     registry_.register_model<Bison2021UcoKernelConductivity>("kernel.bison_2021_uco", {"temperature"});
-    registry_.register_model<Ineri2004Uo2KernelConductivity>("kernel.ineri_2004_uo2", {"temperature", "burnup_percent_fima", "general.porosity"});
+    registry_.register_model<Ineri2004Uo2KernelConductivity>("kernel.ineri_2004_uo2", {"temperature", "burnup_fima_fraction", "general.porosity"});
     registry_.register_model<Bison2021BufferConductivity>("buffer.bison_2021", {"general.mass_density"});
     registry_.register_model<Uk2004BufferConductivity>("buffer.uk_2004", {"general.porosity"});
     registry_.register_model<MillerSicConductivity>("sic.miller", {"temperature"});

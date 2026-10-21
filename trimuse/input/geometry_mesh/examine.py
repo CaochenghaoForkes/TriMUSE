@@ -17,24 +17,24 @@ class GeometryMeshCardExamine:
         geometry = getattr(card.geometry, source)
         if not all(math.isfinite(value) for value in (geometry.center.x, geometry.center.y, geometry.center.z)):
             raise ValueError("center 坐标必须有限")
-        layers = geometry.layers.layer
-        cls.check_layers(layers)
+        regions = geometry.regions.region
+        cls.check_layers(regions)
         if source == "ideal_multilayer_sphere":
-            cls.check_ideal_layers(layers)
+            cls.check_ideal_layers(regions)
         else:
             cls.check_stochastic_geometry(geometry, dimension)
-        cls.check_surface_zones(card.geometry.surface_zones, layers, dimension)
-        cls.check_mesh(card.mesh, dimension, {layer.name for layer in layers})
+        cls.check_zones(card.geometry.zones, regions, dimension)
+        cls.check_mesh(card.mesh, dimension, {region.name for region in regions})
 
     @staticmethod
-    def check_surface_zones(zones: GeometryMeshCard.Geometry.SurfaceZones, layers: list, dimension: int) -> None:
+    def check_zones(zones: GeometryMeshCard.Geometry.Zones, regions: list, dimension: int) -> None:
         """核对外表面引用、分区名称及对应维数的角度范围"""
-        if zones.outer_boundary != layers[-1].outer_boundary.name:
-            raise ValueError("surface_zones.outer_boundary 必须引用最外层 outer_boundary")
+        if zones.outer_boundary != regions[-1].outer_boundary.name:
+            raise ValueError("zones.outer_boundary 必须引用最外层 outer_boundary")
         names = [zone.name for zone in zones.zone] + [zones.residual_zone]
         if len(names) != len(set(names)):
-            raise ValueError("surface_zones 中的 zone 和 residual_zone 名称不能重复")
-        reserved = {layer.outer_boundary.name for layer in layers} | {"particle_center", "symmetry_axis"}
+            raise ValueError("zones 中的 zone 和 residual_zone 名称不能重复")
+        reserved = {region.outer_boundary.name for region in regions} | {"particle_center", "symmetry_axis"}
         if set(names) & reserved:
             raise ValueError("外表面分区名称不能与已有几何边界名称重复")
         if dimension == 1:
@@ -85,26 +85,26 @@ class GeometryMeshCardExamine:
             raise ValueError(f"{name} 必须为{requirement}")
 
     @staticmethod
-    def check_layers(layers: list) -> None:
+    def check_layers(regions: list) -> None:
         """区域与界面名称必须唯一, 避免生成拓扑映射时覆盖"""
-        if not layers:
+        if not regions:
             raise ValueError("至少需要一个材料层")
-        names = [layer.name for layer in layers]
-        boundaries = [layer.outer_boundary.name for layer in layers]
+        names = [region.name for region in regions]
+        boundaries = [region.outer_boundary.name for region in regions]
         if len(set(names)) != len(names):
             raise ValueError("材料层名称不能重复")
         if len(set(boundaries)) != len(boundaries):
             raise ValueError("外界面名称不能重复")
 
     @classmethod
-    def check_ideal_layers(cls, layers: list) -> None:
+    def check_ideal_layers(cls, regions: list) -> None:
         """理想颗粒的外半径从内到外严格递增"""
         previous_radius = 0.0
-        for layer in layers:
-            cls.check_number(layer.outer_radius, f"{layer.name}.outer_radius")
-            if layer.outer_radius <= previous_radius:
+        for region in regions:
+            cls.check_number(region.outer_radius, f"{region.name}.outer_radius")
+            if region.outer_radius <= previous_radius:
                 raise ValueError("各层 outer_radius 必须从内到外严格递增")
-            previous_radius = layer.outer_radius
+            previous_radius = region.outer_radius
 
     @classmethod
     def check_stochastic_geometry(cls, geometry: GeometryMeshCard.Geometry.StochasticMultilayerParticle, dimension: int) -> None:
@@ -118,21 +118,21 @@ class GeometryMeshCardExamine:
             if expansion is None or expansion.max_degree < 2:
                 raise ValueError("max_degree 必须至少为 2")
             cls.check_number(expansion.spectrum_decay, "spectrum_decay")
-        layers = geometry.layers.layer
-        core = layers[0]
+        regions = geometry.regions.region
+        core = regions[0]
         cls.check_number(core.batch_mean_radius, f"{core.name}.batch_mean_radius")
         cls.check_number(core.batch_radius_std, f"{core.name}.batch_radius_std", allow_zero=True)
-        for layer in layers[1:]:
-            cls.check_number(layer.batch_mean_thickness, f"{layer.name}.batch_mean_thickness")
-            cls.check_number(layer.batch_thickness_std, f"{layer.name}.batch_thickness_std", allow_zero=True)
+        for region in regions[1:]:
+            cls.check_number(region.batch_mean_thickness, f"{region.name}.batch_mean_thickness")
+            cls.check_number(region.batch_thickness_std, f"{region.name}.batch_thickness_std", allow_zero=True)
             if dimension > 1:
-                cls.check_number(layer.within_particle_thickness_std, f"{layer.name}.within_particle_thickness_std", allow_zero=True)
-                cls.check_number(layer.within_particle_radius_std, f"{layer.name}.within_particle_radius_std")
-                coefficient = layer.unwrapping_coefficient
+                cls.check_number(region.within_particle_thickness_std, f"{region.name}.within_particle_thickness_std", allow_zero=True)
+                cls.check_number(region.within_particle_radius_std, f"{region.name}.within_particle_radius_std")
+                coefficient = region.unwrapping_coefficient
                 if coefficient is None or not 0 <= coefficient <= 1:
-                    raise ValueError(f"{layer.name}.unwrapping_coefficient 必须在 [0,1] 内")
-        means = [core.batch_mean_radius] + [layer.batch_mean_thickness for layer in layers[1:]]
-        deviations = [core.batch_radius_std] + [layer.batch_thickness_std for layer in layers[1:]]
+                    raise ValueError(f"{region.name}.unwrapping_coefficient 必须在 [0,1] 内")
+        means = [core.batch_mean_radius] + [region.batch_mean_thickness for region in regions[1:]]
+        deviations = [core.batch_radius_std] + [region.batch_thickness_std for region in regions[1:]]
         if all(value == 0 for value in deviations) and not math.isclose(sum(means), surface.batch_mean_radius, rel_tol=1e-12, abs_tol=1e-18):
             raise ValueError("批次标准差全为零时, 各层平均尺寸之和必须等于平均外半径")
 

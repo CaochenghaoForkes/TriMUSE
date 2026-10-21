@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-#include "properties/external/burnup_percent_fima/burnup_percent_fima_model_manager.hpp"
+#include "properties/external/burnup_fima_fraction/burnup_fima_fraction_model_manager.hpp"
 #include "properties/external/environment_temperature/environment_temperature_model_manager.hpp"
 #include "properties/external/heat_flux/heat_flux_model_manager.hpp"
 #include "properties/external/power/power_model_manager.hpp"
@@ -30,7 +30,7 @@ private:
     EnvironmentTemperatureModelManager environment_temperature_model_manager_;
     SurfaceTemperatureModelManager surface_temperature_model_manager_;
     HeatFluxModelManager heat_flux_model_manager_;
-    BurnupPercentFimaModelManager burnup_percent_fima_model_manager_;
+    BurnupFimaFractionModelManager burnup_fima_fraction_model_manager_;
 };
 
 }

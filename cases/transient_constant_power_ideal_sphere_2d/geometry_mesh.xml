@@ -8,20 +8,20 @@
                 <x value="0.0" unit="[um]"/>
                 <y value="0.0" unit="[um]"/>
             </center>
-            <layers>
-                <layer name="fuel_region">
+            <regions>
+                <region name="fuel_region">
                     <outer_boundary name="interface"/>
                     <outer_radius value="500" unit="[um]"/>
-                </layer>
-                <layer name="non_fuel_region">
+                </region>
+                <region name="non_fuel_region">
                     <outer_boundary name="outer_boundary"/>
                     <outer_radius value="1000" unit="[um]"/>
-                </layer>
-            </layers>
+                </region>
+            </regions>
         </ideal_multilayer_sphere>
-        <surface_zones outer_boundary="outer_boundary">
+        <zones outer_boundary="outer_boundary">
             <residual_zone name="surface_zone"/>
-        </surface_zones>
+        </zones>
     </geometry>
     <mesh>
         <element geometry_order="2"/>

@@ -36,7 +36,7 @@ class GeometryMeshCard:
             name: str
 
         @dataclass
-        class SurfaceZones:
+        class Zones:
             """外表面分区角度以弧度保存；1D 只有剩余区"""
 
             @dataclass
@@ -58,21 +58,21 @@ class GeometryMeshCard:
             """理想多层颗粒, 按维数生成径向线, 同心圆或同心球"""
 
             @dataclass
-            class Layers:
+            class Regions:
                 """按从内到外顺序保存各层"""
 
                 @dataclass
-                class Layer:
+                class Region:
                     """单个材料层的外半径"""
 
                     name: str
                     outer_boundary: GeometryMeshCard.Geometry.OuterBoundary
                     outer_radius: float
 
-                layer: list[Layer] = field(default_factory=list)
+                region: list[Region] = field(default_factory=list)
 
             center: GeometryMeshCard.Geometry.Center = field(default_factory=lambda: GeometryMeshCard.Geometry.Center())
-            layers: Layers = field(default_factory=Layers)
+            regions: Regions = field(default_factory=Regions)
 
         @dataclass
         class StochasticMultilayerParticle:
@@ -94,11 +94,11 @@ class GeometryMeshCard:
                 shape_expansion: GeometryMeshCard.Geometry.StochasticMultilayerParticle.ShapeExpansion | None = None
 
             @dataclass
-            class Layers:
+            class Regions:
                 """从内到外保存, 第一层使用核心半径统计, 后续层使用厚度统计"""
 
                 @dataclass
-                class Layer:
+                class Region:
                     """单层的批次统计和颗粒内角向统计参数"""
 
                     name: str
@@ -111,14 +111,14 @@ class GeometryMeshCard:
                     within_particle_radius_std: float | None = None
                     unwrapping_coefficient: float | None = None
 
-                layer: list[Layer] = field(default_factory=list)
+                region: list[Region] = field(default_factory=list)
 
             outer_surface: OuterSurface
             center: GeometryMeshCard.Geometry.Center = field(default_factory=lambda: GeometryMeshCard.Geometry.Center())
-            layers: Layers = field(default_factory=Layers)
+            regions: Regions = field(default_factory=Regions)
 
         source: str  # [ideal_multilayer_sphere,stochastic_multilayer_particle]
-        surface_zones: SurfaceZones
+        zones: Zones
         ideal_multilayer_sphere: IdealMultilayerSphere | None = None
         stochastic_multilayer_particle: StochasticMultilayerParticle | None = None
 
@@ -216,21 +216,21 @@ class GeometryMeshCardLoader:
             "stochastic_multilayer_particle": cls.read_stochastic_multilayer_particle
         }
         geometry_model = readers[source](XmlUtils.read_child(element, source), dimension)
-        surface_zones = cls.read_surface_zones(XmlUtils.read_child(element, "surface_zones"), dimension)
-        geometry = GeometryMeshCard.Geometry(source=source, surface_zones=surface_zones, **{source: geometry_model})
+        zones = cls.read_zones(XmlUtils.read_child(element, "zones"), dimension)
+        geometry = GeometryMeshCard.Geometry(source=source, zones=zones, **{source: geometry_model})
         return geometry
 
     @classmethod
-    def read_surface_zones(cls, element: ET.Element, dimension: int) -> GeometryMeshCard.Geometry.SurfaceZones:
+    def read_zones(cls, element: ET.Element, dimension: int) -> GeometryMeshCard.Geometry.Zones:
         """读取外表面命名分区，角度统一换算为弧度"""
         outer_boundary = XmlUtils.read_attribute(element, "outer_boundary", required=True)
         residual = XmlUtils.read_child(element, "residual_zone")
         residual_zone = XmlUtils.read_attribute(residual, "name", required=True)
-        zones = [cls.read_surface_zone(child, dimension) for child in XmlUtils.read_children(element, "zone")]
-        return GeometryMeshCard.Geometry.SurfaceZones(outer_boundary=outer_boundary, residual_zone=residual_zone, zone=zones)
+        zones = [cls.read_zone(child, dimension) for child in XmlUtils.read_children(element, "zone")]
+        return GeometryMeshCard.Geometry.Zones(outer_boundary=outer_boundary, residual_zone=residual_zone, zone=zones)
 
     @staticmethod
-    def read_surface_zone(element: ET.Element, dimension: int) -> GeometryMeshCard.Geometry.SurfaceZones.Zone:
+    def read_zone(element: ET.Element, dimension: int) -> GeometryMeshCard.Geometry.Zones.Zone:
         """按维数读取 2D 极角区间或 3D 定向球面环带"""
         name = XmlUtils.read_attribute(element, "name", required=True)
         angle_names = {2: ("theta_min", "theta_max"), 3: ("theta", "phi", "angular_distance_min", "angular_distance_max")}.get(dimension, ())
@@ -238,7 +238,7 @@ class GeometryMeshCardLoader:
         for angle_name in angle_names:
             child = XmlUtils.read_child(element, angle_name)
             angles[angle_name] = XmlUtils.read_attribute(child, "value", float, required=True, quantity="angle", context=name)
-        return GeometryMeshCard.Geometry.SurfaceZones.Zone(name=name, **angles)
+        return GeometryMeshCard.Geometry.Zones.Zone(name=name, **angles)
 
     @classmethod
     def read_center(cls, element: ET.Element | None) -> GeometryMeshCard.Geometry.Center:
@@ -267,41 +267,41 @@ class GeometryMeshCardLoader:
     def read_ideal_multilayer_sphere(cls, element: ET.Element, dimension: int) -> GeometryMeshCard.Geometry.IdealMultilayerSphere:
         """读取理想多层颗粒, 各层保持 XML 顺序"""
         center = cls.read_center(XmlUtils.read_child(element, "center", required=False))
-        layers_element = XmlUtils.read_child(element, "layers")
-        layer = [cls.read_ideal_layer(child) for child in XmlUtils.read_children(layers_element, "layer", required=True)]
-        layers = GeometryMeshCard.Geometry.IdealMultilayerSphere.Layers(layer=layer)
+        regions_element = XmlUtils.read_child(element, "regions")
+        region = [cls.read_ideal_region(child) for child in XmlUtils.read_children(regions_element, "region", required=True)]
+        regions = GeometryMeshCard.Geometry.IdealMultilayerSphere.Regions(region=region)
         ideal_multilayer_sphere = GeometryMeshCard.Geometry.IdealMultilayerSphere(
             center=center,
-            layers=layers
+            regions=regions
         )
         return ideal_multilayer_sphere
 
     @classmethod
-    def read_ideal_layer(cls, element: ET.Element) -> GeometryMeshCard.Geometry.IdealMultilayerSphere.Layers.Layer:
+    def read_ideal_region(cls, element: ET.Element) -> GeometryMeshCard.Geometry.IdealMultilayerSphere.Regions.Region:
         """读取理想材料层的外半径"""
         name = XmlUtils.read_attribute(element, "name", required=True)
         outer_boundary = cls.read_outer_boundary(element)
         outer_radius_element = XmlUtils.read_child(element, "outer_radius")
         outer_radius = XmlUtils.read_attribute(outer_radius_element, "value", float, required=True, quantity="length", context=element.tag)
-        layer = GeometryMeshCard.Geometry.IdealMultilayerSphere.Layers.Layer(
+        region = GeometryMeshCard.Geometry.IdealMultilayerSphere.Regions.Region(
             name=name,
             outer_boundary=outer_boundary,
             outer_radius=outer_radius
         )
-        return layer
+        return region
 
     @classmethod
     def read_stochastic_multilayer_particle(cls, element: ET.Element, dimension: int) -> GeometryMeshCard.Geometry.StochasticMultilayerParticle:
         """读取随机颗粒的外表面和各层统计参数"""
         outer_surface = cls.read_outer_surface(XmlUtils.read_child(element, "outer_surface"), dimension)
         center = cls.read_center(XmlUtils.read_child(element, "center", required=False))
-        layers_element = XmlUtils.read_child(element, "layers")
-        layer = [cls.read_stochastic_layer(child) for child in XmlUtils.read_children(layers_element, "layer", required=True)]
-        layers = GeometryMeshCard.Geometry.StochasticMultilayerParticle.Layers(layer=layer)
+        regions_element = XmlUtils.read_child(element, "regions")
+        region = [cls.read_stochastic_region(child) for child in XmlUtils.read_children(regions_element, "region", required=True)]
+        regions = GeometryMeshCard.Geometry.StochasticMultilayerParticle.Regions(region=region)
         stochastic_multilayer_particle = GeometryMeshCard.Geometry.StochasticMultilayerParticle(
             outer_surface=outer_surface,
             center=center,
-            layers=layers
+            regions=regions
         )
         return stochastic_multilayer_particle
 
@@ -333,7 +333,7 @@ class GeometryMeshCardLoader:
         return shape_expansion
 
     @classmethod
-    def read_stochastic_layer(cls, element: ET.Element) -> GeometryMeshCard.Geometry.StochasticMultilayerParticle.Layers.Layer:
+    def read_stochastic_region(cls, element: ET.Element) -> GeometryMeshCard.Geometry.StochasticMultilayerParticle.Regions.Region:
         """读取存在的统计量, 核心与包覆层所需参数由 examine 检查"""
         name = XmlUtils.read_attribute(element, "name", required=True)
         outer_boundary = cls.read_outer_boundary(element)
@@ -351,7 +351,7 @@ class GeometryMeshCardLoader:
         within_particle_radius_std = XmlUtils.read_attribute(within_particle_radius_std_element, "value", float, default=None, quantity="length", context=element.tag)
         unwrapping_coefficient_element = XmlUtils.read_child(element, "unwrapping_coefficient", required=False)
         unwrapping_coefficient = XmlUtils.read_attribute(unwrapping_coefficient_element, "value", float, default=None, quantity="dimensionless", context=element.tag)
-        layer = GeometryMeshCard.Geometry.StochasticMultilayerParticle.Layers.Layer(
+        region = GeometryMeshCard.Geometry.StochasticMultilayerParticle.Regions.Region(
             name=name,
             outer_boundary=outer_boundary,
             batch_mean_radius=batch_mean_radius,
@@ -362,7 +362,7 @@ class GeometryMeshCardLoader:
             within_particle_radius_std=within_particle_radius_std,
             unwrapping_coefficient=unwrapping_coefficient
         )
-        return layer
+        return region
 
     @classmethod
     def read_mesh(cls, element: ET.Element | None) -> GeometryMeshCard.Mesh:

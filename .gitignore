@@ -15,3 +15,16 @@ __pycache__/
 # Simulation results and local ParaView sessions
 /cases/**/output*/
 *.pvsm
+
+# Local COMSOL models, auxiliary files and exported comparison data
+*.mph
+*.mph.*
+*.mphbin
+/cases/transient_half_heat_2d/*.csv
+/cases/transient_real_particle_heat_2d/*.csv
+/cases/transient_real_particle_source_2d/*.csv
+/cases/transient_local_heat_cool_3d/*.csv
+/cases/transient_half_heat_2d/*.vtu
+/cases/transient_real_particle_heat_2d/*.vtu
+/cases/transient_real_particle_source_2d/*.vtu
+/cases/transient_local_heat_cool_3d/*.vtu

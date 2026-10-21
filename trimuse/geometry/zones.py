@@ -4,15 +4,15 @@ import numpy as np
 
 from trimuse.input.geometry_mesh.config import GeometryMeshCard
 
-def partition_surface_3d(surface_tags: list[int], surface_zones: GeometryMeshCard.Geometry.SurfaceZones, outer_radius: float) -> dict[str, list[int]]:
+def partition_surface_3d(surface_tags: list[int], zones: GeometryMeshCard.Geometry.Zones, outer_radius: float) -> dict[str, list[int]]:
     """在颗粒中心为原点的局部坐标中切分外表面，分区共用几何边"""
-    residual = surface_zones.residual_zone
-    if not surface_zones.zone:
+    residual = zones.residual_zone
+    if not zones.zone:
         return {residual: surface_tags}
 
     occ = gmsh.model.occ
     solid = occ.addVolume([occ.addSurfaceLoop(surface_tags)]) # surface_tags: 理想或随机几何生成器得到的最外侧封闭表面
-    tools = [_angular_sector(zone, outer_radius) for zone in surface_zones.zone] # 为每个分区创建角域切割体
+    tools = [_angular_sector(zone, outer_radius) for zone in zones.zone] # 为每个分区创建角域切割体
     _, entity_map = occ.fragment([(3, solid)], [sector for sector, _ in tools]) # 让临时实心体和所有切割体相互切分，交界处形成共用的几何面、边
     # entity_map 记录每个输入实体切分后对应哪些碎片：第 0 项对应 solid，后面的项依次对应各个切割体
     volume_groups = [{entity for entity in entities if entity[0] == 3} for entities in entity_map] # 只取三维体碎片，过滤掉其他维度
@@ -22,7 +22,7 @@ def partition_surface_3d(surface_tags: list[int], surface_zones: GeometryMeshCar
     # exterior 得到的是颗粒完整外表面上所有曲面片的编号
     exterior = {tag for dimension, tag in gmsh.model.getBoundary(sorted(volume_groups[0]), combined=True, oriented=False) if dimension == 2}
     groups = {}
-    for zone, tool_volumes in zip(surface_zones.zone, volume_groups[1:]):
+    for zone, tool_volumes in zip(zones.zone, volume_groups[1:]):
         intersection = volume_groups[0] & tool_volumes # 集合交集 & 找出既属于原实心体、又属于该角域切割体的体碎片 这部分就是该分区在颗粒内部对应的角域
         # 先取这些交集体的全部边界面，再与 exterior 取交集。这样就剔除了内部锥面等切割面，留下这个 zone 真正对应的颗粒外表面片
         boundary = {tag for dimension, tag in gmsh.model.getBoundary(sorted(intersection), combined=False, oriented=False) if dimension == 2}
@@ -37,7 +37,7 @@ def partition_surface_3d(surface_tags: list[int], surface_zones: GeometryMeshCar
     occ.remove([(2, tag) for tag in all_surfaces - exterior] + [(2, meridian) for _, meridian in tools], recursive=True)
     return {name: sorted(tags) for name, tags in groups.items()}
 
-def _angular_sector(zone: GeometryMeshCard.Geometry.SurfaceZones.Zone, outer_radius: float) -> tuple[tuple[int, int], int]:
+def _angular_sector(zone: GeometryMeshCard.Geometry.Zones.Zone, outer_radius: float) -> tuple[tuple[int, int], int]:
     """将角距离区间的圆扇形绕指定方向旋转，得到球冠或环带切割体"""
     occ = gmsh.model.occ
     direction = np.array((sin(zone.theta) * cos(zone.phi), sin(zone.theta) * sin(zone.phi), cos(zone.theta))) # 分区中心方向(转轴方向)

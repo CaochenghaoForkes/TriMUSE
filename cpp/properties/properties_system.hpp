@@ -87,7 +87,7 @@ private:
         {"environment_temperature", PropertyType::External, PropertyScope::Zone},
         {"surface_temperature", PropertyType::External, PropertyScope::Zone}, // K, 指定表面温度
         {"heat_flux", PropertyType::External, PropertyScope::Zone}, // W/m², 外流为正、流入为负
-        {"burnup_percent_fima", PropertyType::External, PropertyScope::Global},
+        {"burnup_fima_fraction", PropertyType::External, PropertyScope::Global},
         {"power", PropertyType::External, PropertyScope::Region},
         {"heat_transfer_coef", PropertyType::Derived, PropertyScope::Zone},
         {"volumetric_power", PropertyType::Derived, PropertyScope::IntegrationPoint},

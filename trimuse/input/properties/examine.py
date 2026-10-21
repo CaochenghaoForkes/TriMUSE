@@ -39,7 +39,7 @@ class PropertiesCardExamine:
                     raise ValueError(f"{location}.global: 参数值必须有限")
             if global_config.model == "constant" and not isinstance(global_config.parameters.get("constant_value"), float):
                 raise ValueError(f"{location}.global: constant_value 必须为标量")
-            if category == "external_property" and property_config.name == "burnup_percent_fima":
+            if category == "external_property" and property_config.name == "burnup_fima_fraction":
                 cls.check_burnup(global_config, f"{location}.global")
         for region in property_config.region:
             region_location = f"{location}.{region.name}"

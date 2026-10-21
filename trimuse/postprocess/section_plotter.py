@@ -5,7 +5,8 @@ from typing import TYPE_CHECKING
 import numpy as np
 from vtkmodules.util.numpy_support import vtk_to_numpy
 from vtkmodules.vtkCommonDataModel import vtkPlane
-from vtkmodules.vtkFiltersCore import vtkCutter, vtkTriangleFilter
+from vtkmodules.vtkFiltersCore import vtkCutter, vtkTriangleFilter, vtkExtractCells
+from vtkmodules.vtkCommonCore import vtkIdList
 from vtkmodules.vtkFiltersGeometry import vtkDataSetSurfaceFilter
 
 from .output_reader import OutputReader
@@ -52,6 +53,25 @@ class SectionPlotter:
         result = triangles.GetOutput()
         if result.GetNumberOfPolys() == 0: # 如果没有得到任何面片，就报错
             raise ValueError("指定平面未与计算域形成截面")
+        # 切面穿过顶点或共面边时可能产生零面积碎片, Gouraud 着色会因此出现放射线。
+        coordinates = vtk_to_numpy(result.GetPoints().GetData())
+        faces = vtk_to_numpy(result.GetPolys().GetData()).reshape(-1, 4)[:, 1:]
+        vertices = coordinates[faces]
+        twice_area = np.linalg.norm(np.cross(vertices[:, 1] - vertices[:, 0],
+                                             vertices[:, 2] - vertices[:, 0]), axis=1)
+        tolerance = 64 * np.finfo(float).eps * np.sum(np.ptp(coordinates, axis=0) ** 2)
+        valid = np.flatnonzero(twice_area > tolerance)
+        if len(valid) != len(faces):
+            ids = vtkIdList()
+            for index in valid:
+                ids.InsertNextId(int(index))
+            extract = vtkExtractCells()
+            extract.SetInputData(result)
+            extract.SetCellList(ids)
+            surface = vtkDataSetSurfaceFilter()
+            surface.SetInputConnection(extract.GetOutputPort())
+            surface.Update()
+            result = surface.GetOutput() # 同时保留对应的节点和单元属性。
         return result
 
     def extract(self, center: tuple[float, float, float], normal: tuple[float, float, float], property_name: str) -> Iterator[tuple[str, float, vtkPolyData]]:

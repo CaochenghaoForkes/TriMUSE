@@ -8,7 +8,7 @@
 namespace trimuse
 {
 
-class BurnupPercentFimaModelManager
+class BurnupFimaFractionModelManager
 {
 public:
     void register_models();

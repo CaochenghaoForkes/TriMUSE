@@ -1,8 +1,8 @@
 from trimuse.input.geometry_mesh.config import GeometryMeshCard
 IdealMultilayerSphereConfig = GeometryMeshCard.Geometry.IdealMultilayerSphere
-SurfaceZonesConfig = GeometryMeshCard.Geometry.SurfaceZones
+ZonesConfig = GeometryMeshCard.Geometry.Zones
 from trimuse.geometry.topology import GeometryTopology
-from trimuse.geometry.surface_zones import partition_surface_3d
+from trimuse.geometry.zones import partition_surface_3d
 import gmsh
 from math import cos, pi, sin
 
@@ -10,25 +10,25 @@ class IdealMultilayerSphereBuilder:
     """根据空间维数构造径向线、同心圆或同心球"""
 
     @classmethod
-    def build(cls, config: IdealMultilayerSphereConfig, dimension: int, surface_zones: SurfaceZonesConfig) -> GeometryTopology:
+    def build(cls, config: IdealMultilayerSphereConfig, dimension: int, zones: ZonesConfig) -> GeometryTopology:
         """构造已通过输入检查的理想颗粒, Gmsh 生命周期由外部管理"""
         if dimension == 1:
-            return cls._build_radial_line(config, surface_zones)
+            return cls._build_radial_line(config, zones)
         if dimension == 2:
-            return cls._build_axisymmetric_section(config, surface_zones)
+            return cls._build_axisymmetric_section(config, zones)
         if dimension == 3:
-            return cls._build_concentric_spheres(config, surface_zones)
+            return cls._build_concentric_spheres(config, zones)
 
     @staticmethod
-    def _build_radial_line(config: IdealMultilayerSphereConfig, surface_zones: SurfaceZonesConfig) -> GeometryTopology:
+    def _build_radial_line(config: IdealMultilayerSphereConfig, zones: ZonesConfig) -> GeometryTopology:
         """1D 分层径向线"""
 
         # 准备数据
         center_x = config.center.x
-        layer_names = [layer.name for layer in  config.layers.layer]
-        outer_radii = [layer.outer_radius for layer in  config.layers.layer]
-        boundary_names = [layer.outer_boundary.name for layer in  config.layers.layer]
-        boundary_names[-1] = surface_zones.residual_zone
+        layer_names = [region_config.name for region_config in  config.regions.region]
+        outer_radii = [region_config.outer_radius for region_config in  config.regions.region]
+        boundary_names = [region_config.outer_boundary.name for region_config in  config.regions.region]
+        boundary_names[-1] = zones.residual_zone
 
         # 建立几何点
         point_tags = []
@@ -62,25 +62,25 @@ class IdealMultilayerSphereBuilder:
         return topology
 
     @staticmethod
-    def _build_axisymmetric_section(config: IdealMultilayerSphereConfig, surface_zones: SurfaceZonesConfig) -> GeometryTopology:
+    def _build_axisymmetric_section(config: IdealMultilayerSphereConfig, zones: ZonesConfig) -> GeometryTopology:
         """2D 轴对称理想多层颗粒右半截面"""
 
         center = config.center
-        layers = config.layers.layer
+        region_configs = config.regions.region
         center_tag = gmsh.model.occ.addPoint(center.x, center.y, 0.0)
         top_points = []
         bottom_points = []
         arc_tags = []
         outer_segments = []
-        for index, layer in enumerate(layers):
-            radius = layer.outer_radius
+        for index, region_config in enumerate(region_configs):
+            radius = region_config.outer_radius
             bottom = gmsh.model.occ.addPoint(center.x, center.y - radius, 0.0)
             right = gmsh.model.occ.addPoint(center.x + radius, center.y, 0.0)
             top = gmsh.model.occ.addPoint(center.x, center.y + radius, 0.0)
             bottom_points.append(bottom)
             top_points.append(top)
-            if index == len(layers) - 1:
-                cut_angles = sorted({0.0, pi / 2, pi, *(angle for zone in surface_zones.zone for angle in (zone.theta_min, zone.theta_max))}, reverse=True)
+            if index == len(region_configs) - 1:
+                cut_angles = sorted({0.0, pi / 2, pi, *(angle for zone in zones.zone for angle in (zone.theta_min, zone.theta_max))}, reverse=True)
                 angle_points = {pi: bottom, pi / 2: right, 0.0: top}
                 for angle in cut_angles:
                     if angle not in angle_points:
@@ -94,7 +94,7 @@ class IdealMultilayerSphereBuilder:
         axis_tags = [gmsh.model.occ.addLine(top_points[0], center_tag), gmsh.model.occ.addLine(center_tag, bottom_points[0])]
         kernel_loop = gmsh.model.occ.addCurveLoop([*arc_tags[0], *axis_tags])
         surface_tags.append(gmsh.model.occ.addPlaneSurface([kernel_loop]))
-        for index in range(1, len(layers)):
+        for index in range(1, len(region_configs)):
             top_axis = gmsh.model.occ.addLine(top_points[index - 1], top_points[index])
             bottom_axis = gmsh.model.occ.addLine(bottom_points[index], bottom_points[index - 1])
             axis_tags.extend((top_axis, bottom_axis))
@@ -102,27 +102,27 @@ class IdealMultilayerSphereBuilder:
             surface_tags.append(gmsh.model.occ.addPlaneSurface([loop]))
 
         gmsh.model.occ.synchronize()
-        regions = {layer.name: [surface_tags[index]] for index, layer in enumerate(layers)}
-        boundaries = {layer.outer_boundary.name: list(arc_tags[index]) for index, layer in enumerate(layers[:-1])}
-        boundaries.update({zone.name: [] for zone in surface_zones.zone})
-        boundaries[surface_zones.residual_zone] = []
+        regions = {region_config.name: [surface_tags[index]] for index, region_config in enumerate(region_configs)}
+        boundaries = {region_config.outer_boundary.name: list(arc_tags[index]) for index, region_config in enumerate(region_configs[:-1])}
+        boundaries.update({zone.name: [] for zone in zones.zone})
+        boundaries[zones.residual_zone] = []
         for tag, angle in outer_segments:
-            name = next((zone.name for zone in surface_zones.zone if zone.theta_min <= angle <= zone.theta_max), surface_zones.residual_zone)
+            name = next((zone.name for zone in zones.zone if zone.theta_min <= angle <= zone.theta_max), zones.residual_zone)
             boundaries[name].append(tag)
         boundaries["symmetry_axis"] = axis_tags
         return GeometryTopology(dimension=2, regions=regions, boundaries=boundaries)
 
     @staticmethod
-    def _build_concentric_spheres(config: IdealMultilayerSphereConfig, surface_zones: SurfaceZonesConfig) -> GeometryTopology:
+    def _build_concentric_spheres(config: IdealMultilayerSphereConfig, zones: ZonesConfig) -> GeometryTopology:
         """3D 理想同心球"""
 
         center = config.center
-        layers = config.layers.layer
+        region_configs = config.regions.region
 
         # 建立所有同心球体
         sphere_tags = []
-        for layer in layers:
-            radius = layer.outer_radius
+        for region_config in region_configs:
+            radius = region_config.outer_radius
             sphere_tag = gmsh.model.occ.addSphere(0.0, 0.0, 0.0, radius)
             sphere_tags.append(sphere_tag)
 
@@ -151,26 +151,26 @@ class IdealMultilayerSphereBuilder:
             boundary_entities = gmsh.model.getBoundary([(3,volume_tag)],combined=False,oriented=False,recursive=False)
             volume_surfaces.append({tag for dimension,tag in boundary_entities if dimension == 2})
         boundaries = {}
-        for index in range(len(layers) - 1):
+        for index in range(len(region_configs) - 1):
             shared_surfaces = (volume_surfaces[index] & volume_surfaces[index + 1])
-            boundaries[layers[index].outer_boundary.name] = sorted(shared_surfaces)
+            boundaries[region_configs[index].outer_boundary.name] = sorted(shared_surfaces)
         # 外表面
         outer_entities = gmsh.model.getBoundary([(3, tag) for tag in volume_tags],combined=True,oriented=False,recursive=False)
         outer_surfaces = sorted(tag for dimension, tag in outer_entities if dimension == 2)
         # 先释放最外层体，切分其外表面，再用原来的内界面封闭该层。
         gmsh.model.occ.remove([(3, volume_tags[-1])], recursive=False)
-        outer_boundaries = partition_surface_3d(outer_surfaces, surface_zones, layers[-1].outer_radius)
+        outer_boundaries = partition_surface_3d(outer_surfaces, zones, region_configs[-1].outer_radius)
         outer_shell = gmsh.model.occ.addSurfaceLoop([tag for tags in outer_boundaries.values() for tag in tags])
         shells = [outer_shell]
-        if len(layers) > 1:
-            shells.append(gmsh.model.occ.addSurfaceLoop(boundaries[layers[-2].outer_boundary.name]))
+        if len(region_configs) > 1:
+            shells.append(gmsh.model.occ.addSurfaceLoop(boundaries[region_configs[-2].outer_boundary.name]))
         volume_tags[-1] = gmsh.model.occ.addVolume(shells)
         boundaries.update(outer_boundaries)
         # 显式传入曲面再传入体，平移时保留物理边界引用的曲面编号。
         entities = [(2, tag) for tags in boundaries.values() for tag in tags] + [(3, tag) for tag in volume_tags]
         gmsh.model.occ.translate(entities, center.x, center.y, center.z)
         gmsh.model.occ.synchronize()
-        regions = {layer.name: [volume_tags[index]] for index, layer in enumerate(layers)}
+        regions = {region_config.name: [volume_tags[index]] for index, region_config in enumerate(region_configs)}
 
         # 建立几何拓扑
         topology = GeometryTopology(dimension=3,regions=regions,boundaries=boundaries)

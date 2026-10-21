@@ -1,9 +1,9 @@
 from trimuse.input.geometry_mesh.config import GeometryMeshCard
 StochasticMultilayerParticleConfig = GeometryMeshCard.Geometry.StochasticMultilayerParticle
-SurfaceZonesConfig = GeometryMeshCard.Geometry.SurfaceZones
+ZonesConfig = GeometryMeshCard.Geometry.Zones
 SpaceSamplerConfig = GeometryMeshCard.Mesh.SpaceSampler
 from trimuse.geometry.topology import GeometryTopology
-from trimuse.geometry.surface_zones import partition_surface_3d
+from trimuse.geometry.zones import partition_surface_3d
 import gmsh
 import numpy as np
 from scipy.special import sph_harm_y
@@ -12,14 +12,14 @@ class StochasticMultilayerParticleBuilder:
     """拆包裹法随机多层颗粒"""
 
     @classmethod
-    def build(cls, config: StochasticMultilayerParticleConfig, dimension: int, rng: np.random.Generator, surface_zones: SurfaceZonesConfig, space_sampler: SpaceSamplerConfig | None = None) -> GeometryTopology:
+    def build(cls, config: StochasticMultilayerParticleConfig, dimension: int, rng: np.random.Generator, zones: ZonesConfig, space_sampler: SpaceSamplerConfig | None = None) -> GeometryTopology:
         """构造已通过输入检查的随机颗粒, Gmsh 生命周期由外部管理"""
         if dimension == 1:
-            return cls._build_1d(config, rng, surface_zones)
+            return cls._build_1d(config, rng, zones)
         if dimension == 2:
-            return cls._build_2d(config, rng, surface_zones, space_sampler)
+            return cls._build_2d(config, rng, zones, space_sampler)
         if dimension == 3:
-            return cls._build_3d(config, rng, surface_zones, space_sampler)
+            return cls._build_3d(config, rng, zones, space_sampler)
 
     @staticmethod
     def _batch_mean_thickness_cond(T: np.ndarray, S: np.ndarray, r_remaining: float) -> float:
@@ -47,13 +47,13 @@ class StochasticMultilayerParticleBuilder:
     def _sample_mean_thicknesses(cls, config: StochasticMultilayerParticleConfig, rng: np.random.Generator, max_attempts: int = 1000) -> np.ndarray:
         """条件抽样各层平均尺寸, 返回从内到外的米制数组, 首项为核心半径"""
         # T 为批次均值, S 为批次标准差, t_bar 为本颗粒抽样平均尺寸
-        layers = config.layers.layer
-        T = np.array([layer.batch_mean_radius if l == 0 else layer.batch_mean_thickness for l, layer in enumerate(layers)])
-        S = np.array([layer.batch_radius_std if l == 0 else layer.batch_thickness_std for l, layer in enumerate(layers)])
+        region_configs = config.regions.region
+        T = np.array([region_config.batch_mean_radius if l == 0 else region_config.batch_mean_thickness for l, region_config in enumerate(region_configs)])
+        S = np.array([region_config.batch_radius_std if l == 0 else region_config.batch_thickness_std for l, region_config in enumerate(region_configs)])
         r_outer_bar = config.outer_surface.batch_mean_radius
-        t_bar = np.empty(len(layers))
+        t_bar = np.empty(len(region_configs))
         for _ in range(max_attempts):
-            for l in range(len(layers) - 1, -1, -1):
+            for l in range(len(region_configs) - 1, -1, -1):
                 r_remaining = r_outer_bar - float(np.sum(t_bar[l + 1:]))
                 T_l_cond = cls._batch_mean_thickness_cond(T[:l + 1], S[:l + 1], r_remaining)
                 S_l_cond = cls._batch_thickness_std_cond(S[:l + 1])
@@ -106,8 +106,8 @@ class StochasticMultilayerParticleBuilder:
     @classmethod
     def _generate_layer_radial_profiles_2d(cls, config: StochasticMultilayerParticleConfig, t_bar: np.ndarray, a_outer: np.ndarray, rng: np.random.Generator, max_attempts: int = 1000) -> np.ndarray:
         """按拆包裹法生成从内到外各层母线的米制勒让德系数"""
-        layers = config.layers.layer
-        layer_count = len(layers)
+        region_configs = config.regions.region
+        layer_count = len(region_configs)
         if layer_count == 1:
             return a_outer[None, :].copy()
 
@@ -116,10 +116,10 @@ class StochasticMultilayerParticleBuilder:
             a_layers = np.zeros((layer_count, coefficient_count))
             a_layers[-1] = a_outer
             for l in range(layer_count - 1, 0, -1):
-                layer = layers[l]
-                sigma_t = layer.within_particle_thickness_std
-                sigma_r = layer.within_particle_radius_std
-                u_l = layer.unwrapping_coefficient
+                region_config = region_configs[l]
+                sigma_t = region_config.within_particle_thickness_std
+                sigma_r = region_config.within_particle_radius_std
+                u_l = region_config.unwrapping_coefficient
 
                 P_l = u_l / (u_l + np.sqrt(1 - u_l ** 2)) if u_l > 0 else 0.0
                 normalization = np.sqrt(1 - 2 * P_l + 2 * P_l ** 2)
@@ -213,8 +213,8 @@ class StochasticMultilayerParticleBuilder:
     @classmethod
     def _generate_layer_radial_profiles_3d(cls, config: StochasticMultilayerParticleConfig, t_bar: np.ndarray, a_nm_outer: np.ndarray, rng: np.random.Generator, max_attempts: int = 1000) -> np.ndarray:
         """按拆包裹法生成从内到外各层界面的米制实球谐系数"""
-        layers = config.layers.layer
-        layer_count = len(layers)
+        region_configs = config.regions.region
+        layer_count = len(region_configs)
         N = len(a_nm_outer) - 1
         if layer_count == 1:
             return a_nm_outer[None, :, :].copy()
@@ -225,10 +225,10 @@ class StochasticMultilayerParticleBuilder:
             a_nm_layers[-1] = a_nm_outer
             valid_sample = True
             for l in range(layer_count - 1, 0, -1):
-                layer = layers[l]
-                sigma_t = layer.within_particle_thickness_std
-                sigma_r = layer.within_particle_radius_std
-                u_l = layer.unwrapping_coefficient
+                region_config = region_configs[l]
+                sigma_t = region_config.within_particle_thickness_std
+                sigma_r = region_config.within_particle_radius_std
+                u_l = region_config.unwrapping_coefficient
 
                 P_l = u_l / (u_l + np.sqrt(1 - u_l ** 2)) if u_l > 0 else 0.0
                 normalization = np.sqrt(1 - 2 * P_l + 2 * P_l ** 2)
@@ -331,7 +331,7 @@ class StochasticMultilayerParticleBuilder:
         return np.stack((x, y, z), axis=-1)
 
     @classmethod
-    def _build_1d(cls, config: StochasticMultilayerParticleConfig, rng: np.random.Generator, surface_zones: SurfaceZonesConfig) -> GeometryTopology:
+    def _build_1d(cls, config: StochasticMultilayerParticleConfig, rng: np.random.Generator, zones: ZonesConfig) -> GeometryTopology:
         """按抽样平均厚度构造径向线, Gmsh 生命周期由外部管理"""
         t_bar = cls._sample_mean_thicknesses(config, rng)
         r_bar = np.cumsum(t_bar)
@@ -341,16 +341,16 @@ class StochasticMultilayerParticleBuilder:
             points.append(gmsh.model.occ.addPoint(center_x + float(r_l_bar), 0.0, 0.0))
         regions = {}
         boundaries = {"particle_center": [points[0]]}
-        for l, layer in enumerate(config.layers.layer):
+        for l, region_config in enumerate(config.regions.region):
             line = gmsh.model.occ.addLine(points[l], points[l + 1])
-            regions[layer.name] = [line]
-            boundary_name = surface_zones.residual_zone if l == len(config.layers.layer) - 1 else layer.outer_boundary.name
+            regions[region_config.name] = [line]
+            boundary_name = zones.residual_zone if l == len(config.regions.region) - 1 else region_config.outer_boundary.name
             boundaries[boundary_name] = [points[l + 1]]
         gmsh.model.occ.synchronize()
         return GeometryTopology(dimension=1, regions=regions, boundaries=boundaries)
 
     @classmethod
-    def _build_2d(cls, config: StochasticMultilayerParticleConfig, rng: np.random.Generator, surface_zones: SurfaceZonesConfig, space_sampler: SpaceSamplerConfig | None = None) -> GeometryTopology:
+    def _build_2d(cls, config: StochasticMultilayerParticleConfig, rng: np.random.Generator, zones: ZonesConfig, space_sampler: SpaceSamplerConfig | None = None) -> GeometryTopology:
         """构造二维轴对称随机颗粒右半截面"""
         t_bar = cls._sample_mean_thicknesses(config, rng)
         a_outer = cls._generate_outer_surface_2d(config, rng)
@@ -359,7 +359,7 @@ class StochasticMultilayerParticleBuilder:
         N = len(a_outer) - 1
         sampler = space_sampler if space_sampler is not None else SpaceSamplerConfig()
         theta_interval_count = sampler.theta_interval_count if sampler.theta_interval_count is not None else max(128, 8 * N)
-        cut_angles = sorted({0.0, np.pi, *(angle for zone in surface_zones.zone for angle in (zone.theta_min, zone.theta_max))})
+        cut_angles = sorted({0.0, np.pi, *(angle for zone in zones.zone for angle in (zone.theta_min, zone.theta_max))})
         theta = np.unique(np.r_[np.linspace(0.0, np.pi, theta_interval_count + 1), cut_angles])
         radial_profiles = np.array([cls._evaluate_legendre_2d(a, theta)[0] for a in a_layers])
         coordinates = cls._radial_to_cartesian_2d(radial_profiles, theta, config.center)
@@ -391,18 +391,18 @@ class StochasticMultilayerParticleBuilder:
             surface_tags.append(gmsh.model.occ.addPlaneSurface([loop]))
         gmsh.model.occ.synchronize()
 
-        regions = {layer.name: [surface_tags[l]] for l, layer in enumerate(config.layers.layer)}
-        boundaries = {layer.outer_boundary.name: curve_tags[l] for l, layer in enumerate(config.layers.layer[:-1])}
-        boundaries.update({zone.name: [] for zone in surface_zones.zone})
-        boundaries[surface_zones.residual_zone] = []
+        regions = {region_config.name: [surface_tags[l]] for l, region_config in enumerate(config.regions.region)}
+        boundaries = {region_config.outer_boundary.name: curve_tags[l] for l, region_config in enumerate(config.regions.region[:-1])}
+        boundaries.update({zone.name: [] for zone in zones.zone})
+        boundaries[zones.residual_zone] = []
         for tag, angle in outer_segments:
-            name = next((zone.name for zone in surface_zones.zone if zone.theta_min <= angle <= zone.theta_max), surface_zones.residual_zone)
+            name = next((zone.name for zone in zones.zone if zone.theta_min <= angle <= zone.theta_max), zones.residual_zone)
             boundaries[name].append(tag)
         boundaries["symmetry_axis"] = axis_tags
         return GeometryTopology(dimension=2, regions=regions, boundaries=boundaries)
 
     @classmethod
-    def _build_3d(cls, config: StochasticMultilayerParticleConfig, rng: np.random.Generator, surface_zones: SurfaceZonesConfig, space_sampler: SpaceSamplerConfig | None = None) -> GeometryTopology:
+    def _build_3d(cls, config: StochasticMultilayerParticleConfig, rng: np.random.Generator, zones: ZonesConfig, space_sampler: SpaceSamplerConfig | None = None) -> GeometryTopology:
         """构造三维随机多层颗粒, Gmsh 生命周期由外部管理"""
         t_bar = cls._sample_mean_thicknesses(config, rng)
         a_nm_outer = cls._generate_outer_surface_3d(config, rng)
@@ -455,7 +455,7 @@ class StochasticMultilayerParticleBuilder:
                 curve_loop_tag = gmsh.model.occ.addCurveLoop(oriented_edges)
                 surface_tags.append(gmsh.model.occ.addPlaneSurface([curve_loop_tag]))
             if layer_index == len(coordinates) - 1:
-                outer_boundaries = partition_surface_3d(surface_tags, surface_zones, outer_radius)
+                outer_boundaries = partition_surface_3d(surface_tags, zones, outer_radius)
                 surface_tags = [tag for tags in outer_boundaries.values() for tag in tags]
             interface_surfaces.append(surface_tags)
             shell_tags.append(gmsh.model.occ.addSurfaceLoop(surface_tags))
@@ -469,8 +469,8 @@ class StochasticMultilayerParticleBuilder:
         gmsh.model.occ.translate(entities, config.center.x, config.center.y, config.center.z)
         gmsh.model.occ.synchronize()
 
-        regions = {layer.name: [volume_tags[l]] for l, layer in enumerate(config.layers.layer)}
-        boundaries = {layer.outer_boundary.name: interface_surfaces[l] for l, layer in enumerate(config.layers.layer[:-1])}
+        regions = {region_config.name: [volume_tags[l]] for l, region_config in enumerate(config.regions.region)}
+        boundaries = {region_config.outer_boundary.name: interface_surfaces[l] for l, region_config in enumerate(config.regions.region[:-1])}
         boundaries.update(outer_boundaries)
         return GeometryTopology(dimension=3, regions=regions, boundaries=boundaries)
 

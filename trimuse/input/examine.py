@@ -40,14 +40,14 @@ class InputCardsExamine:
 
     @staticmethod
     def outer_boundary_names(geometry_mesh: GeometryMeshCard) -> set[str]:
-        zones = geometry_mesh.geometry.surface_zones
+        zones = geometry_mesh.geometry.zones
         return {zone.name for zone in zones.zone} | {zones.residual_zone}
 
     @staticmethod
     def check_properties_references(geometry_mesh: GeometryMeshCard, properties: PropertiesCard) -> None:
         """核对属性区域及当前体积功率模型对外部功率的依赖"""
         geometry = getattr(geometry_mesh.geometry, geometry_mesh.geometry.source)
-        region_names = {layer.name for layer in geometry.layers.layer}
+        region_names = {region.name for region in geometry.regions.region}
         zone_names = InputCardsExamine.outer_boundary_names(geometry_mesh)
         power_regions = {region.name for property_config in properties.external_property if property_config.name == "power" for region in property_config.region}
         for property_config in properties.external_property + properties.derived_property:
@@ -92,7 +92,7 @@ class InputCardsExamine:
     def check_material_assignments(geometry_mesh: GeometryMeshCard, material: MaterialCard) -> None:
         """每个几何层都必须分配材料, 分配区域必须存在于几何中"""
         geometry = getattr(geometry_mesh.geometry, geometry_mesh.geometry.source)
-        layer_names = {layer.name for layer in geometry.layers.layer}
+        layer_names = {region.name for region in geometry.regions.region}
         assigned_names = {region.name for region in material.assign.region}
         missing = layer_names - assigned_names
         if missing:
@@ -105,8 +105,8 @@ class InputCardsExamine:
     def check_thermal_references(geometry_mesh: GeometryMeshCard, thermal: ThermalCard) -> None:
         """核对初始温度区域, 热源区域, 外边界及内界面名称"""
         geometry = getattr(geometry_mesh.geometry, geometry_mesh.geometry.source)
-        layers = geometry.layers.layer
-        region_names = {layer.name for layer in layers}
+        regions = geometry.regions.region
+        region_names = {region.name for region in regions}
         initial_regions = {temperature.region for temperature in thermal.initial.temperature}
         unknown = initial_regions - region_names
         if unknown:
@@ -114,7 +114,7 @@ class InputCardsExamine:
         missing = region_names - initial_regions
         if missing:
             raise ValueError(f"以下区域未配置初始温度: {', '.join(sorted(missing))}")
-        interface_names = {layer.outer_boundary.name for layer in layers[:-1]}
+        interface_names = {region.outer_boundary.name for region in regions[:-1]}
         boundary_names = InputCardsExamine.outer_boundary_names(geometry_mesh)
         if geometry_mesh.model.dimension == 1:
             boundary_names.add("particle_center")

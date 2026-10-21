@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <geometry_mesh>
-    <!-- 三维随机五层颗粒; 保持当前形貌参数, 网格按各层厚度分区设置, 仍需验证空间收敛 -->
     <model dimension="3"/>
     <geometry source="stochastic_multilayer_particle">
         <stochastic_multilayer_particle>
@@ -10,78 +9,82 @@
                 <z value="0.0" unit="[um]"/>
             </center>
             <outer_surface>
-                <batch_mean_radius value="465.0" unit="[um]"/>
+                <batch_mean_radius value="465" unit="[um]"/>
                 <target_sphericity value="0.995" unit="[1]"/>
-                <shape_expansion max_degree="8" spectrum_decay="3.0"/>
+                <shape_expansion max_degree="12" spectrum_decay="3.0"/>
             </outer_surface>
-            <layers>
-                <layer name="kernel">
+            <regions>
+                <region name="kernel">
                     <outer_boundary name="kernel_buffer"/>
                     <batch_mean_radius value="250.0" unit="[um]"/>
                     <batch_radius_std value="4.4" unit="[um]"/>
-                </layer>
-                <layer name="buffer">
+                </region>
+                <region name="buffer">
                     <outer_boundary name="buffer_ipyc"/>
-                    <batch_mean_thickness value="100.0" unit="[um]"/>
+                    <batch_mean_thickness value="100" unit="[um]"/>
                     <batch_thickness_std value="8.4" unit="[um]"/>
                     <within_particle_thickness_std value="10.0" unit="[um]"/>
                     <within_particle_radius_std value="14.0" unit="[um]"/>
                     <unwrapping_coefficient value="0.8767" unit="[1]"/>
-                </layer>
-                <layer name="ipyc">
+                </region>
+                <region name="ipyc">
                     <outer_boundary name="ipyc_sic"/>
-                    <batch_mean_thickness value="40.0" unit="[um]"/>
+                    <batch_mean_thickness value="40" unit="[um]"/>
                     <batch_thickness_std value="2.5" unit="[um]"/>
                     <within_particle_thickness_std value="5.0" unit="[um]"/>
                     <within_particle_radius_std value="10.0" unit="[um]"/>
                     <unwrapping_coefficient value="0.9034" unit="[1]"/>
-                </layer>
-                <layer name="sic">
+                </region>
+                <region name="sic">
                     <outer_boundary name="sic_opyc"/>
-                    <batch_mean_thickness value="35.0" unit="[um]"/>
+                    <batch_mean_thickness value="35" unit="[um]"/>
                     <batch_thickness_std value="1.2" unit="[um]"/>
                     <within_particle_thickness_std value="1.5" unit="[um]"/>
                     <within_particle_radius_std value="10.0" unit="[um]"/>
                     <unwrapping_coefficient value="0.86415" unit="[1]"/>
-                </layer>
-                <layer name="opyc">
+                </region>
+                <region name="opyc">
                     <outer_boundary name="particle_outer_surface"/>
-                    <batch_mean_thickness value="40.0" unit="[um]"/>
+                    <batch_mean_thickness value="40" unit="[um]"/>
                     <batch_thickness_std value="2.9" unit="[um]"/>
                     <within_particle_thickness_std value="6.0" unit="[um]"/>
                     <within_particle_radius_std value="14.0" unit="[um]"/>
                     <unwrapping_coefficient value="0.94205" unit="[1]"/>
-                </layer>
-            </layers>
+                </region>
+            </regions>
         </stochastic_multilayer_particle>
-        <!-- outer_boundary 指向待分区的整体外轮廓；实际物理边界为 zone 和 residual_zone -->
-        <surface_zones outer_boundary="particle_outer_surface">
-            <!-- 围绕 +z 方向的 15° 小球冠, 理想球面积占比约 1.7% -->
+        <zones outer_boundary="particle_outer_surface">
+            <!-- theta 从 +z 起算, phi 从 +x 朝 +y 起算 -->
             <zone name="heat_zone">
-                <theta value="0.0" unit="[degree]"/>
-                <phi value="0.0" unit="[degree]"/>
-                <angular_distance_min value="0.0" unit="[degree]"/>
-                <angular_distance_max value="15.0" unit="[degree]"/>
+                <theta value="90" unit="[degree]"/>
+                <phi value="180" unit="[degree]"/>
+                <angular_distance_min value="0" unit="[degree]"/>
+                <angular_distance_max value="15" unit="[degree]"/>
             </zone>
-            <residual_zone name="cold_zone"/>
-        </surface_zones>
+            <zone name="cold_zone">
+                <theta value="90" unit="[degree]"/>
+                <phi value="30" unit="[degree]"/>
+                <angular_distance_min value="0" unit="[degree]"/>
+                <angular_distance_max value="25" unit="[degree]"/>
+            </zone>
+            <residual_zone name="insulated_zone"/>
+        </zones>
     </geometry>
     <mesh>
-        <space_sampler  theta_interval_count="48" phi_count="80"/>
-        <element geometry_order="1"/>
+        <element geometry_order="2"/>
         <sizing>
-            <!-- 核心较粗、包覆层较细; 目标尺寸不是实际边长或厚度方向单元数的严格约束 -->
+            <!-- 三维二次曲面几何, 一次温度场; 薄包覆层保留较细网格 -->
             <global>
-                <min_edge_length value="8.0" unit="[um]"/>
-                <max_edge_length value="30.0" unit="[um]"/>
+                <min_edge_length value="12.0" unit="[um]"/>
+                <max_edge_length value="60.0" unit="[um]"/>
             </global>
-            <region name="kernel"><target_edge_length value="30.0" unit="[um]"/></region>
-            <region name="buffer"><target_edge_length value="20.0" unit="[um]"/></region>
-            <region name="ipyc"><target_edge_length value="10.0" unit="[um]"/></region>
-            <region name="sic"><target_edge_length value="8.0" unit="[um]"/></region>
-            <region name="opyc"><target_edge_length value="10.0" unit="[um]"/></region>
+            <region name="kernel"><target_edge_length value="60.0" unit="[um]"/></region>
+            <region name="buffer"><target_edge_length value="40.0" unit="[um]"/></region>
+            <region name="ipyc"><target_edge_length value="18.0" unit="[um]"/></region>
+            <region name="sic"><target_edge_length value="15.0" unit="[um]"/></region>
+            <region name="opyc"><target_edge_length value="18.0" unit="[um]"/></region>
         </sizing>
-        <output file="stochastic_particle_3d_order1.msh" write_vtk="true"/>
         <gmsh algorithm_3d="hxt" optimizer="gmsh"/>
+        <output formats="vtk bdf"/>
     </mesh>
 </geometry_mesh>

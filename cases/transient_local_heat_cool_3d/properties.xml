@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<properties>
+    <!-- TriMUSE 热流以向外为正: 负值表示加热; 其余外表面显式为零热流 -->
+    <external_property name="heat_flux">
+        <zone name="heat_zone" model="constant">
+            <parameter name="constant_value" value="-1e6" unit="[W]/[m]^2" si_unit="[W]/[m]^2"/>
+        </zone>
+        <zone name="insulated_zone" model="constant">
+            <parameter name="constant_value" value="0.0" unit="[W]/[m]^2" si_unit="[W]/[m]^2"/>
+        </zone>
+    </external_property>
+    <external_property name="environment_temperature">
+        <zone name="cold_zone" model="constant">
+            <parameter name="constant_value" value="300.0" unit="[K]" si_unit="[K]"/>
+        </zone>
+    </external_property>
+    <derived_property name="heat_transfer_coef">
+        <zone name="cold_zone" model="constant">
+            <parameter name="constant_value" value="1e4" unit="[W]/[m]^2[K]" si_unit="[W]/[m]^2[K]"/>
+        </zone>
+    </derived_property>
+</properties>

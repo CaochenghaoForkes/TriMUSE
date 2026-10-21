@@ -173,16 +173,16 @@ class OutputManager:
             expansion = model.outer_surface.shape_expansion
             if expansion is not None:
                 cls._node(surface, "shape_expansion", **asdict(expansion))
-        layers = cls._node(node, "layers")
-        for layer in model.layers.layer:
-            item = cls._node(layers, "layer", name=layer.name)
-            cls._node(item, "outer_boundary", name=layer.outer_boundary.name)
-            for field in fields(layer):
+        region_nodes = cls._node(node, "regions")
+        for region in model.regions.region:
+            item = cls._node(region_nodes, "region", name=region.name)
+            cls._node(item, "outer_boundary", name=region.outer_boundary.name)
+            for field in fields(region):
                 if field.name not in ("name", "outer_boundary"):
                     unit = "[1]" if field.name == "unwrapping_coefficient" else "[m]"
-                    cls._quantity(item, field.name, getattr(layer, field.name), unit)
-        zones = card.geometry.surface_zones
-        zone_root = cls._node(geometry, "surface_zones", outer_boundary=zones.outer_boundary)
+                    cls._quantity(item, field.name, getattr(region, field.name), unit)
+        zones = card.geometry.zones
+        zone_root = cls._node(geometry, "zones", outer_boundary=zones.outer_boundary)
         for zone in zones.zone:
             item = cls._node(zone_root, "zone", name=zone.name)
             for field in fields(zone):

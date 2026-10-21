@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<trimuse_chief name="transient_constant_power_stochastic_particle_2d">
+<trimuse_chief name="transient_local_heat_cool_3d">
 
     <!-- 1. 算例说明 -->
     <random seed="202609134"/>
-    <output directory="./output_transient_constant_power_2d"/>
+    <output directory="./output_transient_local_heat_cool_3d"/>
 
     <!-- 2. 本算例使用的输入卡 -->
     <input_files>

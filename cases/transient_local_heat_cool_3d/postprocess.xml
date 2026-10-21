@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<postprocess>
+    <sections>
+        <!-- xy 平面经过两个球冠的中心方向 -->
+        <section name="xy">
+            <center>
+                <x value="0" unit="[um]"/>
+                <y value="0" unit="[um]"/>
+                <z value="0" unit="[um]"/>
+            </center>
+            <normal>
+                <theta value="0" unit="[degree]"/>
+                <phi value="0" unit="[degree]"/>
+            </normal>
+        </section>
+        <section name="xz">
+            <center>
+                <x value="0" unit="[um]"/>
+                <y value="0" unit="[um]"/>
+                <z value="0" unit="[um]"/>
+            </center>
+            <normal>
+                <theta value="90" unit="[degree]"/>
+                <phi value="90" unit="[degree]"/>
+            </normal>
+        </section>
+    </sections>
+    <properties names="temperature"/>
+</postprocess>
