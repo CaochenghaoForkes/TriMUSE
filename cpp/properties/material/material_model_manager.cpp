@@ -14,6 +14,7 @@ void MaterialModelManager::register_models()
 {
     general_model_manager_.register_models();
     thermal_model_manager_.register_models();
+    radioactivity_model_manager_.register_models();
 }
 
 void MaterialModelManager::assign(int region_attribute, const std::string& property_name, const std::string& model_name, const ModelParameterMap& parameters)
@@ -29,6 +30,11 @@ void MaterialModelManager::assign(int region_attribute, const std::string& prope
     if (physics_name == "thermal")
     {
         thermal_model_manager_.assign(region_attribute, property, model_name, parameters);
+        return;
+    }
+    if (physics_name == "radioactivity")
+    {
+        radioactivity_model_manager_.assign(region_attribute, property, model_name, parameters);
         return;
     }
     throw std::out_of_range("尚未支持的物性分类: " + physics_name);
@@ -47,6 +53,10 @@ StateValue MaterialModelManager::evaluate(const std::string& property_name, cons
     {
         return thermal_model_manager_.evaluate(property, state_point);
     }
+    if (physics_name == "radioactivity")
+    {
+        return radioactivity_model_manager_.evaluate(property, state_point);
+    }
     throw std::out_of_range("尚未支持的物性分类: " + physics_name);
 }
 
@@ -62,6 +72,10 @@ const std::vector<std::string>& MaterialModelManager::required_states(const std:
     if (physics_name == "thermal")
     {
         return thermal_model_manager_.required_states(property, model_name);
+    }
+    if (physics_name == "radioactivity")
+    {
+        return radioactivity_model_manager_.required_states(property, model_name);
     }
     throw std::out_of_range("尚未支持的物性分类: " + physics_name);
 }

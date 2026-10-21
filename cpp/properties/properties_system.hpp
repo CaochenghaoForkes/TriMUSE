@@ -100,7 +100,8 @@ private:
         {"general.porosity", PropertyType::Material, PropertyScope::IntegrationPoint},
         {"general.mass_density", PropertyType::Material, PropertyScope::IntegrationPoint},
         {"thermal.conductivity", PropertyType::Material, PropertyScope::IntegrationPoint},
-        {"thermal.specific_heat", PropertyType::Material, PropertyScope::IntegrationPoint}
+        {"thermal.specific_heat", PropertyType::Material, PropertyScope::IntegrationPoint},
+        {"radioactivity.nuclide_diffusion_coef", PropertyType::Material, PropertyScope::IntegrationPoint} // m²/s
     };
 
     inline static const std::unordered_set<std::string> solution_field_states = {

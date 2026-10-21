@@ -5,6 +5,7 @@
 
 #include "properties/material/general/general_model_manager.hpp"
 #include "properties/material/thermal/thermal_model_manager.hpp"
+#include "properties/material/radioactivity/radioactivity_model_manager.hpp"
 
 namespace trimuse
 {
@@ -25,6 +26,7 @@ public:
 private:
     GeneralModelManager general_model_manager_;
     ThermalModelManager thermal_model_manager_;
+    RadioactivityModelManager radioactivity_model_manager_;
 };
 
 }
