@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<trimuse_chief name="optimization_test_case">
+
+    <!-- 1. 算例说明 -->
+    <random seed="202609134"/>
+    <output directory="./output_optimization_test_case"/>
+    <!-- ask 交互选择; run 新计算; postprocess 复用已有完整结果 -->
+    <workflow mode="ask"/>
+
+    <!-- 2. 本算例使用的输入卡 -->
+    <input_files>
+        <geometry_mesh file="./geometry_mesh.xml"/>
+        <material file="./material.xml"/>
+        <properties file="./properties.xml"/>
+        <thermal file="./thermal.xml"/>
+        <simulation file="./simulation.xml"/>
+        <postprocess file="./postprocess.xml"/>
+    </input_files>
+
+</trimuse_chief>

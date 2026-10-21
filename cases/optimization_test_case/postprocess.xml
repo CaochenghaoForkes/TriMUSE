@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<postprocess>
+    <!-- 与一维算例相同的径向位置: r=250、750 um -->
+    <points>
+        <!-- 球心用于观察最明显的升温过程 -->
+        <point name="center">
+            <center>
+                <x value="0.0" unit="[um]"/>
+                <y value="0.0" unit="[um]"/>
+            </center>
+        </point>
+        <point name="fuel">
+            <center>
+                <x value="250" unit="[um]"/>
+                <y value="0.0" unit="[um]"/>
+            </center>
+        </point>
+        <point name="non_fuel">
+            <center>
+                <x value="750" unit="[um]"/>
+                <y value="0.0" unit="[um]"/>
+            </center>
+        </point>
+    </points>
+    <!-- 从颗粒中心沿 +x 方向采样, 便于与 T(r) 解析解比较 -->
+    <!-- 二维默认逐帧输出整个轴对称计算截面 -->
+    <properties names="temperature"/>
+</postprocess>

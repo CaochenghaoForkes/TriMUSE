@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<properties>
+
+    <external_property name="heat_flux">
+        <zone name="heat_zone" model="time_series">
+            <parameter name="values" value="-1e4 -1e4 -2e4" unit="[W]/[m]^2" si_unit="[W]/[m]^2"/>
+            <parameter name="times" value="0.0 0.5 1.0" unit="[s]" si_unit="[s]"/>
+        </zone>
+    </external_property>
+
+    <external_property name="environment_temperature">
+        <zone name="cold_zone" model="constant">
+            <parameter name="constant_value" value="293.15" unit="[K]" si_unit="[K]"/>
+        </zone>
+    </external_property>
+
+    <derived_property name="heat_transfer_coef">
+        <zone name="cold_zone" model="constant">
+            <parameter name="constant_value" value="1e4" unit="[W]/[m]^2[K]" si_unit="[W]/[m]^2[K]"/>
+        </zone>
+    </derived_property>
+</properties>
