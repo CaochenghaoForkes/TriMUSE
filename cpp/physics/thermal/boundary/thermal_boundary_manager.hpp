@@ -26,7 +26,9 @@ public:
 
     void update(const PropertiesFieldData& properties_field_data);
 
-    void add_integrators(mfem::BilinearForm& bilinear_form, mfem::LinearForm& linear_form);
+    void add_integrators(mfem::BilinearForm& bilinear_form);
+
+    void add_integrators(mfem::LinearForm& linear_form);
 
     void apply_essential_conditions(mfem::GridFunction& temperature, mfem::Array<int>& essential_true_dofs) const;
 

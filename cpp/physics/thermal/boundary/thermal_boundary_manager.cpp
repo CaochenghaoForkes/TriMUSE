@@ -92,14 +92,25 @@ void ThermalBoundaryManager::update(const PropertiesFieldData& properties_field_
     }
 }
 
-void ThermalBoundaryManager::add_integrators(mfem::BilinearForm& bilinear_form, mfem::LinearForm& linear_form) // 积分器BoundaryMassIntegrator/BoundaryLFIntegrator负责算出单元的矩阵或向量，BilinearForm、LinearForm 负责按照自由度编号，把它们组装到总体左侧矩阵和右端向量中
+// 分别添加矩阵和载荷积分器, 固定载荷可以在 Picard 循环外独立组装。
+void ThermalBoundaryManager::add_integrators(mfem::BilinearForm& bilinear_form)
+{
+    for (std::size_t index = 0; index < boundary_configs_.size(); ++index)
+    {
+        if (boundary_configs_[index].model_name == "robin")
+        {
+            bilinear_form.AddBoundaryIntegrator(new BoundaryMassIntegrator(boundary_coefficients_[index]->weighted_matrix, fem_system_), boundary_markers_[index]);
+        }
+    }
+}
+
+void ThermalBoundaryManager::add_integrators(mfem::LinearForm& linear_form)
 {
     for (std::size_t index = 0; index < boundary_configs_.size(); ++index)
     {
         BoundaryCoefficients& coefficients = *boundary_coefficients_[index];
         if (boundary_configs_[index].model_name == "robin")
         {
-            bilinear_form.AddBoundaryIntegrator(new BoundaryMassIntegrator(coefficients.weighted_matrix, fem_system_), boundary_markers_[index]);
             linear_form.AddBoundaryIntegrator(new BoundaryLFIntegrator(coefficients.weighted_rhs, fem_system_), boundary_markers_[index]);
         }
         else if (boundary_configs_[index].model_name == "neumann")
