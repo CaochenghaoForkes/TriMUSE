@@ -2,16 +2,18 @@
 
 #include <vector>
 
+#include "common/model_parameters.hpp"
 #include "common/state_value.hpp"
 #include "properties/properties_state_point.hpp"
 
 namespace trimuse
 {
 
-class TimeSeriesExternalState
+class TimeSeriesModel
 {
 public:
-    TimeSeriesExternalState(const std::vector<double>& times, const std::vector<StateValue>& values);
+    // values 按时间逐样本排列; 向量和张量的各分量展平成一维列表, 张量按行排列。
+    explicit TimeSeriesModel(const ModelParameterMap& parameters, const std::string& value_type = "scalar");
 
     StateValue evaluate(const PropertiesStatePoint& point) const;
 

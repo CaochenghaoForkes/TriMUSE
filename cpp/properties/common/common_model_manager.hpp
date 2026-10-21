@@ -7,25 +7,25 @@
 #include <vector>
 
 #include "common/model_parameters.hpp"
-#include "properties/external/common/constant.hpp"
-#include "properties/external/common/time_series.hpp"
+#include "properties/common/constant.hpp"
+#include "properties/common/time_series.hpp"
 
 namespace trimuse
 {
 
-using CommonExternalModel = std::variant<ConstantExternalState, TimeSeriesExternalState>;
+using CommonModel = std::variant<ConstantModel, TimeSeriesModel>;
 
-class CommonExternalModelManager
+class CommonModelManager
 {
 public:
     void register_models();
 
-    CommonExternalModel create(const std::string& model_name, const ModelParameterMap& parameters, const std::string& value_type) const;
+    CommonModel create(const std::string& model_name, const ModelParameterMap& parameters, const std::string& value_type) const;
 
     const std::vector<std::string>& required_states(const std::string& model_name) const;
 
 private:
-    using Factory = std::function<CommonExternalModel(const ModelParameterMap&, const std::string&)>;
+    using Factory = std::function<CommonModel(const ModelParameterMap&, const std::string&)>;
 
     struct Registration
     {

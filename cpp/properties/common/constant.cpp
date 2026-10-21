@@ -1,10 +1,16 @@
-#include "properties/external/common/constant.hpp"
+#include "properties/common/constant.hpp"
 
 namespace trimuse
 {
-    // 类型和分量数量由上层保证, 此处只组装状态值
 
-ConstantExternalState::ConstantExternalState(const ModelParameterValue& value, const std::string& value_type)
+ConstantModel::ConstantModel(const ModelParameterMap& parameters, const std::string& value_type)
+    : ConstantModel(parameters.at("constant_value"), value_type)
+{
+}
+
+// 类型和分量数量由上层保证, 此处只组装状态值
+
+ConstantModel::ConstantModel(const ModelParameterValue& value, const std::string& value_type)
 {
     const VectorValue values = std::holds_alternative<double>(value)
         ? VectorValue{std::get<double>(value)} : std::get<VectorValue>(value);
@@ -42,7 +48,7 @@ ConstantExternalState::ConstantExternalState(const ModelParameterValue& value, c
     }
 }
 
-StateValue ConstantExternalState::evaluate(const PropertiesStatePoint&) const
+StateValue ConstantModel::evaluate(const PropertiesStatePoint&) const
 {
     return constant_value_;
 }

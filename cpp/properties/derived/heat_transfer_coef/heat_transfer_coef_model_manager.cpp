@@ -1,14 +1,12 @@
 #include "properties/derived/heat_transfer_coef/heat_transfer_coef_model_manager.hpp"
-#include "properties/derived/heat_transfer_coef/constant.hpp"
-#include "properties/derived/heat_transfer_coef/time_series.hpp"
+#include "properties/common/common_model_adapter.hpp"
 
 namespace trimuse
 {
 
 void HeatTransferCoefModelManager::register_models()
 {
-    registry_.register_model<ConstantHeatTransferCoef>("constant");
-    registry_.register_model<TimeSeriesHeatTransferCoef>("time_series", {"time"});
+    register_common_models<HeatTransferCoefModel, StateValue>(registry_, "constant", "time_series");
 }
 
 void HeatTransferCoefModelManager::assign(int zone_attribute, const std::string& model_name, const ModelParameterMap& parameters)

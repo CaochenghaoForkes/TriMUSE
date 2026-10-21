@@ -1,6 +1,6 @@
 #include "properties/material/thermal/conductivity/conductivity_model_manager.hpp"
+#include "properties/common/common_model_adapter.hpp"
 
-#include "properties/material/thermal/conductivity/common/constant_conductivity.hpp"
 #include "properties/material/thermal/conductivity/kernel/bison_2021_uco_kernel_conductivity.hpp"
 #include "properties/material/thermal/conductivity/kernel/ineri_2004_uo2_kernel_conductivity.hpp"
 #include "properties/material/thermal/conductivity/buffer/bison_2021_buffer_conductivity.hpp"
@@ -13,7 +13,7 @@ namespace trimuse
 
 void ConductivityModelManager::register_models()
 {
-    registry_.register_model<ConstantConductivity>("common.constant");
+    registry_.register_model<CommonModelAdapter<ConductivityModel, ConstantModel>>("common.constant");
     registry_.register_model<Bison2021UcoKernelConductivity>("kernel.bison_2021_uco", {"temperature"});
     registry_.register_model<Ineri2004Uo2KernelConductivity>("kernel.ineri_2004_uo2", {"temperature", "burnup_fima_fraction", "general.porosity"});
     registry_.register_model<Bison2021BufferConductivity>("buffer.bison_2021", {"general.mass_density"});

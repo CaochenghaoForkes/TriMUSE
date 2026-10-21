@@ -3,7 +3,7 @@
 #include <optional>
 #include <string>
 
-#include "properties/external/common/common_external_model_manager.hpp"
+#include "properties/common/common_model_manager.hpp"
 
 namespace trimuse
 {
@@ -20,8 +20,8 @@ public:
     const std::vector<std::string>& required_states(const std::string& model_name) const;
 
 private:
-    CommonExternalModelManager common_model_manager_;
-    std::optional<CommonExternalModel> model_;
+    CommonModelManager common_model_manager_;
+    std::optional<CommonModel> model_;
 };
 
 }

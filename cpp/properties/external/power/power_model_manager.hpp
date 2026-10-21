@@ -3,7 +3,7 @@
 #include <string>
 #include <unordered_map>
 
-#include "properties/external/common/common_external_model_manager.hpp"
+#include "properties/common/common_model_manager.hpp"
 
 namespace trimuse
 {
@@ -20,9 +20,9 @@ public:
     const std::vector<std::string>& required_states(const std::string& model_name) const;
 
 private:
-    CommonExternalModelManager common_model_manager_;
+    CommonModelManager common_model_manager_;
 
-    std::unordered_map<int, CommonExternalModel> region_model_map_;
+    std::unordered_map<int, CommonModel> region_model_map_;
 };
 
 }
