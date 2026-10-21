@@ -18,7 +18,9 @@ class ChiefCardTemplate:
         <geometry_mesh file="[str]"/>
         <material file="[str]"/>
         <properties file="[str]"/>
-        <thermal file="[str]"/>
+        <!-- 热卡和放射性卡平级可选, 按本次问题需要添加 -->
+        <!-- <thermal file="thermal.xml"/> -->
+        <!-- <radioactivity file="radioactivity.xml"/> -->
         <simulation file="[str]"/>
         <postprocess file="[str]"/>
     </input_files>

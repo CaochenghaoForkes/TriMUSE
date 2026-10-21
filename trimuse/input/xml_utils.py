@@ -82,7 +82,7 @@ class XmlUtils:
         return value
 
     @staticmethod
-    def read_model(element: ET.Element, *, context: str | None = None) -> dict[str, str | dict[str, float | list[float]]]:
+    def read_model(element: ET.Element, *, decay_constant: float | None = None, context: str | None = None) -> dict[str, str | dict[str, float | list[float]]]:
         """读取模型参数并换算单位, 单个数值存为标量, 空白分隔的多个数值存为列表"""
         model = XmlUtils.read_attribute(element, "model", required=True, context=context)
         location = XmlUtils._location(element, context)
@@ -95,7 +95,7 @@ class XmlUtils:
             si_unit = XmlUtils.read_attribute(parameter_element, "si_unit", required=True, context=context)
             if name in parameters:
                 raise ValueError(f"{location}: 参数名重复: {name}")
-            parameters[name] = Units.convert(value, unit, si_unit, context=context)
+            parameters[name] = Units.convert(value, unit, si_unit, decay_constant=decay_constant, context=context)
         model_config = {"model": model, "parameters": parameters}
         return model_config
 

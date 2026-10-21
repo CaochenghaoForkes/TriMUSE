@@ -164,10 +164,12 @@ class OutputManager:
             "geometry_mesh": self._geometry_card,
             "material": self._material_card,
             "properties": self._properties_card,
-            "thermal": self._thermal_card,
             "simulation": self._simulation_card,
             "postprocess": self._postprocess_card
         }
+        for name, writer in (("thermal", self._thermal_card), ("radioactivity", self._radioactivity_card)):
+            if getattr(cards, name) is not None:
+                writers[name] = writer
         for name, writer in writers.items():
             root = ET.parse(getattr(cards.chief.input_files, name)).getroot()
             writer(root, getattr(cards, name))
@@ -256,6 +258,26 @@ class OutputManager:
         initial = cls._node(root, "initial")
         for item in card.initial.temperature:
             cls._model(cls._node(initial, "temperature", region=item.region), item.model, item.parameters)
+        groups = (("boundaries", "boundary", card.boundary),
+                  ("interfaces", "interface", card.interfaces.interface),
+                  ("source", "region", card.source.region))
+        for group, tag, configs in groups:
+            node = cls._node(root, group)
+            for item in configs:
+                cls._model(cls._node(node, tag, name=item.name), item.model, item.parameters)
+
+    @classmethod
+    def _radioactivity_card(cls, root: ET.Element, card) -> None:
+        nuclide = cls._node(root, "nuclide", name=card.nuclide.name)
+        cls._quantity(nuclide, "half_life", card.nuclide.half_life, "[s]")
+        initial = cls._node(root, "initial")
+        for item in card.initial.concentration:
+            node = cls._node(initial, "concentration", region=item.region)
+            cls._model(node, item.model, item.parameters)
+            for parameter in node.findall("parameter"):
+                if parameter.get("name") == "inventory":
+                    parameter.set("unit", "[atom]")
+                    parameter.set("si_unit", "[atom]")
         groups = (("boundaries", "boundary", card.boundary),
                   ("interfaces", "interface", card.interfaces.interface),
                   ("source", "region", card.source.region))

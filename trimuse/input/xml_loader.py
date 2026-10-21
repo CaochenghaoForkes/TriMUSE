@@ -12,6 +12,8 @@ from .properties.config import PropertiesCard, PropertiesCardLoader
 from .properties.examine import PropertiesCardExamine
 from .thermal.config import ThermalCard, ThermalCardLoader
 from .thermal.examine import ThermalCardExamine
+from .radioactivity.config import RadioactivityCard, RadioactivityCardLoader
+from .radioactivity.examine import RadioactivityCardExamine
 from .simulation.config import SimulationCard, SimulationCardLoader
 from .simulation.examine import SimulationCardExamine
 from .postprocess.config import PostprocessCard, PostprocessCardLoader
@@ -26,9 +28,10 @@ class InputCards:
     geometry_mesh: GeometryMeshCard
     material: MaterialCard
     properties: PropertiesCard
-    thermal: ThermalCard
     simulation: SimulationCard
     postprocess: PostprocessCard
+    thermal: ThermalCard | None = None
+    radioactivity: RadioactivityCard | None = None
 
 class XmlLoader:
     """统一加载输入卡, 空路径由对应读取器生成模板并退出程序"""
@@ -40,12 +43,14 @@ class XmlLoader:
         ChiefCardExamine.examine(chief)
         geometry_mesh = cls._load_geometry_mesh(chief.input_files.geometry_mesh)
         material = cls._load_material(chief.input_files.material)
-        properties = cls._load_properties(chief.input_files.properties)
-        thermal = cls._load_thermal(chief.input_files.thermal)
+        thermal = cls._load_thermal(chief.input_files.thermal) if chief.input_files.thermal is not None else None
+        radioactivity = cls._load_radioactivity(chief.input_files.radioactivity) if chief.input_files.radioactivity is not None else None
+        decay_constant = radioactivity.nuclide.decay_constant if radioactivity is not None else None
+        properties = cls._load_properties(chief.input_files.properties, decay_constant=decay_constant)
         simulation = cls._load_simulation(chief.input_files.simulation)
         postprocess = cls._load_postprocess(chief.input_files.postprocess)
-        InputCardsExamine.examine(geometry_mesh, material, properties, thermal, postprocess)
-        input_cards = InputCards(chief=chief, geometry_mesh=geometry_mesh, material=material, properties=properties, thermal=thermal, simulation=simulation, postprocess=postprocess)
+        InputCardsExamine.examine(geometry_mesh, material, properties, thermal, postprocess, radioactivity)
+        input_cards = InputCards(chief=chief, geometry_mesh=geometry_mesh, material=material, properties=properties, thermal=thermal, simulation=simulation, postprocess=postprocess, radioactivity=radioactivity)
         return input_cards
 
     @staticmethod
@@ -63,9 +68,9 @@ class XmlLoader:
         return material
 
     @staticmethod
-    def _load_properties(path: str | None) -> PropertiesCard:
+    def _load_properties(path: str | None, *, decay_constant: float | None = None) -> PropertiesCard:
         """读取并检查外部量和派生量输入卡"""
-        properties = PropertiesCardLoader.load(path)
+        properties = PropertiesCardLoader.load(path, decay_constant=decay_constant)
         PropertiesCardExamine.examine(properties)
         return properties
 
@@ -75,6 +80,13 @@ class XmlLoader:
         thermal = ThermalCardLoader.load(path)
         ThermalCardExamine.examine(thermal)
         return thermal
+
+    @staticmethod
+    def _load_radioactivity(path: str | None) -> RadioactivityCard:
+        """读取并检查单核素输入卡"""
+        radioactivity = RadioactivityCardLoader.load(path)
+        RadioactivityCardExamine.examine(radioactivity)
+        return radioactivity
 
     @staticmethod
     def _load_simulation(path: str | None) -> SimulationCard:

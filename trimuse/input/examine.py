@@ -2,20 +2,46 @@ from .geometry_mesh.config import GeometryMeshCard
 from .material.config import MaterialCard
 from .properties.config import PropertiesCard
 from .thermal.config import ThermalCard
+from .radioactivity.config import RadioactivityCard
 from .postprocess.config import PostprocessCard
 
 class InputCardsExamine:
     """只负责卡间一致性, 各卡自身的检查由对应 examine 完成"""
 
     @classmethod
-    def examine(cls, geometry_mesh: GeometryMeshCard, material: MaterialCard, properties: PropertiesCard, thermal: ThermalCard, postprocess: PostprocessCard) -> None:
-        """检查材料与热卡的几何引用, 以及后处理配置与几何维数的一致性"""
+    def examine(cls, geometry_mesh: GeometryMeshCard, material: MaterialCard, properties: PropertiesCard, thermal: ThermalCard | None, postprocess: PostprocessCard, radioactivity: RadioactivityCard | None = None) -> None:
+        """检查各已启用物理卡的几何引用, 以及后处理配置与几何维数的一致性"""
         cls.check_material_assignments(geometry_mesh, material)
         cls.check_properties_references(geometry_mesh, properties)
-        cls.check_thermal_references(geometry_mesh, thermal)
-        cls.check_thermal_boundary_properties(properties, thermal)
-        cls.check_thermal_source_dependencies(properties, thermal)
+        if thermal is not None:
+            cls.check_thermal_references(geometry_mesh, thermal)
+            cls.check_thermal_boundary_properties(properties, thermal)
+            cls.check_thermal_source_dependencies(properties, thermal)
         cls.check_postprocess_geometry(geometry_mesh, postprocess)
+        if radioactivity is not None:
+            cls.check_radioactivity_references(geometry_mesh, radioactivity)
+
+    @staticmethod
+    def check_radioactivity_references(geometry_mesh: GeometryMeshCard, radioactivity: RadioactivityCard) -> None:
+        """核对核素初值、源、边界和界面的几何引用"""
+        geometry = getattr(geometry_mesh.geometry, geometry_mesh.geometry.source)
+        regions = geometry.regions.region
+        region_names = {region.name for region in regions}
+        initial_regions = {item.region for item in radioactivity.initial.concentration}
+        if initial_regions != region_names:
+            raise ValueError("radioactivity.initial: 初始浓度区域必须与几何区域逐一对应")
+        zone_names = InputCardsExamine.outer_boundary_names(geometry_mesh)
+        boundary_names = zone_names | ({"particle_center"} if geometry_mesh.model.dimension == 1 else set())
+        references = ((radioactivity.source.region, region_names, "源区域"),
+                      (radioactivity.boundary, boundary_names, "边界"),
+                      (radioactivity.interfaces.interface, {region.outer_boundary.name for region in regions[:-1]}, "界面"))
+        for items, allowed, location in references:
+            unknown = {item.name for item in items} - allowed
+            if unknown:
+                raise ValueError(f"radioactivity.{location} 引用了不存在的几何名称: {', '.join(sorted(unknown))}")
+        missing = zone_names - {item.name for item in radioactivity.boundary}
+        if missing:
+            raise ValueError(f"外表面分区缺少核素边界配置: {', '.join(sorted(missing))}")
 
     @staticmethod
     def check_postprocess_geometry(geometry_mesh: GeometryMeshCard, postprocess: PostprocessCard) -> None:
