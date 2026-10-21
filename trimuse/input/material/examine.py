@@ -40,7 +40,26 @@ class MaterialCardExamine:
             numbers = value if isinstance(value, list) else [value]
             if not all(math.isfinite(number) for number in numbers):
                 raise ValueError(f"{location}: 参数值必须有限")
-        if property_config.property_name == "thermal.conductivity":
+        if property_config.property_name == "radioactivity.nuclide_diffusion_coef":
+            if property_config.model == "common.arrhenius":
+                D0 = property_config.parameters.get("D0")
+                Q = property_config.parameters.get("Q")
+                if not isinstance(D0, float) or D0 <= 0 or not isinstance(Q, float) or Q < 0:
+                    raise ValueError(f"{location}: D0 必须为正标量, Q 必须为非负标量")
+            elif property_config.model == "common.constant":
+                value = property_config.parameters.get("constant_value")
+                if not isinstance(value, float) or value < 0:
+                    raise ValueError(f"{location}: constant_value 必须为非负标量")
+            elif property_config.model == "common.time_series":
+                times = property_config.parameters.get("times")
+                values = property_config.parameters.get("values")
+                if not isinstance(times, list) or not isinstance(values, list) or len(times) < 2 or len(times) != len(values) or any(right <= left for left, right in zip(times, times[1:])):
+                    raise ValueError(f"{location}: times 和 values 必须为等长列表, times 至少有两个严格递增的值")
+                if any(value < 0 for value in values):
+                    raise ValueError(f"{location}: 扩散系数不能为负")
+            else:
+                raise ValueError(f"{location}: 不支持的扩散系数模型 {property_config.model}")
+        elif property_config.property_name == "thermal.conductivity":
             if property_config.model == "common.constant":
                 value = property_config.parameters.get("constant_value")
                 if value is None or isinstance(value, list) or value <= 0:

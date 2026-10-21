@@ -48,7 +48,7 @@ class SimulationCardExamine:
                 raise ValueError(f"{item.name}: 非线性 max_iterations 必须为正整数")
             cls.check_tolerance(item.nonlinear_solver.relative_tolerance, item.name)
             if not math.isfinite(item.nonlinear_solver.absolute_tolerance) or item.nonlinear_solver.absolute_tolerance < 0:
-                raise ValueError(f"{item.name}: 非线性 absolute_tolerance 必须为有限非负温度增量")
+                raise ValueError(f"{item.name}: 非线性 absolute_tolerance 必须为有限非负场增量")
         for step in card.coupling.step:
             if step.method not in ("single", "staggered"):
                 raise ValueError("耦合 method 必须为 [single,staggered]")

@@ -3,6 +3,16 @@ import math
 from .config import PropertiesCard
 
 class PropertiesCardExamine:
+    RADIOACTIVITY_PROPERTIES = {
+        "nuclide_birth_rate": ("external_property", "global"),
+        "uranium_fraction": ("external_property", "region"),
+        "environment_nuclide_concentration": ("external_property", "zone"),
+        "surface_nuclide_concentration": ("external_property", "zone"),
+        "nuclide_flux": ("external_property", "zone"),
+        "mass_transfer_coef": ("derived_property", "zone"),
+        "volumetric_nuclide_birth_rate": ("derived_property", "region"),
+    }
+
     @classmethod
     def examine(cls, card: PropertiesCard) -> None:
         """检查名称唯一性和当前已实现模型的参数"""
@@ -26,6 +36,9 @@ class PropertiesCardExamine:
         zone_names = [zone.name for zone in property_config.zone]
         if len(zone_names) != len(set(zone_names)):
             raise ValueError(f"{location}: 外表面分区名称不能重复")
+        if property_config.name in cls.RADIOACTIVITY_PROPERTIES:
+            cls.check_radioactivity_property(category, property_config)
+            return
         for zone in property_config.zone:
             zone_location = f"{location}.{zone.name}"
             if (category, property_config.name) not in (("external_property", "environment_temperature"), ("external_property", "surface_temperature"), ("external_property", "heat_flux"), ("derived_property", "heat_transfer_coef")):
@@ -53,6 +66,28 @@ class PropertiesCardExamine:
                 cls.check_power(region, region_location)
             elif property_config.name != "volumetric_power" or region.model != "uniform_from_power":
                 raise ValueError(f"{region_location}: 尚不支持的派生量或模型")
+
+    @staticmethod
+    def check_radioactivity_property(category: str, property_config: PropertiesCard.Property) -> None:
+        """核素属性的分类、范围以及当前标量模型参数"""
+        name = property_config.name
+        location = f"{category}.{name}"
+        expected_category, scope = PropertiesCardExamine.RADIOACTIVITY_PROPERTIES[name]
+        if category != expected_category or (property_config.region and scope != "region") or (property_config.zone and scope != "zone") or (property_config.global_ is not None and scope != "global"):
+            raise ValueError(f"{location}: 必须使用 {expected_category} 的 {scope} 配置")
+        configs = [property_config.global_] if scope == "global" else getattr(property_config, scope)
+        for config in configs:
+            item_location = f"{location}.{config.name}" if scope != "global" else f"{location}.global"
+            if name == "volumetric_nuclide_birth_rate" and config.model == "uniform_from_birth_rate":
+                if config.parameters:
+                    raise ValueError(f"{item_location}: uniform_from_birth_rate 不需要模型参数")
+                continue
+            PropertiesCardExamine.check_time_model(config, item_location)
+            values = [config.parameters["constant_value"]] if config.model == "constant" else config.parameters["values"]
+            if name != "nuclide_flux" and any(value < 0 for value in values):
+                raise ValueError(f"{item_location}: 属性值不能为负")
+            if name == "uranium_fraction" and any(value > 1 for value in values):
+                raise ValueError(f"{item_location}: 区域产生率份额必须在 [0,1] 内")
 
     @staticmethod
     def check_power(region: PropertiesCard.Region, location: str) -> None:
@@ -86,8 +121,8 @@ class PropertiesCardExamine:
             raise ValueError(f"{location}: 不支持的模型 {config.model}")
 
     @staticmethod
-    def check_time_model(config: PropertiesCard.Zone, location: str) -> None:
-        """检查外表面分区当前支持的常数及时间表模型"""
+    def check_time_model(config: PropertiesCard.Global | PropertiesCard.Region | PropertiesCard.Zone, location: str) -> None:
+        """检查标量常数及时间表模型"""
         for value in config.parameters.values():
             numbers = value if isinstance(value, list) else [value]
             if not all(math.isfinite(number) for number in numbers):

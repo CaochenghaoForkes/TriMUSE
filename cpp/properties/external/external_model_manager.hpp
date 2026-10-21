@@ -9,6 +9,8 @@
 #include "properties/external/heat_flux/heat_flux_model_manager.hpp"
 #include "properties/external/power/power_model_manager.hpp"
 #include "properties/external/surface_temperature/surface_temperature_model_manager.hpp"
+#include "properties/external/surface_nuclide_concentration/surface_nuclide_concentration_model_manager.hpp"
+#include "properties/external/nuclide_flux/nuclide_flux_model_manager.hpp"
 #include "properties/external/uranium_fraction/uranium_fraction_model_manager.hpp"
 #include "properties/external/nuclide_birth_rate/nuclide_birth_rate_model_manager.hpp"
 
@@ -33,7 +35,9 @@ private:
     EnvironmentTemperatureModelManager environment_temperature_model_manager_;
     EnvironmentNuclideConcentrationModelManager environment_nuclide_concentration_model_manager_;
     SurfaceTemperatureModelManager surface_temperature_model_manager_;
+    SurfaceNuclideConcentrationModelManager surface_nuclide_concentration_model_manager_;
     HeatFluxModelManager heat_flux_model_manager_;
+    NuclideFluxModelManager nuclide_flux_model_manager_;
     BurnupFimaFractionModelManager burnup_fima_fraction_model_manager_;
     UraniumFractionModelManager uranium_fraction_model_manager_;
     NuclideBirthRateModelManager nuclide_birth_rate_model_manager_;

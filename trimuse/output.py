@@ -302,7 +302,8 @@ class OutputManager:
             cls._node(node, "linear_solver", **asdict(field.linear_solver))
             nonlinear = asdict(field.nonlinear_solver)
             tolerance = nonlinear.pop("absolute_tolerance")
-            cls._quantity(cls._node(node, "nonlinear_solver", **nonlinear), "absolute_tolerance", tolerance, "[K]")
+            unit = "[atom]/[m]^3" if field.name == "concentration" else "[K]"
+            cls._quantity(cls._node(node, "nonlinear_solver", **nonlinear), "absolute_tolerance", tolerance, unit)
         coupling = cls._node(root, "coupling", exchange_interval=card.coupling.exchange_interval)
         for node in coupling.findall("step"):
             coupling.remove(node)

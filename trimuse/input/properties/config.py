@@ -46,6 +46,8 @@ class PropertiesCardLoader:
         "nuclide_birth_rate",
         "volumetric_nuclide_birth_rate",
         "environment_nuclide_concentration",
+        "surface_nuclide_concentration",
+        "nuclide_flux",
     }
 
     @classmethod

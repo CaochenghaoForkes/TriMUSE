@@ -21,8 +21,11 @@ class RadioactivityCardTemplate:
     </initial>
     <!-- 每个外表面 zone 配置一个边界; robin 读取 properties 卡同名 zone 的
          environment_nuclide_concentration (atom/m³) 和 mass_transfer_coef (m/s) -->
+    <!-- dirichlet 读取 surface_nuclide_concentration (atom/m³);
+         neumann 读取 nuclide_flux (atom/(m²·s)), 外流为正、流入为负, 0 为无通量 -->
     <boundaries>
         <boundary name="[str]" model="robin"/>
+        <!-- 可将 robin 替换为 dirichlet 或 neumann, 同一 zone 只配置一次 -->
     </boundaries>
     <!-- 可省略, 默认连续空间下的理想接触 -->
     <interfaces>

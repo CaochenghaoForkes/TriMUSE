@@ -16,7 +16,9 @@ void ExternalModelManager::register_models()
     environment_temperature_model_manager_.register_models();
     environment_nuclide_concentration_model_manager_.register_models();
     surface_temperature_model_manager_.register_models();
+    surface_nuclide_concentration_model_manager_.register_models();
     heat_flux_model_manager_.register_models();
+    nuclide_flux_model_manager_.register_models();
     burnup_fima_fraction_model_manager_.register_models();
     uranium_fraction_model_manager_.register_models();
     nuclide_birth_rate_model_manager_.register_models();
@@ -64,6 +66,16 @@ void ExternalModelManager::assign(const std::string& name, int attribute, const 
         environment_nuclide_concentration_model_manager_.assign(attribute, model_name, parameters, value_type);
         return;
     }
+    if (name == "surface_nuclide_concentration")
+    {
+        surface_nuclide_concentration_model_manager_.assign(attribute, model_name, parameters, value_type);
+        return;
+    }
+    if (name == "nuclide_flux")
+    {
+        nuclide_flux_model_manager_.assign(attribute, model_name, parameters, value_type);
+        return;
+    }
     throw std::out_of_range("尚未支持的外部量: " + name);
 }
 
@@ -101,6 +113,14 @@ StateValue ExternalModelManager::evaluate(const std::string& name, const Propert
     {
         return environment_nuclide_concentration_model_manager_.evaluate(point);
     }
+    if (name == "surface_nuclide_concentration")
+    {
+        return surface_nuclide_concentration_model_manager_.evaluate(point);
+    }
+    if (name == "nuclide_flux")
+    {
+        return nuclide_flux_model_manager_.evaluate(point);
+    }
     throw std::out_of_range("尚未支持的外部量: " + name);
 }
 
@@ -137,6 +157,14 @@ const std::vector<std::string>& ExternalModelManager::required_states(const std:
     if (name == "environment_nuclide_concentration")
     {
         return environment_nuclide_concentration_model_manager_.required_states(model_name);
+    }
+    if (name == "surface_nuclide_concentration")
+    {
+        return surface_nuclide_concentration_model_manager_.required_states(model_name);
+    }
+    if (name == "nuclide_flux")
+    {
+        return nuclide_flux_model_manager_.required_states(model_name);
     }
     throw std::out_of_range("尚未支持的外部量: " + name);
 }

@@ -87,6 +87,8 @@ private:
         {"time", PropertyType::External, PropertyScope::Global},
         {"environment_temperature", PropertyType::External, PropertyScope::Zone},
         {"environment_nuclide_concentration", PropertyType::External, PropertyScope::Zone}, // atom/m³
+        {"surface_nuclide_concentration", PropertyType::External, PropertyScope::Zone}, // atom/m³, 指定表面浓度
+        {"nuclide_flux", PropertyType::External, PropertyScope::Zone}, // atom/(m²·s), 外流为正、流入为负
         {"surface_temperature", PropertyType::External, PropertyScope::Zone}, // K, 指定表面温度
         {"heat_flux", PropertyType::External, PropertyScope::Zone}, // W/m², 外流为正、流入为负
         {"burnup_fima_fraction", PropertyType::External, PropertyScope::Global},

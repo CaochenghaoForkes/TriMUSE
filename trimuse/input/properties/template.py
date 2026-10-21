@@ -51,6 +51,31 @@ class PropertiesCardTemplate:
         </zone>
         -->
     </external_property>
+    <!-- 核素 Dirichlet 边界: 同名 zone 的指定浓度, 内部单位 atom/m³, 数值非负 -->
+    <!-- 提供 radioactivity 卡后, unit 可用 mol、Bq、Ci 及前缀单位, si_unit 保持 atom 体系 -->
+    <external_property name="surface_nuclide_concentration">
+        <zone name="[str]" model="constant">
+            <parameter name="constant_value" value="[float]" unit="[atom]/[m]^3" si_unit="[atom]/[m]^3"/>
+        </zone>
+        <!-- 时间表可替换上面的常数模型; times 严格递增, values 非负。
+        <zone name="[str]" model="time_series">
+            <parameter name="times" value="[float] [float]" unit="[s]" si_unit="[s]"/>
+            <parameter name="values" value="[float] [float]" unit="[atom]/[m]^3" si_unit="[atom]/[m]^3"/>
+        </zone>
+        -->
+    </external_property>
+    <!-- 核素 Neumann 边界: 正值向外释放, 负值向内输入, 0 为无通量 -->
+    <external_property name="nuclide_flux">
+        <zone name="[str]" model="constant">
+            <parameter name="constant_value" value="[float]" unit="[atom]/[m]^2[s]" si_unit="[atom]/[m]^2[s]"/>
+        </zone>
+        <!-- 时间表可替换上面的常数模型; values 可正可负。
+        <zone name="[str]" model="time_series">
+            <parameter name="times" value="[float] [float]" unit="[s]" si_unit="[s]"/>
+            <parameter name="values" value="[float] [float]" unit="[atom]/[m]^2[s]" si_unit="[atom]/[m]^2[s]"/>
+        </zone>
+        -->
+    </external_property>
     <!-- burnup_fima_fraction 使用 0 到 1 的 FIMA 份额, 例如 0.2 表示 20% FIMA -->
     <external_property name="burnup_fima_fraction">
         <global model="constant">

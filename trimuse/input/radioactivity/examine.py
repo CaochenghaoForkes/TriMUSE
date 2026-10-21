@@ -9,7 +9,7 @@ class RadioactivityCardExamine:
     @staticmethod
     def examine(card: RadioactivityCard) -> None:
         groups = ((card.initial.concentration, "initial.concentration", {"uniform_from_inventory"}),
-                  (card.boundary, "boundary", {"robin"}),
+                  (card.boundary, "boundary", {"dirichlet", "neumann", "robin"}),
                   (card.interfaces.interface, "interfaces", {"perfect_contact"}),
                   (card.source.region, "source", {"volumetric_nuclide_birth_rate"}))
         for items, location, models in groups:

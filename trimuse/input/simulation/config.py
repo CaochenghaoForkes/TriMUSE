@@ -167,7 +167,7 @@ class SimulationCardLoader:
         name = XmlUtils.read_attribute(element, "name", required=True)
         fem_space = cls.read_fem_space(XmlUtils.read_child(element, "fem_space", required=False))
         linear_solver = cls.read_linear_solver(XmlUtils.read_child(element, "linear_solver", required=False))
-        nonlinear_solver = cls.read_nonlinear_solver(XmlUtils.read_child(element, "nonlinear_solver", required=False))
+        nonlinear_solver = cls.read_nonlinear_solver(XmlUtils.read_child(element, "nonlinear_solver", required=False), field_name=name)
         solver_field = SimulationCard.Solver.Field(name=name, fem_space=fem_space, linear_solver=linear_solver, nonlinear_solver=nonlinear_solver)
         return solver_field
 
@@ -197,13 +197,17 @@ class SimulationCardLoader:
         return linear_solver
 
     @staticmethod
-    def read_nonlinear_solver(element: ET.Element | None) -> SimulationCard.Solver.NonlinearSolver:
-        """读取 Picard 最大轮数及相邻两轮的温度增量容差"""
+    def read_nonlinear_solver(element: ET.Element | None, *, field_name: str = "temperature") -> SimulationCard.Solver.NonlinearSolver:
+        """读取 Picard 配置, 绝对容差使用对应场的内部单位"""
         method = XmlUtils.read_attribute(element, "method", default="picard")
         relative_tolerance = XmlUtils.read_attribute(element, "relative_tolerance", float, default=1e-8)
         max_iterations = XmlUtils.read_attribute(element, "max_iterations", int, default=50)
         absolute_element = XmlUtils.read_child(element, "absolute_tolerance", required=False) if element is not None else None
-        absolute_tolerance = XmlUtils.read_attribute(absolute_element, "value", float, quantity="temperature_difference", default=1e-8)
+        absolute_tolerance = XmlUtils.read_attribute(absolute_element, "value", float, default=1e-8)
+        if absolute_element is not None:
+            unit = XmlUtils.read_attribute(absolute_element, "unit", required=True)
+            target_unit = "[atom]/[m]^3" if field_name == "concentration" else "[K]"
+            absolute_tolerance = Units.convert(absolute_tolerance, unit, target_unit, context=f"{field_name}.absolute_tolerance")
         return SimulationCard.Solver.NonlinearSolver(method=method, relative_tolerance=relative_tolerance, absolute_tolerance=absolute_tolerance, max_iterations=max_iterations)
 
     @classmethod

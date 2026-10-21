@@ -20,6 +20,33 @@ class InputCardsExamine:
         cls.check_postprocess_geometry(geometry_mesh, postprocess)
         if radioactivity is not None:
             cls.check_radioactivity_references(geometry_mesh, radioactivity)
+            cls.check_radioactivity_dependencies(material, properties, radioactivity, thermal)
+
+    @staticmethod
+    def check_radioactivity_dependencies(material: MaterialCard, properties: PropertiesCard, radioactivity: RadioactivityCard, thermal: ThermalCard | None) -> None:
+        """核素源、各类边界与各区域扩散系数的必要依赖"""
+        source_regions = {region.name for item in properties.derived_property if item.name == "volumetric_nuclide_birth_rate" for region in item.region}
+        missing = {region.name for region in radioactivity.source.region} - source_regions
+        if missing:
+            raise ValueError(f"核素源区域缺少派生 volumetric_nuclide_birth_rate: {', '.join(sorted(missing))}")
+        for boundary in radioactivity.boundary:
+            if boundary.model == "robin":
+                required = (("environment_nuclide_concentration", properties.external_property), ("mass_transfer_coef", properties.derived_property))
+            elif boundary.model == "dirichlet":
+                required = (("surface_nuclide_concentration", properties.external_property),)
+            else:  # neumann
+                required = (("nuclide_flux", properties.external_property),)
+            for name, configs in required:
+                zones = {zone.name for item in configs if item.name == name for zone in item.zone}
+                if boundary.name not in zones:
+                    raise ValueError(f"核素 {boundary.model} 边界 {boundary.name} 缺少 {name} 属性")
+        materials = {mat.name: mat for mat in material.mat}
+        for assignment in material.assign.region:
+            diffusion = next((item for item in materials[assignment.mat].properties if item.property_name == "radioactivity.nuclide_diffusion_coef"), None)
+            if diffusion is None:
+                raise ValueError(f"区域 {assignment.name} 的材料缺少核素扩散系数")
+            if diffusion.model == "common.arrhenius" and thermal is None:
+                raise ValueError(f"区域 {assignment.name}: common.arrhenius 依赖温度场, 必须提供 thermal 输入卡")
 
     @staticmethod
     def check_radioactivity_references(geometry_mesh: GeometryMeshCard, radioactivity: RadioactivityCard) -> None:
@@ -76,6 +103,8 @@ class InputCardsExamine:
         region_names = {region.name for region in geometry.regions.region}
         zone_names = InputCardsExamine.outer_boundary_names(geometry_mesh)
         power_regions = {region.name for property_config in properties.external_property if property_config.name == "power" for region in property_config.region}
+        birth_rate = next((item for item in properties.external_property if item.name == "nuclide_birth_rate"), None)
+        fraction_regions = {region.name for item in properties.external_property if item.name == "uranium_fraction" for region in item.region}
         for property_config in properties.external_property + properties.derived_property:
             configured_regions = {region.name for region in property_config.region}
             unknown = configured_regions - region_names
@@ -88,6 +117,13 @@ class InputCardsExamine:
                 missing = configured_regions - power_regions
                 if missing:
                     raise ValueError(f"体积功率区域缺少外部 power: {', '.join(sorted(missing))}")
+            if property_config.name == "volumetric_nuclide_birth_rate":
+                uniform_regions = {region.name for region in property_config.region if region.model == "uniform_from_birth_rate"}
+                if uniform_regions and (birth_rate is None or birth_rate.global_ is None):
+                    raise ValueError("uniform_from_birth_rate 缺少全局 nuclide_birth_rate")
+                missing = uniform_regions - fraction_regions
+                if missing:
+                    raise ValueError(f"体积核素产生率区域缺少 uranium_fraction: {', '.join(sorted(missing))}")
 
     @staticmethod
     def check_thermal_boundary_properties(properties: PropertiesCard, thermal: ThermalCard) -> None:
