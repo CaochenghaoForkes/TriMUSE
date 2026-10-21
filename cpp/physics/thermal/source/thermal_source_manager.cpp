@@ -64,10 +64,10 @@ void ThermalSourceManager::update(const PropertiesFieldData& properties_field_da
         for (const int element : fem_system_.mesh_data().region_elements(config.region_attribute))
         {
             const mfem::IntegrationRule* rule = fem_system_.domain_quadrature_rule(mesh.GetElementBaseGeometry(element));
+            const std::size_t offset = fem_system_.domain_quadrature_offset(element);
             for (int point_index = 0; point_index < rule->GetNPoints(); ++point_index)
             {
-                const PropertiesFieldData::IntegrationPointKey key{element, rule->GetOrder(), point_index};
-                source_coefficient_.values[element][point_index] = VolumetricPowerSource::evaluate(properties_field_data, key);
+                source_coefficient_.values[element][point_index] = VolumetricPowerSource::evaluate(properties_field_data, offset + point_index);
             }
         }
     }

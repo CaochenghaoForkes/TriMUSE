@@ -274,7 +274,7 @@ void PropertiesSystem::update_external(double time)
     }
 }
 
-void PropertiesSystem::load_required_states(PropertiesStatePoint& point, const std::vector<std::string>& names,const std::optional<PropertiesFieldData::IntegrationPointKey>& key) const
+void PropertiesSystem::load_required_states(PropertiesStatePoint& point, const std::vector<std::string>& names, std::optional<std::size_t> point_index) const
 {
     for (const std::string& name : names)
     {
@@ -293,7 +293,7 @@ void PropertiesSystem::load_required_states(PropertiesStatePoint& point, const s
         }
         else
         {
-            point.values[name] = properties_field_data_.integration_point_values.at(name).at(key.value()).value();
+            point.values[name] = properties_field_data_.integration_point_values.at(name)[point_index.value()].value();
         }
     }
 }
@@ -337,12 +337,10 @@ bool PropertiesSystem::required_states_changed(int attribute, const std::vector<
             const auto& new_values = current.integration_point_values.at(name);
             for (const int element : fem_system_.mesh_data().region_elements(attribute))
             {
-                // 积分点表按单元编号排序, 只比较当前单元已有的积分点。
-                for (auto point = new_values.lower_bound({element, 0, 0});
-                     point != new_values.end() && std::get<0>(point->first) == element; ++point)
+                const std::size_t end = fem_system_.domain_quadrature_offset(element + 1);
+                for (std::size_t index = fem_system_.domain_quadrature_offset(element); index < end; ++index)
                 {
-                    const auto& [key, value] = *point;
-                    if (old_values.at(key) != value)
+                    if (old_values[index] != new_values[index])
                     {
                         return true;
                     }
@@ -372,6 +370,8 @@ void PropertiesSystem::evaluate_and_store_points(const Manager& manager, const P
     PropertiesStatePoint common_point;
     common_point.region_attribute = region_attribute;
     load_required_states(common_point, common_required);
+    auto& values = properties_field_data_.integration_point_values.at(property.name);
+    values.resize(fem_system_.domain_quadrature_point_count()); // 首次求值时分配, 后续区域或更新保留已有数据。
     for (const int element : fem_system_.mesh_data().region_elements(region_attribute))
     {
         const mfem::Geometry::Type geometry = mesh.GetElementBaseGeometry(element);
@@ -379,12 +379,13 @@ void PropertiesSystem::evaluate_and_store_points(const Manager& manager, const P
         mfem::IsoparametricTransformation transformation;
         mesh.GetElementTransformation(element, &transformation);
         const auto& positions = fem_system_.domain_quadrature_positions(element);
+        const std::size_t offset = fem_system_.domain_quadrature_offset(element);
         for (int point_index = 0; point_index < rule->GetNPoints(); ++point_index)
         {
             const mfem::IntegrationPoint& integration_point = rule->IntPoint(point_index);
             transformation.SetIntPoint(&integration_point);
             const auto& position = positions[point_index];
-            const PropertiesFieldData::IntegrationPointKey key{element, rule->GetOrder(), point_index};
+            const std::size_t index = offset + point_index;
 
             PropertiesStatePoint point;
             point.region_attribute = region_attribute;
@@ -392,7 +393,7 @@ void PropertiesSystem::evaluate_and_store_points(const Manager& manager, const P
             point.y = position[1];
             point.z = position[2];
             point.values = common_point.values;
-            load_required_states(point, point_required, key);
+            load_required_states(point, point_required, index);
             for (const std::string& name : field_required)
             {
                 const auto trial = trial_fields.find(name);
@@ -409,7 +410,7 @@ void PropertiesSystem::evaluate_and_store_points(const Manager& manager, const P
                     point.values[name] = VectorValue(components.GetData(), components.GetData() + components.Size());
                 }
             }
-            properties_field_data_.integration_point_values[property.name][key] = manager.evaluate(property.name, point);
+            values[index] = manager.evaluate(property.name, point);
         }
     }
     computed_locations_[property.name].insert(region_attribute);

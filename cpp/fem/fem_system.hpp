@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <cstddef>
 #include <map>
 #include <memory>
 #include <string>
@@ -45,6 +46,10 @@ public:
 
     const QuadraturePositions& domain_quadrature_positions(int element) const; // 按局部积分点编号读取实际 xyz, 低维缺省分量为 0
 
+    std::size_t domain_quadrature_offset(int element) const; // 单元积分点在全域连续数组中的起始偏移, element=单元数时返回总数
+
+    std::size_t domain_quadrature_point_count() const;
+
     double geometric_weight(mfem::ElementTransformation& transformation, const mfem::IntegrationPoint& point) const; // 1D 球对称, 2D 轴对称, 3D 原始体积或面积积分
 
 private:
@@ -73,6 +78,8 @@ private:
     QuadratureRules boundary_quadrature_rules_;
 
     std::vector<QuadraturePositions> domain_quadrature_positions_; // 固定网格和域求积规则下, 初始化一次, 全部场共用
+
+    std::vector<std::size_t> domain_quadrature_offsets_; // 长度为单元数+1, 最后一项是全域积分点总数
 
     std::unordered_map<std::string, std::unique_ptr<FieldObjects>> field_map_;
 };

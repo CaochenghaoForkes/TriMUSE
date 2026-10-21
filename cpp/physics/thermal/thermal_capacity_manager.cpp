@@ -45,11 +45,11 @@ void ThermalCapacityManager::update(const PropertiesFieldData& properties_field_
     for (int element = 0; element < mesh.GetNE(); ++element)
     {
         const mfem::IntegrationRule* rule = fem_system_.domain_quadrature_rule(mesh.GetElementBaseGeometry(element));
+        const std::size_t offset = fem_system_.domain_quadrature_offset(element);
         for (int point_index = 0; point_index < rule->GetNPoints(); ++point_index)
         {
-            const PropertiesFieldData::IntegrationPointKey key{element, rule->GetOrder(), point_index};
-            const double mass_density = std::get<double>(density_values.at(key).value());
-            const double specific_heat = std::get<double>(specific_heat_values.at(key).value());
+            const double mass_density = std::get<double>(density_values[offset + point_index].value());
+            const double specific_heat = std::get<double>(specific_heat_values[offset + point_index].value());
             capacity_coefficient_.values[element][point_index] = mass_density * specific_heat;
         }
     }

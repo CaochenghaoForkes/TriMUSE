@@ -89,10 +89,12 @@ void FemSystem::cache_domain_quadrature_positions()
 {
     const mfem::Mesh& mesh = mesh_data_.mfem_mesh();
     domain_quadrature_positions_.resize(mesh.GetNE());
+    domain_quadrature_offsets_.resize(mesh.GetNE() + 1);
     mfem::Vector position(mesh.SpaceDimension());
     for (int element = 0; element < mesh.GetNE(); ++element)
     {
         const mfem::IntegrationRule* rule = domain_quadrature_rule(mesh.GetElementBaseGeometry(element));
+        domain_quadrature_offsets_[element + 1] = domain_quadrature_offsets_[element] + rule->GetNPoints();
         mfem::IsoparametricTransformation transformation;
         mesh.GetElementTransformation(element, &transformation);
         QuadraturePositions& positions = domain_quadrature_positions_[element];
@@ -108,6 +110,16 @@ void FemSystem::cache_domain_quadrature_positions()
 const FemSystem::QuadraturePositions& FemSystem::domain_quadrature_positions(int element) const
 {
     return domain_quadrature_positions_[element];
+}
+
+std::size_t FemSystem::domain_quadrature_offset(int element) const
+{
+    return domain_quadrature_offsets_[element];
+}
+
+std::size_t FemSystem::domain_quadrature_point_count() const
+{
+    return domain_quadrature_offsets_.back();
 }
 
 double FemSystem::geometric_weight(mfem::ElementTransformation& transformation, const mfem::IntegrationPoint& point) const

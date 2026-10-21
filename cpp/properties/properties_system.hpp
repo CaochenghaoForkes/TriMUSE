@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -77,7 +78,7 @@ private:
     template <typename Manager>
     void evaluate_and_store_points(const Manager& manager, const PropertyInfo& property, int region_attribute, const std::vector<std::string>& required, const FieldMap& trial_fields = {});
 
-    void load_required_states(PropertiesStatePoint& point, const std::vector<std::string>& names, const std::optional<PropertiesFieldData::IntegrationPointKey>& key = std::nullopt) const;
+    void load_required_states(PropertiesStatePoint& point, const std::vector<std::string>& names, std::optional<std::size_t> point_index = std::nullopt) const;
 
     bool required_states_changed(int attribute, const std::vector<std::string>& required_states) const;
 

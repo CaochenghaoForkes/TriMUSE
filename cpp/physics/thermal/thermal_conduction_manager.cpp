@@ -44,10 +44,10 @@ void ThermalConductionManager::update(const PropertiesFieldData& properties_fiel
     for (int element = 0; element < mesh.GetNE(); ++element)
     {
         const mfem::IntegrationRule* rule = fem_system_.domain_quadrature_rule(mesh.GetElementBaseGeometry(element));
+        const std::size_t offset = fem_system_.domain_quadrature_offset(element);
         for (int point_index = 0; point_index < rule->GetNPoints(); ++point_index)
         {
-            const PropertiesFieldData::IntegrationPointKey key{element, rule->GetOrder(), point_index};
-            conductivity_coefficient_.values[element][point_index] = std::get<double>(conductivity_values.at(key).value());
+            conductivity_coefficient_.values[element][point_index] = std::get<double>(conductivity_values[offset + point_index].value());
         }
     }
 }
