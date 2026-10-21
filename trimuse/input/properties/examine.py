@@ -51,7 +51,7 @@ class PropertiesCardExamine:
                 if property_config.name != "power":
                     raise ValueError(f"{location}: 尚不支持的外部量")
                 cls.check_power(region, region_location)
-            elif property_config.name != "volumetric_power" or region.model != "uniform":
+            elif property_config.name != "volumetric_power" or region.model != "uniform_from_power":
                 raise ValueError(f"{region_location}: 尚不支持的派生量或模型")
 
     @staticmethod

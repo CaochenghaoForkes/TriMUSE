@@ -65,7 +65,7 @@ class PropertiesCardTemplate:
     </external_property>
     <derived_property name="volumetric_power">
         <!-- 需要同一区域已配置外部 power, 计算时由上层提供物理体积 -->
-        <region name="[str]" model="uniform"/>
+        <region name="[str]" model="uniform_from_power"/>
     </derived_property>
     <derived_property name="heat_transfer_coef">
         <zone name="[str]" model="constant">
