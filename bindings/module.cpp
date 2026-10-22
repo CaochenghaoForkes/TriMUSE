@@ -7,6 +7,7 @@
 #include "fem/fem_system.hpp"
 #include "output/output_manager.hpp"
 #include "physics/thermal/thermal_problem.hpp"
+#include "physics/radioactivity/radioactivity_problem.hpp"
 #include "properties/properties_system.hpp"
 #include "solver/solver_system.hpp"
 
@@ -15,13 +16,13 @@ namespace py = pybind11;
 namespace
 {
 
-using ThermalConfigEntry = std::tuple<int, std::string, trimuse::ModelParameterMap>;
+using ProblemConfigEntry = std::tuple<int, std::string, trimuse::ModelParameterMap>;
 using LinearSolverEntry = std::tuple<std::string, std::string, double, int>;
 using NonlinearSolverEntry = std::tuple<std::string, double, double, int>;
 using FieldSolverEntry = std::tuple<std::string, LinearSolverEntry, NonlinearSolverEntry>;
 
 template <typename Config>
-std::vector<Config> thermal_configs(const std::vector<ThermalConfigEntry>& entries)
+std::vector<Config> problem_configs(const std::vector<ProblemConfigEntry>& entries)
 {
     std::vector<Config> configs;
     configs.reserve(entries.size());
@@ -100,16 +101,34 @@ PYBIND11_MODULE(_core, module)
     py::class_<trimuse::ThermalProblem>(module, "ThermalProblem")
         .def(py::init([](trimuse::FemSystem& fem, trimuse::PropertiesSystem& properties,
                          trimuse::SolverSystem& solver, trimuse::OutputManager& output, const std::string& problem_type,
-                         const std::vector<ThermalConfigEntry>& initial_configs,
-                         const std::vector<ThermalConfigEntry>& source_configs,
-                         const std::vector<ThermalConfigEntry>& boundary_configs)
+                         const std::vector<ProblemConfigEntry>& initial_configs,
+                         const std::vector<ProblemConfigEntry>& source_configs,
+                         const std::vector<ProblemConfigEntry>& boundary_configs)
         {
             return std::make_unique<trimuse::ThermalProblem>(fem, fem.field_data("temperature"), properties, solver, output, problem_type,
-                thermal_configs<trimuse::ThermalInitialConfig>(initial_configs),
-                thermal_configs<trimuse::ThermalSourceConfig>(source_configs),
-                thermal_configs<trimuse::ThermalBoundaryConfig>(boundary_configs));
+                problem_configs<trimuse::ThermalInitialConfig>(initial_configs),
+                problem_configs<trimuse::ThermalSourceConfig>(source_configs),
+                problem_configs<trimuse::ThermalBoundaryConfig>(boundary_configs));
         }), py::arg("fem_system"), py::arg("properties_system"), py::arg("solver_system"), py::arg("output_manager"), py::arg("problem_type"),
             py::arg("initial_configs"), py::arg("source_configs"), py::arg("boundary_configs"),
             py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::keep_alive<1, 4>(), py::keep_alive<1, 5>())
         .def("solve", &trimuse::ThermalProblem::solve, py::arg("time_step") = 0.0, py::arg("theta") = 1.0);
+
+    py::class_<trimuse::RadioactivityProblem>(module, "RadioactivityProblem")
+        .def(py::init([](trimuse::FemSystem& fem, trimuse::PropertiesSystem& properties,
+                         trimuse::SolverSystem& solver, trimuse::OutputManager& output,
+                         const std::string& problem_type, double decay_constant,
+                         const std::vector<ProblemConfigEntry>& initial_configs,
+                         const std::vector<ProblemConfigEntry>& source_configs,
+                         const std::vector<ProblemConfigEntry>& boundary_configs)
+        {
+            return std::make_unique<trimuse::RadioactivityProblem>(fem, fem.field_data("concentration"), properties, solver, output, problem_type, decay_constant,
+                problem_configs<trimuse::RadioactivityInitialConfig>(initial_configs),
+                problem_configs<trimuse::RadioactivitySourceConfig>(source_configs),
+                problem_configs<trimuse::RadioactivityBoundaryConfig>(boundary_configs));
+        }), py::arg("fem_system"), py::arg("properties_system"), py::arg("solver_system"), py::arg("output_manager"),
+            py::arg("problem_type"), py::arg("decay_constant"),
+            py::arg("initial_configs"), py::arg("source_configs"), py::arg("boundary_configs"),
+            py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::keep_alive<1, 4>(), py::keep_alive<1, 5>())
+        .def("solve", &trimuse::RadioactivityProblem::solve, py::arg("time_step") = 0.0, py::arg("theta") = 1.0);
 }

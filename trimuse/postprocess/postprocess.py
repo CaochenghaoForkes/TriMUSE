@@ -21,7 +21,10 @@ class PostprocessManager:
     def __init__(self, input_cards: InputCards) -> None:
         # 基本配置输入
         self.config = input_cards.postprocess
-        self.property_metadata = {"temperature": {"unit": "K", "color": "jet"}}
+        self.property_metadata = {
+            "temperature": {"unit": "K", "color": "jet"},
+            "concentration": {"unit": "atom/m³", "color": "viridis"},
+        }
         self.output_directory = Path(input_cards.chief.output.directory).expanduser().resolve()
         self.postprocess_directory = self.output_directory / "postprocess"
         self.dimension = input_cards.geometry_mesh.model.dimension

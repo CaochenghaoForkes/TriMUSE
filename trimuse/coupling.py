@@ -5,13 +5,13 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .output import OutputManager
     from .input.simulation.config import SimulationCard
-    from .problem import Thermal
+    from .problem import Thermal, Radioactivity
     from .properties import PropertiesManager
 
 class CouplingManager:
     """管理分阶段时间推进与当前单步场求解"""
 
-    def __init__(self, simulation_config: SimulationCard, properties_manager: PropertiesManager, problems: dict[str, Thermal], output_manager: OutputManager) -> None:
+    def __init__(self, simulation_config: SimulationCard, properties_manager: PropertiesManager, problems: dict[str, Thermal | Radioactivity], output_manager: OutputManager) -> None:
         self.time_span = simulation_config.problem.time_span
         self.min_time_step = simulation_config.problem.min_time_step
         self.write_interval = simulation_config.output.write_interval

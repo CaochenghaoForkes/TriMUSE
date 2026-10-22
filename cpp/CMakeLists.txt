@@ -33,6 +33,16 @@ add_library(
     physics/thermal/thermal_capacity_manager.cpp
     physics/thermal/initial/thermal_initial_condition.cpp
     physics/thermal/thermal_problem.cpp
+    physics/radioactivity/boundary/radioactivity_boundary_manager.cpp
+    physics/radioactivity/boundary/radioactivity_robin_boundary.cpp
+    physics/radioactivity/boundary/radioactivity_neumann_boundary.cpp
+    physics/radioactivity/boundary/radioactivity_dirichlet_boundary.cpp
+    physics/radioactivity/source/radioactivity_source_manager.cpp
+    physics/radioactivity/source/volumetric_nuclide_birth_rate_source.cpp
+    physics/radioactivity/initial/radioactivity_initial_condition.cpp
+    physics/radioactivity/radioactivity_capacity_manager.cpp
+    physics/radioactivity/radioactivity_diffusion_manager.cpp
+    physics/radioactivity/radioactivity_problem.cpp
     solver/solver_system.cpp
     solver/cg_solver.cpp
     output/output_manager.cpp

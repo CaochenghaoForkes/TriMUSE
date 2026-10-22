@@ -26,7 +26,7 @@ class OutputManager:
         self.mesh_statistics = None
         self.frame_count = 0
         self.field_output = None
-        self.field_directories = {"temperature": "thermal"}
+        self.field_directories = {"temperature": "thermal", "concentration": "radioactivity"}
 
     @staticmethod
     def _now() -> str:

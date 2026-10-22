@@ -1,6 +1,6 @@
 """TriMUSE C++ 扩展的类型声明, 与 module.cpp 中的绑定同步维护"""
 
-ThermalConfigEntry = tuple[int, str, dict[str, float | list[float]]]
+ProblemConfigEntry = tuple[int, str, dict[str, float | list[float]]]
 LinearSolverEntry = tuple[str, str, float, int]
 NonlinearSolverEntry = tuple[str, float, float, int]
 FieldSolverEntry = tuple[str, LinearSolverEntry, NonlinearSolverEntry]
@@ -52,7 +52,17 @@ class ThermalProblem:
 
     def __init__(self, fem_system: FemSystem, properties_system: PropertiesSystem,
                  solver_system: SolverSystem, output_manager: OutputManager, problem_type: str,
-                 initial_configs: list[ThermalConfigEntry], source_configs: list[ThermalConfigEntry],
-                 boundary_configs: list[ThermalConfigEntry]) -> None: ...
+                 initial_configs: list[ProblemConfigEntry], source_configs: list[ProblemConfigEntry],
+                 boundary_configs: list[ProblemConfigEntry]) -> None: ...
+
+    def solve(self, time_step: float = 0.0, theta: float = 1.0) -> None: ...
+
+class RadioactivityProblem:
+    """初始化核素浓度并统一调度扩散与衰变求解"""
+
+    def __init__(self, fem_system: FemSystem, properties_system: PropertiesSystem,
+                 solver_system: SolverSystem, output_manager: OutputManager, problem_type: str,
+                 decay_constant: float, initial_configs: list[ProblemConfigEntry],
+                 source_configs: list[ProblemConfigEntry], boundary_configs: list[ProblemConfigEntry]) -> None: ...
 
     def solve(self, time_step: float = 0.0, theta: float = 1.0) -> None: ...

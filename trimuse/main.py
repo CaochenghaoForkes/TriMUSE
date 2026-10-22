@@ -123,7 +123,7 @@ def main(argv: list[str] | None = None) -> None:
         from trimuse.fem import FemManager
         from trimuse.properties import PropertiesManager
         from trimuse.solver import SolverManager
-        from trimuse.problem import Thermal
+        from trimuse.problem import Thermal, Radioactivity
         from trimuse.coupling import CouplingManager
 
         # 创建随机数生成器
@@ -145,14 +145,20 @@ def main(argv: list[str] | None = None) -> None:
         # 求解器对象
         solver_manager = SolverManager(input_cards.simulation.solver)
 
-        # 创建 C++ 输出对象, 供热问题记录求解信息并保存场数据
+        # 创建 C++ 输出对象, 供各问题记录求解信息并保存场数据
         output_manager.initialize_field_output(fem_manager.fem_system)
 
-        # 热问题对象
-        thermal_problem = Thermal(input_cards, mesh_info, fem_manager.fem_system, properties_manager.properties_system, solver_manager.solver_system, output_manager.field_output)
+        # 按本次求解场创建对应问题, 热与放射性可分别或同时启用。
+        problem_types = {"temperature": Thermal, "concentration": Radioactivity}
+        problems = {
+            field.name: problem_types[field.name](input_cards, mesh_info, fem_manager.fem_system,
+                                                  properties_manager.properties_system, solver_manager.solver_system,
+                                                  output_manager.field_output)
+            for field in input_cards.simulation.problem.field
+        }
 
         # 创建耦合求解对象
-        coupling_manager = CouplingManager(input_cards.simulation, properties_manager, {thermal_problem.field_state: thermal_problem}, output_manager)
+        coupling_manager = CouplingManager(input_cards.simulation, properties_manager, problems, output_manager)
 
         # 运行模拟
         coupling_manager.run()
