@@ -135,7 +135,7 @@ def main(argv: list[str] | None = None) -> None:
         # 生成或复用网格
         mesh_info = GeometryMeshBuilder.build(input_cards.geometry_mesh, output_manager.directory, rng)
         output_manager.record_mesh(mesh_info.path)
-
+        
         # 创建公共有限元对象
         fem_manager = FemManager(mesh_info, input_cards.simulation.solver)
 
