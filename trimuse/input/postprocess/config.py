@@ -5,7 +5,6 @@ from xml.etree import ElementTree as ET
 import sys
 
 from ..xml_utils import XmlUtils
-from .template import PostprocessCardTemplate
 
 @dataclass
 class PostprocessCard:
@@ -55,7 +54,7 @@ class PostprocessCardLoader:
     def load(cls, path: str | Path | None = None) -> PostprocessCard:
         """空路径生成模板并退出, 否则读取后处理卡"""
         if path is None or isinstance(path, str) and not path.strip():
-            template_path = PostprocessCardTemplate.write()
+            template_path = XmlUtils.write_template(Path(__file__).with_name("postprocess.xml"), "postprocess_empty.xml")
             print(f"后处理模板输入卡已生成: {template_path}")
             sys.exit()
         root = XmlUtils.get_root(path, "postprocess")

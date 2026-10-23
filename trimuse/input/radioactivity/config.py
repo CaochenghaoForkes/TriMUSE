@@ -6,7 +6,6 @@ import math
 import sys
 
 from ..xml_utils import XmlUtils
-from .template import RadioactivityCardTemplate
 
 
 @dataclass
@@ -73,12 +72,12 @@ class RadioactivityCardLoader:
     def load(cls, path: str | Path | None = None) -> RadioactivityCard:
         """空路径生成模板并退出, 否则读取放射性输入卡"""
         if path is None or isinstance(path, str) and not path.strip():
-            template_path = RadioactivityCardTemplate.write()
+            template_path = XmlUtils.write_template(Path(__file__).with_name("radioactivity.xml"), "radioactivity_empty.xml")
             print(f"放射性模板输入卡已生成: {template_path}")
             sys.exit()
         root = XmlUtils.get_root(path, "radioactivity")
         nuclide = cls.read_nuclide(XmlUtils.read_child(root, "nuclide"))
-        initial = cls.read_initial(XmlUtils.read_child(root, "initial"), nuclide.decay_constant)
+        initial = cls.read_initial(XmlUtils.read_child(root, "initial"))
         boundaries = XmlUtils.read_child(root, "boundaries", required=False)
         boundary = []
         if boundaries is not None:
@@ -94,23 +93,20 @@ class RadioactivityCardLoader:
     def read_nuclide(element: ET.Element) -> RadioactivityCard.Nuclide:
         name = XmlUtils.read_attribute(element, "name", required=True)
         half_life = XmlUtils.read_attribute(XmlUtils.read_child(element, "half_life"), "value", float, required=True, quantity="time")
-        # 参数的活度换算需要先得到有效的衰变常数。
-        if not math.isfinite(half_life) or half_life <= 0:
-            raise ValueError("nuclide.half_life 必须为有限正数")
         nuclide = RadioactivityCard.Nuclide(name=name, half_life=half_life)
         return nuclide
 
     @classmethod
-    def read_initial(cls, element: ET.Element, decay_constant: float) -> RadioactivityCard.Initial:
-        concentration = [cls.read_initial_concentration(child, decay_constant)
+    def read_initial(cls, element: ET.Element) -> RadioactivityCard.Initial:
+        concentration = [cls.read_initial_concentration(child)
                          for child in XmlUtils.read_children(element, "concentration", required=True)]
         initial = RadioactivityCard.Initial(concentration=concentration)
         return initial
 
     @staticmethod
-    def read_initial_concentration(element: ET.Element, decay_constant: float) -> RadioactivityCard.Initial.Concentration:
+    def read_initial_concentration(element: ET.Element) -> RadioactivityCard.Initial.Concentration:
         region = XmlUtils.read_attribute(element, "region", required=True)
-        model_config = XmlUtils.read_model(element, decay_constant=decay_constant, context=f"initial.concentration.{region}")
+        model_config = XmlUtils.read_model(element, context=f"initial.concentration.{region}")
         concentration = RadioactivityCard.Initial.Concentration(region=region, **model_config)
         return concentration
 

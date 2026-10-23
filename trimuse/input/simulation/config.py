@@ -6,7 +6,6 @@ import sys
 
 from ..xml_utils import XmlUtils
 from ..units import Units
-from .template import SimulationCardTemplate
 
 @dataclass
 class SimulationCard:
@@ -110,7 +109,7 @@ class SimulationCardLoader:
     def load(cls, path: str | Path | None = None) -> SimulationCard:
         """空路径生成模板并退出, 否则读取配置"""
         if path is None or isinstance(path, str) and not path.strip():
-            template_path = SimulationCardTemplate.write()
+            template_path = XmlUtils.write_template(Path(__file__).with_name("simulation.xml"), "simulation_empty.xml")
             print(f"仿真模板输入卡已生成: {template_path}")
             sys.exit()
         root = XmlUtils.get_root(path, "simulation")

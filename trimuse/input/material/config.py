@@ -5,7 +5,6 @@ from xml.etree import ElementTree as ET
 import sys
 
 from ..xml_utils import XmlUtils
-from .template import MaterialCardTemplate
 
 @dataclass
 class MaterialCard:
@@ -49,7 +48,7 @@ class MaterialCardLoader:
     def load(cls, path: str | Path | None = None) -> MaterialCard:
         """空路径在当前工作目录生成模板并退出, 否则读取材料卡"""
         if path is None or isinstance(path, str) and not path.strip():
-            template_path = MaterialCardTemplate.write()
+            template_path = XmlUtils.write_template(Path(__file__).with_name("material.xml"), "material_empty.xml")
             print(f"材料模板输入卡已生成: {template_path}")
             sys.exit()
         root = XmlUtils.get_root(path, "material")

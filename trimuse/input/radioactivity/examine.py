@@ -4,10 +4,12 @@ from .config import RadioactivityCard
 
 
 class RadioactivityCardExamine:
-    """检查卡内配置; 半衰期在参数换算前检查, 几何引用由总检查处理"""
+    """检查卡内配置及半衰期, 几何引用由总检查处理"""
 
     @staticmethod
     def examine(card: RadioactivityCard) -> None:
+        if not math.isfinite(card.nuclide.half_life) or card.nuclide.half_life <= 0:
+            raise ValueError("nuclide.half_life 必须为有限正数")
         groups = ((card.initial.concentration, "initial.concentration", {"uniform_from_inventory"}),
                   (card.boundary, "boundary", {"dirichlet", "neumann", "robin"}),
                   (card.interfaces.interface, "interfaces", {"perfect_contact"}),

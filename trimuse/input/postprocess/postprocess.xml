@@ -1,9 +1,4 @@
-from pathlib import Path
-
-from ..xml_utils import XmlUtils
-
-class PostprocessCardTemplate:
-    CONTENT = '''<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <!-- 默认处理全部已保存时刻; 坐标为实际笛卡尔坐标, 名称仅为采样位置标签 -->
 <postprocess>
     <!-- 1D 默认输出 100 点径向线; 2D 默认输出全截面; 3D 至少指定一项 -->
@@ -44,11 +39,6 @@ class PostprocessCardTemplate:
             </normal>
         </section>
     </sections>
-    <!-- 属性名称使用空格分隔; 当前场输出仅包含 temperature -->
-    <properties names="temperature"/>
+    <!-- 属性名称使用空格分隔; 当前可选 temperature、concentration，仅列出实际启用的场 -->
+    <properties names="temperature concentration"/>
 </postprocess>
-'''
-
-    @classmethod
-    def write(cls, path: str | Path = "postprocess_empty.xml") -> Path:
-        return XmlUtils.write_template(cls.CONTENT, path)

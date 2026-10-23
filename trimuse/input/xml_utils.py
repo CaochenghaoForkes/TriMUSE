@@ -1,5 +1,6 @@
 from __future__ import annotations
 import re
+import shutil
 from pathlib import Path
 from types import GenericAlias
 from typing import Iterable, get_args, get_origin
@@ -18,13 +19,12 @@ class XmlUtils:
         return f"{context}: <{element.tag}>" if context else f"<{element.tag}>"
 
     @staticmethod
-    def write_template(content: str, path: str | Path) -> Path:
-        """写出待填写的 XML 模板, 同名文件已存在时拒绝覆盖"""
-        ET.fromstring(content)
-        output_path = Path(path).expanduser().absolute()
+    def write_template(template: str | Path, path: str | Path) -> Path:
+        """原样复制 XML 模板, 同名文件已存在时拒绝覆盖"""
+        output_path = Path(path).expanduser().absolute() # 复制后的目标路径 template 是源模板路径
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        with output_path.open("x", encoding="utf-8") as stream:
-            stream.write(content)
+        with Path(template).open("rb") as source, output_path.open("xb") as destination:
+            shutil.copyfileobj(source, destination) # 把源文件内容复制到目标文件
         return output_path
 
     @staticmethod
@@ -64,8 +64,8 @@ class XmlUtils:
             if allow_empty:
                 return default
             raise ValueError(f"{location}: 属性 '{name}' 不能为空")
-        is_array = get_origin(value_type) is list
-        item_type = get_args(value_type)[0] if is_array else value_type
+        is_array = get_origin(value_type) is list # 判断类型注解的“外层类型”是否为 list
+        item_type = get_args(value_type)[0] if is_array else value_type # 如果是列表，就取列表元素的类型；否则直接使用原来的类型
         items = value.split() if is_array else [value]
         result = []
         for item in items:
@@ -82,7 +82,7 @@ class XmlUtils:
         return value
 
     @staticmethod
-    def read_model(element: ET.Element, *, decay_constant: float | None = None, context: str | None = None) -> dict[str, str | dict[str, float | list[float]]]:
+    def read_model(element: ET.Element, *, context: str | None = None) -> dict[str, str | dict[str, float | list[float]]]:
         """读取模型参数并换算单位, 单个数值存为标量, 空白分隔的多个数值存为列表"""
         model = XmlUtils.read_attribute(element, "model", required=True, context=context)
         location = XmlUtils._location(element, context)
@@ -95,7 +95,7 @@ class XmlUtils:
             si_unit = XmlUtils.read_attribute(parameter_element, "si_unit", required=True, context=context)
             if name in parameters:
                 raise ValueError(f"{location}: 参数名重复: {name}")
-            parameters[name] = Units.convert(value, unit, si_unit, decay_constant=decay_constant, context=context)
+            parameters[name] = Units.convert(value, unit, si_unit, context=context)
         model_config = {"model": model, "parameters": parameters}
         return model_config
 
@@ -174,7 +174,7 @@ class XmlUtils:
         """以声明路径的 XML 所在目录为基准，返回绝对路径不要求目标已存在，因为输出文件路径也使用此方法"""
         if isinstance(path, str) and not path.strip():
             raise ValueError("文件路径不能为空")
-        resolved = Path(path).expanduser()
-        if not resolved.is_absolute():
+        resolved = Path(path).expanduser() # 展开用户目录
+        if not resolved.is_absolute(): # 如果仍是相对路径，就把它拼到 base_directory 后面
             resolved = Path(base_directory).expanduser().resolve() / resolved
         return resolved.resolve()

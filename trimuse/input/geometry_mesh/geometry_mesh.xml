@@ -1,10 +1,4 @@
-from pathlib import Path
-from ..xml_utils import XmlUtils
-
-class GeometryMeshCardTemplate:
-    """列出两类几何及全部可选配置, 填写时只保留选定模型"""
-
-    CONTENT = '''<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <!-- 填写占位符后使用, 可选值只选一项, 不使用的可选节点删除 -->
 <!-- 长度 unit 使用 [um] 或 [m] 等单位, 无量纲使用 [1] -->
 <geometry_mesh>
@@ -114,9 +108,3 @@ class GeometryMeshCardTemplate:
         <output formats="vtk bdf"/>
     </mesh>
 </geometry_mesh>
-'''
-
-    @classmethod
-    def write(cls, path: str | Path = "geometry_mesh_empty.xml") -> Path:
-        """写出待填写模板, 由外部 loader 调用"""
-        return XmlUtils.write_template(cls.CONTENT, path)

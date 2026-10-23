@@ -1,12 +1,4 @@
-from pathlib import Path
-
-from ..xml_utils import XmlUtils
-
-
-class RadioactivityCardTemplate:
-    """单核素扩散与衰变输入模板"""
-
-    CONTENT = '''<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <radioactivity>
     <!-- 一张卡只处理一个核素; 半衰期换算为 s, 不考虑衰变链 -->
     <nuclide name="Cs137">
@@ -14,7 +6,7 @@ class RadioactivityCardTemplate:
     </nuclide>
     <initial>
         <!-- 每个几何 region 填写一次; inventory 是该区域总盘存, 初始化时除以区域体积 -->
-        <!-- unit 支持 atom、mol、Bq、Ci 及前缀单位; si_unit 固定为 [atom] -->
+        <!-- unit 使用 atom、mol 等数量单位; si_unit 固定为 [atom], 不支持活度单位 Bq/Ci -->
         <concentration region="[str]" model="uniform_from_inventory">
             <parameter name="inventory" value="[float]" unit="[atom]" si_unit="[atom]"/>
         </concentration>
@@ -25,7 +17,10 @@ class RadioactivityCardTemplate:
          neumann 读取 nuclide_flux (atom/(m²·s)), 外流为正、流入为负, 0 为无通量 -->
     <boundaries>
         <boundary name="[str]" model="robin"/>
-        <!-- 可将 robin 替换为 dirichlet 或 neumann, 同一 zone 只配置一次 -->
+        <!-- 可替代写法；每个 zone 只保留一种边界：
+        <boundary name="[str]" model="dirichlet"/>
+        <boundary name="[str]" model="neumann"/>
+        -->
     </boundaries>
     <!-- 可省略, 默认连续空间下的理想接触 -->
     <interfaces>
@@ -36,8 +31,3 @@ class RadioactivityCardTemplate:
         <region name="[str]" model="volumetric_nuclide_birth_rate"/>
     </source>
 </radioactivity>
-'''
-
-    @classmethod
-    def write(cls, path: str | Path = "radioactivity_empty.xml") -> Path:
-        return XmlUtils.write_template(cls.CONTENT, path)

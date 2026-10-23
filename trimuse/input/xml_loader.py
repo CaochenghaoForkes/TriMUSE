@@ -45,8 +45,7 @@ class XmlLoader:
         material = cls._load_material(chief.input_files.material)
         thermal = cls._load_thermal(chief.input_files.thermal) if chief.input_files.thermal is not None else None
         radioactivity = cls._load_radioactivity(chief.input_files.radioactivity) if chief.input_files.radioactivity is not None else None
-        decay_constant = radioactivity.nuclide.decay_constant if radioactivity is not None else None
-        properties = cls._load_properties(chief.input_files.properties, decay_constant=decay_constant)
+        properties = cls._load_properties(chief.input_files.properties)
         simulation = cls._load_simulation(chief.input_files.simulation)
         postprocess = cls._load_postprocess(chief.input_files.postprocess)
         InputCardsExamine.examine(geometry_mesh, material, properties, thermal, postprocess, radioactivity)
@@ -68,9 +67,9 @@ class XmlLoader:
         return material
 
     @staticmethod
-    def _load_properties(path: str | None, *, decay_constant: float | None = None) -> PropertiesCard:
+    def _load_properties(path: str | None) -> PropertiesCard:
         """读取并检查外部量和派生量输入卡"""
-        properties = PropertiesCardLoader.load(path, decay_constant=decay_constant)
+        properties = PropertiesCardLoader.load(path)
         PropertiesCardExamine.examine(properties)
         return properties
 

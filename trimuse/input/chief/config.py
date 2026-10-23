@@ -5,7 +5,6 @@ from xml.etree import ElementTree as ET
 import sys
 
 from ..xml_utils import XmlUtils
-from .template import ChiefCardTemplate
 
 @dataclass
 class ChiefCard:
@@ -48,7 +47,7 @@ class ChiefCardLoader:
     def load(cls, path: str | Path | None = None) -> ChiefCard:
         """路径为空时生成 chief_empty.xml, 否则读取总调度卡"""
         if path is None or isinstance(path, str) and not path.strip():
-            template_path = ChiefCardTemplate.write()
+            template_path = XmlUtils.write_template(Path(__file__).with_name("chief.xml"), "chief_empty.xml")
             print(f"主模板输入卡已生成: {template_path}")
             sys.exit()
         chief_path = Path(path).expanduser().resolve()

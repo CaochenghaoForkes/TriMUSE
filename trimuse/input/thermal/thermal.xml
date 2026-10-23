@@ -1,11 +1,4 @@
-from pathlib import Path
-
-from ..xml_utils import XmlUtils
-
-class ThermalCardTemplate:
-    """热输入模板"""
-
-    CONTENT = '''<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <!-- 填写占位符后使用；boundary 名称引用几何卡的外表面 zone 或 residual_zone -->
 <!-- si_unit 必须符合模型的内部单位, 参数数组使用空格分隔 -->
 <thermal>
@@ -33,9 +26,3 @@ class ThermalCardTemplate:
         <region name="[str]" model="volumetric_power"/>
     </source>
 </thermal>
-'''
-
-    @classmethod
-    def write(cls, path: str | Path = "thermal_empty.xml") -> Path:
-        """写出待填写的热模板"""
-        return XmlUtils.write_template(cls.CONTENT, path)
