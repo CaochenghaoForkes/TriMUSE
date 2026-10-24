@@ -1,19 +1,26 @@
 from __future__ import annotations
-
 from pathlib import Path
 import argparse
 import sys
 from typing import TYPE_CHECKING
+import numpy as np
 
 project_directory = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(project_directory))
 sys.path.insert(0, str(project_directory / "build" / "bindings"))
+
 from trimuse.input import load_input_cards
 from trimuse.output import OutputManager
+from trimuse.geometry.builder import GeometryMeshBuilder
+from trimuse.fem import FemManager
+from trimuse.properties import PropertiesManager
+from trimuse.solver import SolverManager
+from trimuse.problem import Thermal, Radioactivity
+from trimuse.coupling import CouplingManager
+from trimuse.postprocess.postprocess import PostprocessManager
 
 if TYPE_CHECKING:
     from trimuse.input.chief.config import ChiefCard
-
 
 def output_directory_state(directory: Path) -> str:
     """区分空目录、已有完整结果和其他非空目录, 不创建或修改文件。"""
@@ -25,7 +32,6 @@ def output_directory_state(directory: Path) -> str:
         return "available"
     return "complete" if OutputManager.is_complete(directory) else "occupied"
 
-
 def prompt_choice(prompt: str, choices: set[str]) -> str:
     while True:
         try:
@@ -35,7 +41,6 @@ def prompt_choice(prompt: str, choices: set[str]) -> str:
         if choice in choices:
             return choice
         print(f"请输入: {', '.join(sorted(choices))}")
-
 
 def prompt_new_output_directory(directory: Path, base_directory: Path, seed: int) -> Path:
     """选择新的用户根目录, 保持 <用户根目录>/seed_<种子> 的固定结构。"""
@@ -61,7 +66,6 @@ def prompt_new_output_directory(directory: Path, base_directory: Path, seed: int
         if output_directory_state(candidate) == "available":
             return candidate
         print(f"目录已被占用, 请重新输入: {candidate}")
-
 
 def resolve_workflow(chief: ChiefCard, base_directory: Path) -> str | None:
     """返回 run/postprocess 或取消; 重算使用新目录, 不覆盖原结果。"""
@@ -92,7 +96,6 @@ def resolve_workflow(chief: ChiefCard, base_directory: Path) -> str | None:
     chief.output.directory = str(prompt_new_output_directory(directory, base_directory, chief.random_seed))
     return "run"
 
-
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="TriMUSE: 指定总调度 XML 卡运行模拟与后处理")
     parser.add_argument("chief_path", nargs="?", type=Path, help="总调度卡路径, 相对路径以当前工作目录为基准")
@@ -112,19 +115,12 @@ def main(argv: list[str] | None = None) -> None:
         print("已取消。")
         return
 
-    # 创建输出对象
-    output_manager = OutputManager(input_cards)
-
     if workflow == "postprocess":
         print("复用已有完整结果, 进入后处理", flush=True)
     else:
-        import numpy as np
-        from trimuse.geometry.builder import GeometryMeshBuilder
-        from trimuse.fem import FemManager
-        from trimuse.properties import PropertiesManager
-        from trimuse.solver import SolverManager
-        from trimuse.problem import Thermal, Radioactivity
-        from trimuse.coupling import CouplingManager
+
+        # 创建输出对象
+        output_manager = OutputManager(input_cards)
 
         # 创建随机数生成器
         rng = np.random.default_rng(input_cards.chief.random_seed)
@@ -165,9 +161,6 @@ def main(argv: list[str] | None = None) -> None:
 
         # 标记模拟完成
         output_manager.finish_simulation(coupling_manager.time, coupling_manager.cycle)
-
-    # 新计算及已有完整结果均进入后处理, 不依赖本次创建求解对象
-    from trimuse.postprocess.postprocess import PostprocessManager
 
     print("开始后处理", flush=True)
     postprocess_manager = PostprocessManager(input_cards)
