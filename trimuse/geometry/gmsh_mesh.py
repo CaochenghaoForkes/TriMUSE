@@ -65,24 +65,24 @@ class GmshMesh:
         if global_sizing.max_edge_length is not None:
             gmsh.option.setNumber("Mesh.MeshSizeMax", global_sizing.max_edge_length)
 
-        region_fields = []
+        region_fields = [] # 保存各区域尺寸场的编号
         entity_list = cls._ENTITY_LISTS[topology.dimension]
         for region in sizing.region:
-            value_field = gmsh.model.mesh.field.add("MathEval")
-            gmsh.model.mesh.field.setString(value_field, "F", repr(region.target_edge_length))
-            region_field = gmsh.model.mesh.field.add("Restrict")
-            gmsh.model.mesh.field.setNumber(region_field, "InField", value_field)
-            gmsh.model.mesh.field.setNumbers(region_field, entity_list, topology.regions[region.name])
-            gmsh.model.mesh.field.setNumber(region_field, "IncludeBoundary", 1)
-            region_fields.append(region_field)
+            value_field = gmsh.model.mesh.field.add("MathEval") # 创建数学表达式场，返回其编号
+            gmsh.model.mesh.field.setString(value_field, "F", repr(region.target_edge_length)) # 设置其表达式 F, F 为常数(float->string)
+            region_field = gmsh.model.mesh.field.add("Restrict") # 用另一个场限制其作用域
+            gmsh.model.mesh.field.setNumber(region_field, "InField", value_field) # 告诉限制场要限制的是刚才那个 MathEval 场
+            gmsh.model.mesh.field.setNumbers(region_field, entity_list, topology.regions[region.name]) # 指定生效的几何实体
+            gmsh.model.mesh.field.setNumber(region_field, "IncludeBoundary", 1) # 1 表示不仅区域内部该区域的边界也使用这个尺寸场
+            region_fields.append(region_field) # 将这个限制后的场编号加入列表，供后面统一组合使用
 
         if not region_fields:
             return
-        background_field = region_fields[0]
-        if len(region_fields) > 1:
-            background_field = gmsh.model.mesh.field.add("Min")
-            gmsh.model.mesh.field.setNumbers(background_field, "FieldsList", region_fields)
-        gmsh.model.mesh.field.setAsBackgroundMesh(background_field)
+        background_field = region_fields[0] # 如果只有一个区域尺寸场 则可以直接使用它
+        if len(region_fields) > 1: # 多个场时 创建最小值的组合场
+            background_field = gmsh.model.mesh.field.add("Min") 
+            gmsh.model.mesh.field.setNumbers(background_field, "FieldsList", region_fields) # 告诉他需要组合哪些场 (前面的 Restrict 已经限制了各场的作用范围，所以不会简单地让整个颗粒都使用所有区域中最小的尺寸, 但共同边界上会使用最小的那个)
+        gmsh.model.mesh.field.setAsBackgroundMesh(background_field) # 正式启用该背景场
 
     @classmethod
     def _set_algorithm(cls, dimension: int, algorithm_3d: str) -> None:
@@ -100,10 +100,10 @@ class GmshMesh:
     def _set_order(order: int, optimizer: str) -> None:
         """设置几何阶次并按需优化高阶网格"""
         if order == 1:
-            return
-        gmsh.model.mesh.setOrder(order)
+            return # 默认生成的网格就是 1 阶的
+        gmsh.model.mesh.setOrder(order) # 提升网格阶数 使球面边界不再只是直边、平面片的近似
         if optimizer != "none":
-            gmsh.model.mesh.optimize("HighOrder")
+            gmsh.model.mesh.optimize("HighOrder") # 只要没有关闭优化，就执行 Gmsh 的 HighOrder 高阶网格优化，调整高阶节点位置，改善弯曲单元质量
 
     @staticmethod
     def _check_mesh(topology: GeometryTopology) -> None:
@@ -121,25 +121,25 @@ class GmshMesh:
         """输出 MSH 2.2 ASCII、VTK 及用户要求的附加格式"""
         path = Path(mesh_path).expanduser().resolve()
         path.parent.mkdir(parents=True, exist_ok=True)
-        gmsh.option.setNumber("Mesh.MshFileVersion", 2.2)
-        gmsh.option.setNumber("Mesh.Binary", 0)
+        gmsh.option.setNumber("Mesh.MshFileVersion", 2.2) # 指定输出的 .msh 使用 MSH 2.2 格式
+        gmsh.option.setNumber("Mesh.Binary", 0) # 使用 ASCII 文本输出
         cls._write_formats(path, formats)
         return path
 
     @staticmethod
     def _write_formats(path: Path, formats: list[str] | tuple[str, ...], missing_only: bool = False) -> None:
         """同名输出各格式, 重复格式只写一次; BDF 使用物理组编号作为标识"""
-        for format_name in dict.fromkeys(("msh", "vtk", *formats)):
-            target = path.with_suffix(f".{format_name}")
-            if missing_only and target.is_file():
+        for format_name in dict.fromkeys(("msh", "vtk", *formats)): # 遍历 msh vtk 以及 formats 中包含的其他格式
+            target = path.with_suffix(f".{format_name}") # 替换扩展名，但不修改 path 本身 如 mesh/particle.msh ...
+            if missing_only and target.is_file(): # 按需跳过已有文件
                 continue
-            if format_name == "bdf":
-                previous_tag_type = gmsh.option.getNumber("Mesh.SaveElementTagType")
-                previous_field_format = gmsh.option.getNumber("Mesh.BdfFieldFormat")
-                gmsh.option.setNumber("Mesh.SaveElementTagType", 2)
-                gmsh.option.setNumber("Mesh.BdfFieldFormat", 2)
-                gmsh.write(str(target))
-                gmsh.option.setNumber("Mesh.SaveElementTagType", previous_tag_type)
-                gmsh.option.setNumber("Mesh.BdfFieldFormat", previous_field_format)
+            if format_name == "bdf": # bdf 的 Nastran 网格格式的专门设置
+                previous_tag_type = gmsh.option.getNumber("Mesh.SaveElementTagType") # 先保存 Gmsh 原本的设置
+                previous_field_format = gmsh.option.getNumber("Mesh.BdfFieldFormat") # 先保存 Gmsh 原本的设置
+                gmsh.option.setNumber("Mesh.SaveElementTagType", 2) # 选择使用物理组编号作为导出标识，而不是几何实体编号，方便外部软件按材料区域、边界分组识别
+                gmsh.option.setNumber("Mesh.BdfFieldFormat", 2) # 选择 BDF 的 large 大字段格式，给坐标等数值提供更宽的字段，减少输出精度受字段宽度限制的影响
+                gmsh.write(str(target)) # Gmsh 根据文件扩展名选择对应的写出格式
+                gmsh.option.setNumber("Mesh.SaveElementTagType", previous_tag_type) # 恢复原来的全局设置
+                gmsh.option.setNumber("Mesh.BdfFieldFormat", previous_field_format) # 恢复原来的全局设置
             else:
                 gmsh.write(str(target))
