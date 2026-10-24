@@ -304,7 +304,8 @@ class OutputManager:
             tolerance = nonlinear.pop("absolute_tolerance")
             unit = "[atom]/[m]^3" if field.name == "concentration" else "[K]"
             cls._quantity(cls._node(node, "nonlinear_solver", **nonlinear), "absolute_tolerance", tolerance, unit)
-        coupling = cls._node(root, "coupling", exchange_interval=card.coupling.exchange_interval)
+        coupling = cls._node(root, "coupling")
+        coupling.attrib.clear()
         for node in coupling.findall("step"):
             coupling.remove(node)
         for step in card.coupling.step:

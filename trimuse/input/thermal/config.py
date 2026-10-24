@@ -113,7 +113,6 @@ class ThermalCardLoader:
         interface = []
         if element is not None:
             interface = [cls.read_interface(child) for child in XmlUtils.read_children(element, "interface")]
-
         interfaces = ThermalCard.Interfaces(interface=interface)
         return interfaces
 

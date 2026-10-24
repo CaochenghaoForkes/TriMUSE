@@ -64,7 +64,6 @@ class RadioactivityCard:
     interfaces: Interfaces = field(default_factory=Interfaces)
     source: Source = field(default_factory=Source)
 
-
 class RadioactivityCardLoader:
     """读取单核素配置, 盘存量按 si_unit 转换为模型所需的原子数单位"""
 
@@ -84,9 +83,7 @@ class RadioactivityCardLoader:
             boundary = [cls.read_boundary(child) for child in XmlUtils.read_children(boundaries, "boundary")]
         interfaces = cls.read_interfaces(XmlUtils.read_child(root, "interfaces", required=False))
         source = cls.read_source(XmlUtils.read_child(root, "source", required=False))
-        radioactivity_card = RadioactivityCard(
-            nuclide=nuclide, initial=initial, boundary=boundary, interfaces=interfaces, source=source
-        )
+        radioactivity_card = RadioactivityCard(nuclide=nuclide, initial=initial, boundary=boundary, interfaces=interfaces, source=source)
         return radioactivity_card
 
     @staticmethod
@@ -98,8 +95,7 @@ class RadioactivityCardLoader:
 
     @classmethod
     def read_initial(cls, element: ET.Element) -> RadioactivityCard.Initial:
-        concentration = [cls.read_initial_concentration(child)
-                         for child in XmlUtils.read_children(element, "concentration", required=True)]
+        concentration = [cls.read_initial_concentration(child) for child in XmlUtils.read_children(element, "concentration", required=True)]
         initial = RadioactivityCard.Initial(concentration=concentration)
         return initial
 

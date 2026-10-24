@@ -7,7 +7,7 @@ import sys
 from ..xml_utils import XmlUtils
 
 @dataclass
-class GeometryMeshCard:
+class GeometryMeshCard: 
     """几何与网格输入卡配置, 长度保存为 m, 无量纲参数直接保存为浮点数"""
 
     @dataclass
@@ -269,10 +269,7 @@ class GeometryMeshCardLoader:
         regions_element = XmlUtils.read_child(element, "regions")
         region = [cls.read_ideal_region(child) for child in XmlUtils.read_children(regions_element, "region", required=True)]
         regions = GeometryMeshCard.Geometry.IdealMultilayerSphere.Regions(region=region)
-        ideal_multilayer_sphere = GeometryMeshCard.Geometry.IdealMultilayerSphere(
-            center=center,
-            regions=regions
-        )
+        ideal_multilayer_sphere = GeometryMeshCard.Geometry.IdealMultilayerSphere(center=center, regions=regions)
         return ideal_multilayer_sphere
 
     @classmethod
@@ -282,11 +279,7 @@ class GeometryMeshCardLoader:
         outer_boundary = cls.read_outer_boundary(element)
         outer_radius_element = XmlUtils.read_child(element, "outer_radius")
         outer_radius = XmlUtils.read_attribute(outer_radius_element, "value", float, required=True, quantity="length", context=element.tag)
-        region = GeometryMeshCard.Geometry.IdealMultilayerSphere.Regions.Region(
-            name=name,
-            outer_boundary=outer_boundary,
-            outer_radius=outer_radius
-        )
+        region = GeometryMeshCard.Geometry.IdealMultilayerSphere.Regions.Region(name=name, outer_boundary=outer_boundary, outer_radius=outer_radius)
         return region
 
     @classmethod
@@ -313,11 +306,7 @@ class GeometryMeshCardLoader:
         target_sphericity = XmlUtils.read_attribute(target_sphericity_element, "value", float, default=None, quantity="dimensionless", context=element.tag)
         expansion_element = XmlUtils.read_child(element, "shape_expansion", required=False)
         shape_expansion = cls.read_shape_expansion(expansion_element) if expansion_element is not None or dimension > 1 else None
-        outer_surface = GeometryMeshCard.Geometry.StochasticMultilayerParticle.OuterSurface(
-            batch_mean_radius=batch_mean_radius,
-            target_sphericity=target_sphericity,
-            shape_expansion=shape_expansion
-        )
+        outer_surface = GeometryMeshCard.Geometry.StochasticMultilayerParticle.OuterSurface(batch_mean_radius=batch_mean_radius, target_sphericity=target_sphericity, shape_expansion=shape_expansion)
         return outer_surface
 
     @staticmethod
@@ -325,10 +314,7 @@ class GeometryMeshCardLoader:
         """读取频谱参数, 缺省值为次数 30 和衰减指数 4"""
         max_degree = XmlUtils.read_attribute(element, "max_degree", int, default=30)
         spectrum_decay = XmlUtils.read_attribute(element, "spectrum_decay", float, default=4.0)
-        shape_expansion = GeometryMeshCard.Geometry.StochasticMultilayerParticle.ShapeExpansion(
-            max_degree=max_degree,
-            spectrum_decay=spectrum_decay
-        )
+        shape_expansion = GeometryMeshCard.Geometry.StochasticMultilayerParticle.ShapeExpansion(max_degree=max_degree, spectrum_decay=spectrum_decay)
         return shape_expansion
 
     @classmethod

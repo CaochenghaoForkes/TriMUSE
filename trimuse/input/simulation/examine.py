@@ -16,7 +16,6 @@ class SimulationCardExamine:
         intervals = card.output.write_interval
         if len(intervals) != stage_count or any(not math.isfinite(value) or value == 0 or value < 0 and value % 1 != 0 for value in intervals):
             raise ValueError("output.write_interval 必须按阶段填写: 正数为时间间隔, 负整数为步数间隔, 不能为零")
-        cls.check_intervals(card.coupling.exchange_interval, stage_count, "exchange_interval")
         field_names = [item.name for item in problem.field]
         solver_names = [item.name for item in card.solver.field]
         if len(set(field_names)) != len(field_names) or len(set(solver_names)) != len(solver_names):
@@ -61,12 +60,6 @@ class SimulationCardExamine:
                 if step.max_iterations < 1:
                     raise ValueError("耦合 max_iterations 必须为正整数")
                 cls.check_tolerance(step.relative_tolerance, "coupling")
-
-    @staticmethod
-    def check_intervals(values: list[int], stage_count: int, name: str) -> None:
-        """每个阶段填写一个正整数倍数"""
-        if len(values) != stage_count or any(value < 1 for value in values):
-            raise ValueError(f"{name} 必须包含各阶段的正整数")
 
     @staticmethod
     def check_tolerance(value: float, name: str) -> None:

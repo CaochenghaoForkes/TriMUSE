@@ -77,7 +77,7 @@ class SimulationCard:
 
     @dataclass
     class Coupling:
-        """交换间隔为基础时间步的倍数, step 按书写顺序执行"""
+        """所有场共用时间步, step 按书写顺序执行"""
 
         @dataclass
         class Step:
@@ -88,7 +88,6 @@ class SimulationCard:
             max_iterations: int = 20
             relative_tolerance: float = 1e-6
 
-        exchange_interval: list[int]
         step: list[Step] = field(default_factory=list)
 
     @dataclass
@@ -211,10 +210,9 @@ class SimulationCardLoader:
 
     @classmethod
     def read_coupling(cls, element: ET.Element) -> SimulationCard.Coupling:
-        """读取阶段交换间隔和有序步骤"""
-        exchange_interval = XmlUtils.read_attribute(element, "exchange_interval", list[int], required=True)
+        """读取有序求解步骤"""
         steps = [cls.read_coupling_step(child) for child in XmlUtils.read_children(element, "step", required=True)]
-        coupling = SimulationCard.Coupling(exchange_interval=exchange_interval, step=steps)
+        coupling = SimulationCard.Coupling(step=steps)
         return coupling
 
     @staticmethod

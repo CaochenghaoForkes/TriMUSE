@@ -26,8 +26,8 @@
             </nonlinear_solver>
         </field>
     </solver>
-    <!-- exchange_interval 为各阶段的正整数配置；当前调度尚未使用该间隔，所有场每个公共时间步求解 -->
-    <coupling exchange_interval="[int] [int]">
+    <!-- 所有场在每个公共时间步按下面的顺序求解 -->
+    <coupling>
         <!-- step 和 fields 均按书写顺序执行, 组内及跨步的时间推进规则后续完善 -->
         <!-- 输入允许 single、staggered，迭代参数默认 20 和 1e-6；当前调度均按 fields 顺序求解一次，尚未执行 staggered 外层迭代 -->
         <step fields="[str]" method="[single][staggered]" max_iterations="[int]" relative_tolerance="[float]"/>
