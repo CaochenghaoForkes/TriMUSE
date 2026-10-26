@@ -4,25 +4,23 @@ namespace trimuse
 {
 
 ConstantModel::ConstantModel(const ModelParameterMap& parameters, const std::string& value_type)
-    : ConstantModel(parameters.at("constant_value"), value_type)
+    : ConstantModel(parameters.at("constant_value"), value_type) // 委托构造 调用下面的构造函数
 {
 }
 
-// 类型和分量数量由上层保证, 此处只组装状态值
-
 ConstantModel::ConstantModel(const ModelParameterValue& value, const std::string& value_type)
 {
-    const VectorValue values = std::holds_alternative<double>(value)
-        ? VectorValue{std::get<double>(value)} : std::get<VectorValue>(value);
-    if (value_type == "scalar")
+    // 如果 value 本就是 vector 就不需要变, 如果是 double 则改成 [value] 方便后面按标量、向量或张量处理
+    const VectorValue values = std::holds_alternative<double>(value) ? VectorValue{std::get<double>(value)} : std::get<VectorValue>(value);
+    if (value_type == "scalar") // constant_value_ 整理成标量的形式
     {
         constant_value_ = values[0];
     }
-    else if (value_type == "vector")
+    else if (value_type == "vector") // constant_value_ 整理成向量的形式
     {
         constant_value_ = values;
     }
-    else if (value_type == "tensor2d")
+    else if (value_type == "tensor2d") // constant_value_ 整理成三维二阶张量的形式
     {
         Tensor2DValue tensor;
         for (int row = 0; row < 2; ++row)
@@ -34,7 +32,7 @@ ConstantModel::ConstantModel(const ModelParameterValue& value, const std::string
         }
         constant_value_ = tensor;
     }
-    else if (value_type == "tensor3d")
+    else if (value_type == "tensor3d") // constant_value_ 整理成二维二阶张量的形式
     {
         Tensor3DValue tensor;
         for (int row = 0; row < 3; ++row)
@@ -50,7 +48,7 @@ ConstantModel::ConstantModel(const ModelParameterValue& value, const std::string
 
 StateValue ConstantModel::evaluate(const PropertiesStatePoint&) const
 {
-    return constant_value_;
+    return constant_value_; // 返回常值
 }
 
 }

@@ -8,7 +8,7 @@
 namespace trimuse
 {
 
-// 当前计算点与已取好的数值; 属性键使用完整名称, 求解场仍使用 temperature/concentration 等场名。
+// 当前计算点与已取好的数值; 属性键使用完整名称, 求解场仍使用 temperature/concentration 等场名
 // 求解场只在组装此临时状态时读取。
 struct PropertiesStatePoint
 {
@@ -17,15 +17,15 @@ struct PropertiesStatePoint
     double x = 0.0;
     double y = 0.0;
     double z = 0.0;
-    std::unordered_map<std::string, StateValue> values;
+    std::unordered_map<std::string, StateValue> values; // 属性名或场名 -> 单时空点上的 <double/vector/2d_tensor/3d_tensor>
 
-    double scalar(const std::string& name) const;
+    double scalar(const std::string& name) const; // 先根据 name 找到对应的 variant 型的 StateValue 再从这个 variant 中期望取出其中存储的 double
 
-    const VectorValue& vector(const std::string& name) const;
+    const VectorValue& vector(const std::string& name) const; // 先根据 name 找到对应的 variant 型的 StateValue 再从这个 variant 中期望取出其中存储的 vector
 
-    const Tensor2DValue& tensor_2d(const std::string& name) const;
+    const Tensor2DValue& tensor_2d(const std::string& name) const; // 先根据 name 找到对应的 variant 型的 StateValue 再从这个 variant 中期望取出其中存储的 Tensor2DValue
 
-    const Tensor3DValue& tensor_3d(const std::string& name) const;
+    const Tensor3DValue& tensor_3d(const std::string& name) const; // 先根据 name 找到对应的 variant 型的 StateValue 再从这个 variant 中期望取出其中存储的 Tensor3DValue
 };
 
 }

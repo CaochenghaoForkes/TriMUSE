@@ -17,7 +17,7 @@ class PropertiesCardExamine:
         "external.nuclide_flux": COMMON_MODELS,
         "derived.heat_transfer_coef": COMMON_MODELS,
         "derived.mass_transfer_coef": COMMON_MODELS,
-        "derived.volumetric_power": {"common.uniform_from_power"},
+        "derived.volumetric_power": COMMON_MODELS | {"common.uniform_from_power"},
         "derived.volumetric_nuclide_birth_rate": COMMON_MODELS | {"common.uniform_from_birth_rate"},
     }
 
@@ -90,8 +90,13 @@ class PropertiesCardExamine:
                 if property_config.name != "external.power":
                     raise ValueError(f"{location}: 尚不支持的外部量")
                 cls.check_power(region, region_location)
-            elif property_config.name != "derived.volumetric_power" or region.model != "common.uniform_from_power":
-                raise ValueError(f"{region_location}: 尚不支持的派生量或模型")
+            elif property_config.name == "derived.volumetric_power":
+                if region.model in cls.COMMON_MODELS:
+                    cls.check_time_model(region, region_location)
+                elif region.parameters:
+                    raise ValueError(f"{region_location}: common.uniform_from_power 不需要模型参数")
+            else:
+                raise ValueError(f"{region_location}: 尚不支持的派生量")
 
     @staticmethod
     def check_radioactivity_property(category: str, property_config: PropertiesCard.Property) -> None:

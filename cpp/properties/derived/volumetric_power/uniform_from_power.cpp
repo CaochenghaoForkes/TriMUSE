@@ -1,13 +1,13 @@
-#include "properties/derived/volumetric_power/uniform.hpp"
+#include "properties/derived/volumetric_power/uniform_from_power.hpp"
 
 namespace trimuse
 {
 
-UniformVolumetricPower::UniformVolumetricPower(const ModelParameterMap&)
+UniformFromPower::UniformFromPower(const ModelParameterMap&)
 {
 }
 
-StateValue UniformVolumetricPower::evaluate(const PropertiesStatePoint& point) const
+StateValue UniformFromPower::evaluate(const PropertiesStatePoint& point) const
 {
     const double power = point.scalar("external.power"); // 区域总功率, W
     const double region_volume = point.scalar("precomputed.region_volume"); // 上层提供的当前区域物理体积, m³

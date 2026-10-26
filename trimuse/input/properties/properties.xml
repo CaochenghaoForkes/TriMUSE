@@ -85,8 +85,18 @@
         -->
     </external_property>
     <derived_property name="volumetric_power">
-        <!-- 需要同一区域已配置外部 power, 计算时由上层提供物理体积 -->
+        <!-- 可选 common.constant、common.time_series、common.uniform_from_power -->
+        <!-- 仅 common.uniform_from_power 需要同一区域的 external.power 和 precomputed.region_volume -->
         <region name="[str]" model="common.uniform_from_power"/>
+        <!-- 直接给定体积功率密度时, 用下列常数或时间表模型替换上面的 region, 不需要 external.power。
+        <region name="[str]" model="common.constant">
+            <parameter name="constant_value" value="[float]" unit="[W]/[m]^3" si_unit="[W]/[m]^3"/>
+        </region>
+        <region name="[str]" model="common.time_series">
+            <parameter name="times" value="[float] [float]" unit="[s]" si_unit="[s]"/>
+            <parameter name="values" value="[float] [float]" unit="[W]/[m]^3" si_unit="[W]/[m]^3"/>
+        </region>
+        -->
     </derived_property>
     <derived_property name="heat_transfer_coef">
         <zone name="[str]" model="common.constant">

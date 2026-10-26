@@ -10,7 +10,7 @@ class MaterialCardExamine:
         "material.general.porosity": COMMON_MODELS,
         "material.general.mass_density": COMMON_MODELS,
         "material.thermal.conductivity": {
-            "common.constant", "kernel.bison_2021_uco", "kernel.ineri_2004_uo2",
+            "common.constant", "common.time_series", "kernel.bison_2021_uco", "kernel.ineri_2004_uo2",
             "buffer.bison_2021", "buffer.uk_2004", "sic.miller", "sic.cea_2004",
         },
         "material.thermal.specific_heat": COMMON_MODELS | {"kernel.fink_2000_uo2", "sic.bison_2021"},
@@ -79,6 +79,13 @@ class MaterialCardExamine:
                 value = property_config.parameters.get("constant_value")
                 if value is None or isinstance(value, list) or value <= 0:
                     raise ValueError(f"{location}: constant_value 必须为正标量")
+            elif property_config.model == "common.time_series":
+                times = property_config.parameters.get("times")
+                values = property_config.parameters.get("values")
+                if not isinstance(times, list) or not isinstance(values, list) or len(times) < 2 or len(times) != len(values) or any(right <= left for left, right in zip(times, times[1:])):
+                    raise ValueError(f"{location}: times 和 values 必须为等长列表, times 至少有两个严格递增的值")
+                if any(value <= 0 for value in values):
+                    raise ValueError(f"{location}: 导热系数必须为正数")
             elif property_config.model == "buffer.bison_2021":
                 density = property_config.parameters.get("initial_mass_density")
                 if density is None or isinstance(density, list) or not 0 < density < 2250:

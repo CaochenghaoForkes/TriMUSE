@@ -114,7 +114,8 @@ class InputCardsExamine:
             if unknown_zones:
                 raise ValueError(f"属性 {property_config.name} 引用了不存在的外表面分区: {', '.join(sorted(unknown_zones))}")
             if property_config.name == "derived.volumetric_power":
-                missing = configured_regions - power_regions
+                uniform_regions = {region.name for region in property_config.region if region.model == "common.uniform_from_power"}
+                missing = uniform_regions - power_regions
                 if missing:
                     raise ValueError(f"体积功率区域缺少外部 power: {', '.join(sorted(missing))}")
             if property_config.name == "derived.volumetric_nuclide_birth_rate":

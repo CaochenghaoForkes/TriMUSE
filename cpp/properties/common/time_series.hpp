@@ -12,8 +12,7 @@ namespace trimuse
 class TimeSeriesModel
 {
 public:
-    // values 按时间逐样本排列; 向量和张量的各分量展平成一维列表, 张量按行排列。
-    explicit TimeSeriesModel(const ModelParameterMap& parameters, const std::string& value_type = "scalar");
+    explicit TimeSeriesModel(const ModelParameterMap& parameters, const std::string& value_type = "scalar"); // values 按时间逐样本排列; 向量和张量的各分量展平成一维列表, 张量按行排列
 
     StateValue evaluate(const PropertiesStatePoint& point) const;
 
