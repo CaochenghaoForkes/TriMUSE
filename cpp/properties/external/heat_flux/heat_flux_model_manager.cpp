@@ -7,8 +7,8 @@ namespace trimuse
 
 void HeatFluxModelManager::register_models()
 {
-    registry_.register_model<ConstantHeatFlux>("constant");
-    registry_.register_model<TimeSeriesHeatFlux>("time_series", {"time"});
+    registry_.register_model<ConstantHeatFlux>("common.constant");
+    registry_.register_model<TimeSeriesHeatFlux>("common.time_series", {"external.time"});
 }
 
 void HeatFluxModelManager::assign(int zone_attribute, const std::string& model_name, const ModelParameterMap& parameters, const std::string& value_type)

@@ -7,8 +7,8 @@ namespace trimuse
 
 void HeatTransferCoefModelManager::register_models()
 {
-    registry_.register_model<ConstantHeatTransferCoef>("constant");
-    registry_.register_model<TimeSeriesHeatTransferCoef>("time_series", {"time"});
+    registry_.register_model<ConstantHeatTransferCoef>("common.constant");
+    registry_.register_model<TimeSeriesHeatTransferCoef>("common.time_series", {"external.time"});
 }
 
 void HeatTransferCoefModelManager::assign(int zone_attribute, const std::string& model_name, const ModelParameterMap& parameters)

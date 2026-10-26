@@ -8,9 +8,9 @@ namespace trimuse
 
 void VolumetricNuclideBirthRateModelManager::register_models()
 {
-    registry_.register_model<ConstantVolumetricNuclideBirthRate>("constant");
-    registry_.register_model<TimeSeriesVolumetricNuclideBirthRate>("time_series", {"time"});
-    registry_.register_model<UniformFromBirthRate>("uniform_from_birth_rate", {"nuclide_birth_rate", "uranium_fraction", "region_volume"});
+    registry_.register_model<ConstantVolumetricNuclideBirthRate>("common.constant");
+    registry_.register_model<TimeSeriesVolumetricNuclideBirthRate>("common.time_series", {"external.time"});
+    registry_.register_model<UniformFromBirthRate>("common.uniform_from_birth_rate", {"external.nuclide_birth_rate", "external.uranium_fraction", "precomputed.region_volume"});
 }
 
 void VolumetricNuclideBirthRateModelManager::assign(int region_attribute, const std::string& model_name, const ModelParameterMap& parameters)

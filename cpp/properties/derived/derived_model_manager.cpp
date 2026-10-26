@@ -20,22 +20,22 @@ void DerivedModelManager::register_models()
 
 void DerivedModelManager::assign(const std::string& name, int attribute, const std::string& model_name, const ModelParameterMap& parameters)
 {
-    if (name == "volumetric_power")
+    if (name == "derived.volumetric_power")
     {
         volumetric_power_model_manager_.assign(attribute, model_name, parameters);
         return;
     }
-    if (name == "heat_transfer_coef")
+    if (name == "derived.heat_transfer_coef")
     {
         heat_transfer_coef_model_manager_.assign(attribute, model_name, parameters);
         return;
     }
-    if (name == "volumetric_nuclide_birth_rate")
+    if (name == "derived.volumetric_nuclide_birth_rate")
     {
         volumetric_nuclide_birth_rate_model_manager_.assign(attribute, model_name, parameters);
         return;
     }
-    if (name == "mass_transfer_coef")
+    if (name == "derived.mass_transfer_coef")
     {
         mass_transfer_coef_model_manager_.assign(attribute, model_name, parameters);
         return;
@@ -45,19 +45,19 @@ void DerivedModelManager::assign(const std::string& name, int attribute, const s
 
 StateValue DerivedModelManager::evaluate(const std::string& name, const PropertiesStatePoint& point) const
 {
-    if (name == "volumetric_power")
+    if (name == "derived.volumetric_power")
     {
         return volumetric_power_model_manager_.evaluate(point);
     }
-    if (name == "heat_transfer_coef")
+    if (name == "derived.heat_transfer_coef")
     {
         return heat_transfer_coef_model_manager_.evaluate(point);
     }
-    if (name == "volumetric_nuclide_birth_rate")
+    if (name == "derived.volumetric_nuclide_birth_rate")
     {
         return volumetric_nuclide_birth_rate_model_manager_.evaluate(point);
     }
-    if (name == "mass_transfer_coef")
+    if (name == "derived.mass_transfer_coef")
     {
         return mass_transfer_coef_model_manager_.evaluate(point);
     }
@@ -66,19 +66,19 @@ StateValue DerivedModelManager::evaluate(const std::string& name, const Properti
 
 const std::vector<std::string>& DerivedModelManager::required_states(const std::string& name, const std::string& model_name) const
 {
-    if (name == "volumetric_power")
+    if (name == "derived.volumetric_power")
     {
         return volumetric_power_model_manager_.required_states(model_name);
     }
-    if (name == "heat_transfer_coef")
+    if (name == "derived.heat_transfer_coef")
     {
         return heat_transfer_coef_model_manager_.required_states(model_name);
     }
-    if (name == "volumetric_nuclide_birth_rate")
+    if (name == "derived.volumetric_nuclide_birth_rate")
     {
         return volumetric_nuclide_birth_rate_model_manager_.required_states(model_name);
     }
-    if (name == "mass_transfer_coef")
+    if (name == "derived.mass_transfer_coef")
     {
         return mass_transfer_coef_model_manager_.required_states(model_name);
     }

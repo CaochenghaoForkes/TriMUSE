@@ -7,8 +7,8 @@ namespace trimuse
 
 void NuclideFluxModelManager::register_models()
 {
-    registry_.register_model<ConstantNuclideFlux>("constant");
-    registry_.register_model<TimeSeriesNuclideFlux>("time_series", {"time"});
+    registry_.register_model<ConstantNuclideFlux>("common.constant");
+    registry_.register_model<TimeSeriesNuclideFlux>("common.time_series", {"external.time"});
 }
 
 void NuclideFluxModelManager::assign(int zone_attribute, const std::string& model_name, const ModelParameterMap& parameters, const std::string& value_type)

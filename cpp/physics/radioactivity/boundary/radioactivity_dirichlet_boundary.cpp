@@ -7,7 +7,7 @@ namespace trimuse
 
 double RadioactivityDirichletBoundary::evaluate(const PropertiesFieldData& properties_field_data, int boundary_attribute)
 {
-    return std::get<double>(properties_field_data.zone_values.at("surface_nuclide_concentration").at(boundary_attribute).value());
+    return std::get<double>(properties_field_data.zone_values.at("external.surface_nuclide_concentration").at(boundary_attribute).value());
 }
 
 }

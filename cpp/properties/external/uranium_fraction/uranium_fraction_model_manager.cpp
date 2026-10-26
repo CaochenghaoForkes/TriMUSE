@@ -7,8 +7,8 @@ namespace trimuse
 
 void UraniumFractionModelManager::register_models()
 {
-    registry_.register_model<ConstantUraniumFraction>("constant");
-    registry_.register_model<TimeSeriesUraniumFraction>("time_series", {"time"});
+    registry_.register_model<ConstantUraniumFraction>("common.constant");
+    registry_.register_model<TimeSeriesUraniumFraction>("common.time_series", {"external.time"});
 }
 
 void UraniumFractionModelManager::assign(int region_attribute, const std::string& model_name, const ModelParameterMap& parameters, const std::string& value_type)

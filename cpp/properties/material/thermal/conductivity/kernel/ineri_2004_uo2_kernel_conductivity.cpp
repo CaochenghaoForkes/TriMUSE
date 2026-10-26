@@ -10,8 +10,8 @@ Ineri2004Uo2KernelConductivity::Ineri2004Uo2KernelConductivity(const ModelParame
 double Ineri2004Uo2KernelConductivity::evaluate(const PropertiesStatePoint& state_point) const
 {
     const double temperature = state_point.scalar("temperature");
-    const double burnup_percent = 100.0 * state_point.scalar("burnup_fima_fraction");
-    const double porosity = state_point.scalar("general.porosity");
+    const double burnup_percent = 100.0 * state_point.scalar("external.burnup_fima_fraction");
+    const double porosity = state_point.scalar("material.general.porosity");
     const double base_conductivity = 1.0 / (0.0375 + 2.165e-4 * temperature) + 4.715e9 / std::pow(temperature, 2) * std::exp(-16361.0 / temperature);
     double k_1d = 1.0;
     double k_1p = 1.0;

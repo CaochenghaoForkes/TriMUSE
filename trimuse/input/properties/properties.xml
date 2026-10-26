@@ -1,22 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- 按 global、材料 region 或外表面 zone 配置属性；zone 名称来自 geometry_mesh 的 zones -->
+<!-- XML 的属性 name 保留短名; 程序内组成 external.xxx / derived.xxx。属性模型统一使用 common.xxx。 -->
 <properties>
     <external_property name="power">
-        <region name="[str]" model="time_series">
+        <region name="[str]" model="common.time_series">
             <parameter name="times" value="[float] [float]" unit="[str]" si_unit="[s]"/>
             <parameter name="values" value="[float] [float]" unit="[str]" si_unit="[W]"/>
         </region>
         <!-- 常数模型可用于其他区域, 不使用时删除 -->
-        <region name="[str]" model="constant">
+        <region name="[str]" model="common.constant">
             <parameter name="constant_value" value="[float]" unit="[str]" si_unit="[W]"/>
         </region>
     </external_property>
     <external_property name="environment_temperature">
-        <zone name="[str]" model="constant">
+        <zone name="[str]" model="common.constant">
             <parameter name="constant_value" value="[float]" unit="[str]" si_unit="[K]"/>
         </zone>
         <!-- 另一分区可使用 time_series，times/values 等长且 times 严格递增。
-        <zone name="[str]" model="time_series">
+        <zone name="[str]" model="common.time_series">
             <parameter name="times" value="[float] [float]" unit="[s]" si_unit="[s]"/>
             <parameter name="values" value="[float] [float]" unit="[K]" si_unit="[K]"/>
         </zone>
@@ -24,11 +25,11 @@
     </external_property>
     <!-- Dirichlet 边界使用同名 zone 的 surface_temperature, 内部单位 K -->
     <external_property name="surface_temperature">
-        <zone name="[str]" model="constant">
+        <zone name="[str]" model="common.constant">
             <parameter name="constant_value" value="[float]" unit="[K]" si_unit="[K]"/>
         </zone>
         <!-- 时间表可替换上面的常数模型, 或用于另一分区; times 严格递增。
-        <zone name="[str]" model="time_series">
+        <zone name="[str]" model="common.time_series">
             <parameter name="times" value="[float] [float]" unit="[s]" si_unit="[s]"/>
             <parameter name="values" value="[float] [float]" unit="[K]" si_unit="[K]"/>
         </zone>
@@ -36,11 +37,11 @@
     </external_property>
     <!-- Neumann 边界使用同名 zone 的 heat_flux, 单位 W/m²; 正值向外散热, 负值向内加热, 0 为绝热 -->
     <external_property name="heat_flux">
-        <zone name="[str]" model="constant">
+        <zone name="[str]" model="common.constant">
             <parameter name="constant_value" value="[float]" unit="[W]/[m]^2" si_unit="[W]/[m]^2"/>
         </zone>
         <!-- 时间表模型可替换上面的常数模型, 或用于另一个 zone; times 严格递增, values 可正可负。
-        <zone name="[str]" model="time_series">
+        <zone name="[str]" model="common.time_series">
             <parameter name="times" value="[float] [float]" unit="[s]" si_unit="[s]"/>
             <parameter name="values" value="[float] [float]" unit="[W]/[m]^2" si_unit="[W]/[m]^2"/>
         </zone>
@@ -49,11 +50,11 @@
     <!-- 核素 Dirichlet 边界: 同名 zone 的指定浓度, 内部单位 atom/m³, 数值非负 -->
     <!-- 核素数量可用 atom、mol 及相应前缀单位, si_unit 保持 atom 体系; 不支持活度单位 Bq/Ci -->
     <external_property name="surface_nuclide_concentration">
-        <zone name="[str]" model="constant">
+        <zone name="[str]" model="common.constant">
             <parameter name="constant_value" value="[float]" unit="[atom]/[m]^3" si_unit="[atom]/[m]^3"/>
         </zone>
         <!-- 时间表可替换上面的常数模型; times 严格递增, values 非负。
-        <zone name="[str]" model="time_series">
+        <zone name="[str]" model="common.time_series">
             <parameter name="times" value="[float] [float]" unit="[s]" si_unit="[s]"/>
             <parameter name="values" value="[float] [float]" unit="[atom]/[m]^3" si_unit="[atom]/[m]^3"/>
         </zone>
@@ -61,11 +62,11 @@
     </external_property>
     <!-- 核素 Neumann 边界: 正值向外释放, 负值向内输入, 0 为无通量 -->
     <external_property name="nuclide_flux">
-        <zone name="[str]" model="constant">
+        <zone name="[str]" model="common.constant">
             <parameter name="constant_value" value="[float]" unit="[atom]/[m]^2[s]" si_unit="[atom]/[m]^2[s]"/>
         </zone>
         <!-- 时间表可替换上面的常数模型; values 可正可负。
-        <zone name="[str]" model="time_series">
+        <zone name="[str]" model="common.time_series">
             <parameter name="times" value="[float] [float]" unit="[s]" si_unit="[s]"/>
             <parameter name="values" value="[float] [float]" unit="[atom]/[m]^2[s]" si_unit="[atom]/[m]^2[s]"/>
         </zone>
@@ -73,11 +74,11 @@
     </external_property>
     <!-- burnup_fima_fraction 使用 0 到 1 的 FIMA 份额, 例如 0.2 表示 20% FIMA -->
     <external_property name="burnup_fima_fraction">
-        <global model="constant">
+        <global model="common.constant">
             <parameter name="constant_value" value="[float]" unit="[1]" si_unit="[1]"/>
         </global>
         <!-- 如需随时间变化, 用下方节点替换上面的 global 节点
-        <global model="time_series">
+        <global model="common.time_series">
             <parameter name="times" value="[float] [float]" unit="[s]" si_unit="[s]"/>
             <parameter name="values" value="[float] [float]" unit="[1]" si_unit="[1]"/>
         </global>
@@ -85,47 +86,47 @@
     </external_property>
     <derived_property name="volumetric_power">
         <!-- 需要同一区域已配置外部 power, 计算时由上层提供物理体积 -->
-        <region name="[str]" model="uniform_from_power"/>
+        <region name="[str]" model="common.uniform_from_power"/>
     </derived_property>
     <derived_property name="heat_transfer_coef">
-        <zone name="[str]" model="constant">
+        <zone name="[str]" model="common.constant">
             <parameter name="constant_value" value="[float]" unit="[str]" si_unit="[W]/[m]^2[K]"/>
         </zone>
         <!-- 时间变化模型可替换上面的常数模型，或用于另一个 zone。
-        <zone name="[str]" model="time_series">
+        <zone name="[str]" model="common.time_series">
             <parameter name="times" value="[float] [float]" unit="[s]" si_unit="[s]"/>
             <parameter name="values" value="[float] [float]" unit="[W]/[m]^2[K]" si_unit="[W]/[m]^2[K]"/>
         </zone>
         -->
     </derived_property>
     <external_property name="nuclide_birth_rate">
-        <global model="constant">
+        <global model="common.constant">
             <parameter name="constant_value" value="[float]" unit="[atom]/[s]" si_unit="[atom]/[s]"/>
         </global>
         <!-- 如需时间表，替换上面的节点；times/values 等长且至少两个点，times 严格递增。
-        <global model="time_series">
+        <global model="common.time_series">
             <parameter name="times" value="[float] [float]" unit="[s]" si_unit="[s]"/>
             <parameter name="values" value="[float] [float]" unit="[atom]/[s]" si_unit="[atom]/[s]"/>
         </global>
         -->
     </external_property>
     <external_property name="uranium_fraction">
-        <region name="[str]" model="constant">
+        <region name="[str]" model="common.constant">
             <parameter name="constant_value" value="[float]" unit="[1]" si_unit="[1]"/>
         </region>
         <!-- 如需时间表，替换上面的节点；times/values 等长且至少两个点，times 严格递增。
-        <region name="[str]" model="time_series">
+        <region name="[str]" model="common.time_series">
             <parameter name="times" value="[float] [float]" unit="[s]" si_unit="[s]"/>
             <parameter name="values" value="[float] [float]" unit="[1]" si_unit="[1]"/>
         </region>
         -->
     </external_property>
     <external_property name="environment_nuclide_concentration">
-        <zone name="[str]" model="constant">
+        <zone name="[str]" model="common.constant">
             <parameter name="constant_value" value="[float]" unit="[atom]/[m]^3" si_unit="[atom]/[m]^3"/>
         </zone>
         <!-- 如需时间表，替换上面的节点；times/values 等长且至少两个点，times 严格递增。
-        <zone name="[str]" model="time_series">
+        <zone name="[str]" model="common.time_series">
             <parameter name="times" value="[float] [float]" unit="[s]" si_unit="[s]"/>
             <parameter name="values" value="[float] [float]" unit="[atom]/[m]^3" si_unit="[atom]/[m]^3"/>
         </zone>
@@ -137,11 +138,11 @@
          constant 只需 constant_value；time_series 只需 times 和 values。
          时间表在点间线性插值，超出表格范围取最近端点值。 -->
     <derived_property name="mass_transfer_coef">
-        <zone name="[str]" model="constant">
+        <zone name="[str]" model="common.constant">
             <parameter name="constant_value" value="[float]" unit="[m]/[s]" si_unit="[m]/[s]"/>
         </zone>
         <!-- 如需时间表，替换上面的节点；times/values 等长且至少两个点，times 严格递增。
-        <zone name="[str]" model="time_series">
+        <zone name="[str]" model="common.time_series">
             <parameter name="times" value="[float] [float]" unit="[s]" si_unit="[s]"/>
             <parameter name="values" value="[float] [float]" unit="[m]/[s]" si_unit="[m]/[s]"/>
         </zone>
@@ -149,12 +150,12 @@
     </derived_property>
     <derived_property name="volumetric_nuclide_birth_rate">
         <!-- 此模型无构造参数：全局 nuclide_birth_rate × 本区域 uranium_fraction / region_volume -->
-        <region name="[str]" model="uniform_from_birth_rate"/>
+        <region name="[str]" model="common.uniform_from_birth_rate"/>
         <!-- 也可直接给定体积产生率，替换上面的 region：
-        <region name="[str]" model="constant">
+        <region name="[str]" model="common.constant">
             <parameter name="constant_value" value="[float]" unit="[atom]/[m]^3[s]" si_unit="[atom]/[m]^3[s]"/>
         </region>
-        <region name="[str]" model="time_series">
+        <region name="[str]" model="common.time_series">
             <parameter name="times" value="[float] [float]" unit="[s]" si_unit="[s]"/>
             <parameter name="values" value="[float] [float]" unit="[atom]/[m]^3[s]" si_unit="[atom]/[m]^3[s]"/>
         </region>

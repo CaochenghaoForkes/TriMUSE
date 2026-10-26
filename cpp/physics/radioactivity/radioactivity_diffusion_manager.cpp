@@ -40,7 +40,7 @@ RadioactivityDiffusionManager::RadioactivityDiffusionManager(FemSystem& fem_syst
 void RadioactivityDiffusionManager::update(const PropertiesFieldData& properties_field_data)
 {
     const mfem::Mesh& mesh = fem_system_.mesh_data().mfem_mesh();
-    const auto& values = properties_field_data.integration_point_values.at("radioactivity.nuclide_diffusion_coef");
+    const auto& values = properties_field_data.integration_point_values.at("material.radioactivity.nuclide_diffusion_coef");
     for (int element = 0; element < mesh.GetNE(); ++element)
     {
         const mfem::IntegrationRule* rule = fem_system_.domain_quadrature_rule(mesh.GetElementBaseGeometry(element));

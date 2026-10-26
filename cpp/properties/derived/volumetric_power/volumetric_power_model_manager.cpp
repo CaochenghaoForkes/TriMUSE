@@ -6,7 +6,7 @@ namespace trimuse
 
 void VolumetricPowerModelManager::register_models()
 {
-    registry_.register_model<UniformVolumetricPower>("uniform_from_power", {"power", "region_volume"});
+    registry_.register_model<UniformVolumetricPower>("common.uniform_from_power", {"external.power", "precomputed.region_volume"});
 }
 
 void VolumetricPowerModelManager::assign(int region_attribute, const std::string& model_name, const ModelParameterMap& parameters)

@@ -11,7 +11,7 @@ namespace trimuse
 void SpecificHeatModelManager::register_models()
 {
     registry_.register_model<ConstantSpecificHeat>("common.constant");
-    registry_.register_model<TimeSeriesSpecificHeat>("common.time_series", {"time"});
+    registry_.register_model<TimeSeriesSpecificHeat>("common.time_series", {"external.time"});
     registry_.register_model<Fink2000Uo2SpecificHeat>("kernel.fink_2000_uo2", {"temperature"});
     registry_.register_model<Bison2021SicSpecificHeat>("sic.bison_2021", {"temperature"});
 }

@@ -40,8 +40,8 @@ ThermalCapacityManager::ThermalCapacityManager(FemSystem& fem_system)
 void ThermalCapacityManager::update(const PropertiesFieldData& properties_field_data)
 {
     const mfem::Mesh& mesh = fem_system_.mesh_data().mfem_mesh();
-    const auto& density_values = properties_field_data.integration_point_values.at("general.mass_density");
-    const auto& specific_heat_values = properties_field_data.integration_point_values.at("thermal.specific_heat");
+    const auto& density_values = properties_field_data.integration_point_values.at("material.general.mass_density");
+    const auto& specific_heat_values = properties_field_data.integration_point_values.at("material.thermal.specific_heat");
     for (int element = 0; element < mesh.GetNE(); ++element)
     {
         const mfem::IntegrationRule* rule = fem_system_.domain_quadrature_rule(mesh.GetElementBaseGeometry(element));

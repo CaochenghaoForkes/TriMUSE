@@ -33,7 +33,7 @@ PropertiesSystem::PropertiesSystem(const FemSystem& fem_system)
     }
     for (const auto& [region_attribute, volume] : fem_system_.mesh_data().region_volumes())
     {
-        properties_field_data_.region_values["region_volume"][region_attribute] = StateValue{volume};
+        properties_field_data_.region_values["precomputed.region_volume"][region_attribute] = StateValue{volume};
     }
 }
 
@@ -75,40 +75,36 @@ const std::vector<std::string>& PropertiesSystem::model_required_states(const Pr
 
 void PropertiesSystem::assign(int attribute, const std::string& model_name, const ModelParameterMap& parameters)
 {
-    if (model_name.rfind("material.", 0) == 0)
+    // 模型名固定为 namespace.model, 前面完整保留属性路径。
+    const auto model_separator = model_name.rfind('.');
+    const auto property_end = model_separator == std::string::npos
+        ? std::string::npos : model_name.rfind('.', model_separator - 1);
+    if (property_end == std::string::npos)
     {
-        const std::size_t property_end = model_name.find('.', model_name.find('.', 9) + 1);
-        const std::string property_name = model_name.substr(9, property_end - 9);
-        const std::string specific_model_name = model_name.substr(property_end + 1);
-        material_model_manager_.assign(attribute, property_name, specific_model_name, parameters);
-        assigned_models_[property_name][attribute] = specific_model_name;
-        const int location = property_info(property_name).scope == PropertyScope::Global ? 0 : attribute;
-        computed_locations_[property_name].erase(location);
-        return;
+        throw std::invalid_argument("模型路径应为完整属性名.common.xxx 或完整属性名.材料分类.xxx: " + model_name);
     }
-    if (model_name.rfind("external.", 0) == 0)
+    const std::string property_name = model_name.substr(0, property_end);
+    const std::string specific_model_name = model_name.substr(property_end + 1);
+    const PropertyInfo& property = property_info(property_name);
+    if (property.type == PropertyType::External)
     {
-        const std::size_t property_end = model_name.find('.', 9);
-        const std::string property_name = model_name.substr(9, property_end - 9);
-        const std::string specific_model_name = model_name.substr(property_end + 1);
         external_model_manager_.assign(property_name, attribute, specific_model_name, parameters);
-        assigned_models_[property_name][attribute] = specific_model_name;
-        const int location = property_info(property_name).scope == PropertyScope::Global ? 0 : attribute;
-        computed_locations_[property_name].erase(location);
-        return;
     }
-    if (model_name.rfind("derived.", 0) == 0)
+    else if (property.type == PropertyType::Derived)
     {
-        const std::size_t property_end = model_name.find('.', 8);
-        const std::string property_name = model_name.substr(8, property_end - 8);
-        const std::string specific_model_name = model_name.substr(property_end + 1);
         derived_model_manager_.assign(property_name, attribute, specific_model_name, parameters);
-        assigned_models_[property_name][attribute] = specific_model_name;
-        const int location = property_info(property_name).scope == PropertyScope::Global ? 0 : attribute;
-        computed_locations_[property_name].erase(location);
-        return;
     }
-    throw std::out_of_range("尚未支持的模型分类: " + model_name);
+    else if (property.type == PropertyType::Material)
+    {
+        material_model_manager_.assign(attribute, property_name, specific_model_name, parameters);
+    }
+    else
+    {
+        throw std::invalid_argument("预计算属性不接受模型配置: " + property_name);
+    }
+    assigned_models_[property_name][attribute] = specific_model_name;
+    const int location = property.scope == PropertyScope::Global ? 0 : attribute;
+    computed_locations_[property_name].erase(location);
 }
 
 void PropertiesSystem::prepare_dependencies()
@@ -240,7 +236,7 @@ void PropertiesSystem::evaluate_and_store(const Manager& manager, const std::str
 
 void PropertiesSystem::update_external(double time)
 {
-    properties_field_data_.global_values["time"] = StateValue{time};
+    properties_field_data_.global_values["external.time"] = StateValue{time};
     for (const PropertyInfo& property : properties_)
     {
         if (property.type != PropertyType::External)

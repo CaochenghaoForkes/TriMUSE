@@ -10,7 +10,7 @@ Bison2021BufferConductivity::Bison2021BufferConductivity(const ModelParameterMap
 
 double Bison2021BufferConductivity::evaluate(const PropertiesStatePoint& state_point) const
 {
-    const double current_mass_density = state_point.scalar("general.mass_density");
+    const double current_mass_density = state_point.scalar("material.general.mass_density");
     if (current_mass_density < initial_mass_density_ || current_mass_density > theoretical_mass_density_)
     {
         throw std::domain_error("Buffer 当前密度超出致密化模型范围");

@@ -17,20 +17,20 @@ class PropertiesManager:
         region_attributes = mesh_info.region_attributes
         zone_attributes = mesh_info.boundary_attributes
 
-        for category, configs in (("external", input_cards.properties.external_property), ("derived", input_cards.properties.derived_property)):
+        for configs in (input_cards.properties.external_property, input_cards.properties.derived_property):
             for property_config in configs:
                 for region in property_config.region:
-                    self.properties_system.assign(region_attributes[region.name], f"{category}.{property_config.name}.{region.model}", region.parameters)
+                    self.properties_system.assign(region_attributes[region.name], f"{property_config.name}.{region.model}", region.parameters)
                 for zone in property_config.zone:
-                    self.properties_system.assign(zone_attributes[zone.name], f"{category}.{property_config.name}.{zone.model}", zone.parameters)
+                    self.properties_system.assign(zone_attributes[zone.name], f"{property_config.name}.{zone.model}", zone.parameters)
                 if property_config.global_ is not None:
                     global_config = property_config.global_
-                    self.properties_system.assign(0, f"{category}.{property_config.name}.{global_config.model}", global_config.parameters)
+                    self.properties_system.assign(0, f"{property_config.name}.{global_config.model}", global_config.parameters)
 
         materials = {material.name: material for material in input_cards.material.mat}
         for assignment in input_cards.material.assign.region:
             for property_config in materials[assignment.mat].properties:
-                self.properties_system.assign(region_attributes[assignment.name], f"material.{property_config.property_name}.{property_config.model}", property_config.parameters)
+                self.properties_system.assign(region_attributes[assignment.name], f"{property_config.property_name}.{property_config.model}", property_config.parameters)
 
         self.properties_system.prepare_dependencies()
 

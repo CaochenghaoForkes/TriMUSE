@@ -21,7 +21,7 @@ TimeSeriesModel::TimeSeriesModel(const ModelParameterMap& parameters, const std:
 
 StateValue TimeSeriesModel::evaluate(const PropertiesStatePoint& point) const
 {
-    return LinearInterpolator::evaluate(times_, values_, point.scalar("time"));
+    return LinearInterpolator::evaluate(times_, values_, point.scalar("external.time"));
 }
 
 }

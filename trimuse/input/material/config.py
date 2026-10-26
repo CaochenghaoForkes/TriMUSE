@@ -14,7 +14,7 @@ class MaterialCard:
     class Property:
         """物性名称, 模型及对应的构造参数字典"""
 
-        property_name: str  # 例如 thermal.conductivity
+        property_name: str  # 例如 material.thermal.conductivity
         model: str
         parameters: dict[str, float | list[float]] = field(default_factory=dict)
 
@@ -59,7 +59,7 @@ class MaterialCardLoader:
 
     @classmethod
     def read_mat(cls, element: ET.Element) -> MaterialCard.Mat:
-        """按物理分类读取物性, 包括 thermal.conductivity 和 thermal.specific_heat"""
+        """按物理分类读取物性, 包括 material.thermal.conductivity 和 material.thermal.specific_heat"""
         name = XmlUtils.read_attribute(element, "name", required=True)
         properties = []
         for physics_element in element:
@@ -72,7 +72,7 @@ class MaterialCardLoader:
     @staticmethod
     def read_property(element: ET.Element, physics_name: str) -> MaterialCard.Property:
         """复用通用模型读取方法, 无构造参数时使用空字典"""
-        property_name = f"{physics_name}.{element.tag}"
+        property_name = f"material.{physics_name}.{element.tag}"
         model_config = XmlUtils.read_model(element, context=property_name)
         model = model_config["model"]
         parameters = model_config["parameters"]

@@ -40,7 +40,7 @@ ThermalConductionManager::ThermalConductionManager(FemSystem& fem_system)
 void ThermalConductionManager::update(const PropertiesFieldData& properties_field_data)
 {
     const mfem::Mesh& mesh = fem_system_.mesh_data().mfem_mesh();
-    const auto& conductivity_values = properties_field_data.integration_point_values.at("thermal.conductivity");
+    const auto& conductivity_values = properties_field_data.integration_point_values.at("material.thermal.conductivity");
     for (int element = 0; element < mesh.GetNE(); ++element)
     {
         const mfem::IntegrationRule* rule = fem_system_.domain_quadrature_rule(mesh.GetElementBaseGeometry(element));

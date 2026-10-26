@@ -9,8 +9,8 @@ namespace trimuse
 
 void NuclideBirthRateModelManager::register_models()
 {
-    registry_.register_model<ConstantNuclideBirthRate>("constant");
-    registry_.register_model<TimeSeriesNuclideBirthRate>("time_series", {"time"});
+    registry_.register_model<ConstantNuclideBirthRate>("common.constant");
+    registry_.register_model<TimeSeriesNuclideBirthRate>("common.time_series", {"external.time"});
 }
 
 void NuclideBirthRateModelManager::assign(const std::string& model_name, const ModelParameterMap& parameters, const std::string& value_type)

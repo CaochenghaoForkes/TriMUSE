@@ -9,8 +9,8 @@ namespace trimuse
 
 void BurnupFimaFractionModelManager::register_models()
 {
-    registry_.register_model<ConstantBurnupFimaFraction>("constant");
-    registry_.register_model<TimeSeriesBurnupFimaFraction>("time_series", {"time"});
+    registry_.register_model<ConstantBurnupFimaFraction>("common.constant");
+    registry_.register_model<TimeSeriesBurnupFimaFraction>("common.time_series", {"external.time"});
 }
 
 void BurnupFimaFractionModelManager::assign(const std::string& model_name, const ModelParameterMap& parameters, const std::string& value_type)

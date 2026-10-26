@@ -25,24 +25,24 @@ class InputCardsExamine:
     @staticmethod
     def check_radioactivity_dependencies(material: MaterialCard, properties: PropertiesCard, radioactivity: RadioactivityCard, thermal: ThermalCard | None) -> None:
         """核素源、各类边界与各区域扩散系数的必要依赖"""
-        source_regions = {region.name for item in properties.derived_property if item.name == "volumetric_nuclide_birth_rate" for region in item.region}
+        source_regions = {region.name for item in properties.derived_property if item.name == "derived.volumetric_nuclide_birth_rate" for region in item.region}
         missing = {region.name for region in radioactivity.source.region} - source_regions
         if missing:
             raise ValueError(f"核素源区域缺少派生 volumetric_nuclide_birth_rate: {', '.join(sorted(missing))}")
         for boundary in radioactivity.boundary:
             if boundary.model == "robin":
-                required = (("environment_nuclide_concentration", properties.external_property), ("mass_transfer_coef", properties.derived_property))
+                required = (("external.environment_nuclide_concentration", properties.external_property), ("derived.mass_transfer_coef", properties.derived_property))
             elif boundary.model == "dirichlet":
-                required = (("surface_nuclide_concentration", properties.external_property),)
+                required = (("external.surface_nuclide_concentration", properties.external_property),)
             else:  # neumann
-                required = (("nuclide_flux", properties.external_property),)
+                required = (("external.nuclide_flux", properties.external_property),)
             for name, configs in required:
                 zones = {zone.name for item in configs if item.name == name for zone in item.zone}
                 if boundary.name not in zones:
                     raise ValueError(f"核素 {boundary.model} 边界 {boundary.name} 缺少 {name} 属性")
         materials = {mat.name: mat for mat in material.mat}
         for assignment in material.assign.region:
-            diffusion = next((item for item in materials[assignment.mat].properties if item.property_name == "radioactivity.nuclide_diffusion_coef"), None)
+            diffusion = next((item for item in materials[assignment.mat].properties if item.property_name == "material.radioactivity.nuclide_diffusion_coef"), None)
             if diffusion is None:
                 raise ValueError(f"区域 {assignment.name} 的材料缺少核素扩散系数")
             if diffusion.model == "common.arrhenius" and thermal is None:
@@ -102,9 +102,9 @@ class InputCardsExamine:
         geometry = getattr(geometry_mesh.geometry, geometry_mesh.geometry.source)
         region_names = {region.name for region in geometry.regions.region}
         zone_names = InputCardsExamine.outer_boundary_names(geometry_mesh)
-        power_regions = {region.name for property_config in properties.external_property if property_config.name == "power" for region in property_config.region}
-        birth_rate = next((item for item in properties.external_property if item.name == "nuclide_birth_rate"), None)
-        fraction_regions = {region.name for item in properties.external_property if item.name == "uranium_fraction" for region in item.region}
+        power_regions = {region.name for property_config in properties.external_property if property_config.name == "external.power" for region in property_config.region}
+        birth_rate = next((item for item in properties.external_property if item.name == "external.nuclide_birth_rate"), None)
+        fraction_regions = {region.name for item in properties.external_property if item.name == "external.uranium_fraction" for region in item.region}
         for property_config in properties.external_property + properties.derived_property:
             configured_regions = {region.name for region in property_config.region}
             unknown = configured_regions - region_names
@@ -113,12 +113,12 @@ class InputCardsExamine:
             unknown_zones = {zone.name for zone in property_config.zone} - zone_names
             if unknown_zones:
                 raise ValueError(f"属性 {property_config.name} 引用了不存在的外表面分区: {', '.join(sorted(unknown_zones))}")
-            if property_config.name == "volumetric_power":
+            if property_config.name == "derived.volumetric_power":
                 missing = configured_regions - power_regions
                 if missing:
                     raise ValueError(f"体积功率区域缺少外部 power: {', '.join(sorted(missing))}")
-            if property_config.name == "volumetric_nuclide_birth_rate":
-                uniform_regions = {region.name for region in property_config.region if region.model == "uniform_from_birth_rate"}
+            if property_config.name == "derived.volumetric_nuclide_birth_rate":
+                uniform_regions = {region.name for region in property_config.region if region.model == "common.uniform_from_birth_rate"}
                 if uniform_regions and (birth_rate is None or birth_rate.global_ is None):
                     raise ValueError("uniform_from_birth_rate 缺少全局 nuclide_birth_rate")
                 missing = uniform_regions - fraction_regions
@@ -130,11 +130,11 @@ class InputCardsExamine:
         """按边界类型检查同名分区所需的属性"""
         for boundary in thermal.boundary:
             if boundary.model == "robin":
-                required = (("environment_temperature", properties.external_property), ("heat_transfer_coef", properties.derived_property))
+                required = (("external.environment_temperature", properties.external_property), ("derived.heat_transfer_coef", properties.derived_property))
             elif boundary.model == "neumann":
-                required = (("heat_flux", properties.external_property),)
+                required = (("external.heat_flux", properties.external_property),)
             elif boundary.model == "dirichlet":
-                required = (("surface_temperature", properties.external_property),)
+                required = (("external.surface_temperature", properties.external_property),)
             else:
                 continue
             for property_name, configs in required:
@@ -145,7 +145,7 @@ class InputCardsExamine:
     @staticmethod
     def check_thermal_source_dependencies(properties: PropertiesCard, thermal: ThermalCard) -> None:
         """已实现的体积功率热源必须有同区域派生量"""
-        volumetric_power_regions = {region.name for property_config in properties.derived_property if property_config.name == "volumetric_power" for region in property_config.region}
+        volumetric_power_regions = {region.name for property_config in properties.derived_property if property_config.name == "derived.volumetric_power" for region in property_config.region}
         missing = {region.name for region in thermal.source.region if region.model == "volumetric_power"} - volumetric_power_regions
         if missing:
             raise ValueError(f"热源区域缺少派生 volumetric_power: {', '.join(sorted(missing))}")

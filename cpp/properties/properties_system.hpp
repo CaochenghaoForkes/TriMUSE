@@ -23,6 +23,7 @@ public:
 
     explicit PropertiesSystem(const FemSystem& fem_system);
 
+    // 完整模型路径: 属性全名 + 模型名, 如 external.power.common.constant。
     void assign(int attribute, const std::string& model_name, const ModelParameterMap& parameters);
 
     void prepare_dependencies();
@@ -83,27 +84,27 @@ private:
     bool required_states_changed(int attribute, const std::vector<std::string>& required_states) const;
 
     std::vector<PropertyInfo> properties_ = {
-        {"region_volume", PropertyType::Precomputed, PropertyScope::Region},
-        {"time", PropertyType::External, PropertyScope::Global},
-        {"environment_temperature", PropertyType::External, PropertyScope::Zone},
-        {"environment_nuclide_concentration", PropertyType::External, PropertyScope::Zone}, // atom/m³
-        {"surface_nuclide_concentration", PropertyType::External, PropertyScope::Zone}, // atom/m³, 指定表面浓度
-        {"nuclide_flux", PropertyType::External, PropertyScope::Zone}, // atom/(m²·s), 外流为正、流入为负
-        {"surface_temperature", PropertyType::External, PropertyScope::Zone}, // K, 指定表面温度
-        {"heat_flux", PropertyType::External, PropertyScope::Zone}, // W/m², 外流为正、流入为负
-        {"burnup_fima_fraction", PropertyType::External, PropertyScope::Global},
-        {"power", PropertyType::External, PropertyScope::Region},
-        {"nuclide_birth_rate", PropertyType::External, PropertyScope::Global}, // atom/s, 全局核素产生率
-        {"uranium_fraction", PropertyType::External, PropertyScope::Region}, // 各区域占全局产生率的份额
-        {"heat_transfer_coef", PropertyType::Derived, PropertyScope::Zone},
-        {"mass_transfer_coef", PropertyType::Derived, PropertyScope::Zone}, // m/s
-        {"volumetric_power", PropertyType::Derived, PropertyScope::IntegrationPoint},
-        {"volumetric_nuclide_birth_rate", PropertyType::Derived, PropertyScope::IntegrationPoint}, // atom/(m³·s)
-        {"general.porosity", PropertyType::Material, PropertyScope::IntegrationPoint},
-        {"general.mass_density", PropertyType::Material, PropertyScope::IntegrationPoint},
-        {"thermal.conductivity", PropertyType::Material, PropertyScope::IntegrationPoint},
-        {"thermal.specific_heat", PropertyType::Material, PropertyScope::IntegrationPoint},
-        {"radioactivity.nuclide_diffusion_coef", PropertyType::Material, PropertyScope::IntegrationPoint} // m²/s
+        {"precomputed.region_volume", PropertyType::Precomputed, PropertyScope::Region},
+        {"external.time", PropertyType::External, PropertyScope::Global},
+        {"external.environment_temperature", PropertyType::External, PropertyScope::Zone},
+        {"external.environment_nuclide_concentration", PropertyType::External, PropertyScope::Zone}, // atom/m³
+        {"external.surface_nuclide_concentration", PropertyType::External, PropertyScope::Zone}, // atom/m³, 指定表面浓度
+        {"external.nuclide_flux", PropertyType::External, PropertyScope::Zone}, // atom/(m²·s), 外流为正、流入为负
+        {"external.surface_temperature", PropertyType::External, PropertyScope::Zone}, // K, 指定表面温度
+        {"external.heat_flux", PropertyType::External, PropertyScope::Zone}, // W/m², 外流为正、流入为负
+        {"external.burnup_fima_fraction", PropertyType::External, PropertyScope::Global},
+        {"external.power", PropertyType::External, PropertyScope::Region},
+        {"external.nuclide_birth_rate", PropertyType::External, PropertyScope::Global}, // atom/s, 全局核素产生率
+        {"external.uranium_fraction", PropertyType::External, PropertyScope::Region}, // 各区域占全局产生率的份额
+        {"derived.heat_transfer_coef", PropertyType::Derived, PropertyScope::Zone},
+        {"derived.mass_transfer_coef", PropertyType::Derived, PropertyScope::Zone}, // m/s
+        {"derived.volumetric_power", PropertyType::Derived, PropertyScope::IntegrationPoint},
+        {"derived.volumetric_nuclide_birth_rate", PropertyType::Derived, PropertyScope::IntegrationPoint}, // atom/(m³·s)
+        {"material.general.porosity", PropertyType::Material, PropertyScope::IntegrationPoint},
+        {"material.general.mass_density", PropertyType::Material, PropertyScope::IntegrationPoint},
+        {"material.thermal.conductivity", PropertyType::Material, PropertyScope::IntegrationPoint},
+        {"material.thermal.specific_heat", PropertyType::Material, PropertyScope::IntegrationPoint},
+        {"material.radioactivity.nuclide_diffusion_coef", PropertyType::Material, PropertyScope::IntegrationPoint} // m²/s
     };
 
     inline static const std::unordered_set<std::string> solution_field_states = {

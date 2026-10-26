@@ -249,7 +249,7 @@ class OutputManager:
             for material in card.mat:
                 node = cls._node(root, "mat", name=material.name)
                 for property in material.properties:
-                    category, name = property.property_name.split(".", 1)
+                    _, category, name = property.property_name.split(".", 2)
                     cls._model(cls._node(cls._node(node, category), name), property.model, property.parameters)
             assignments = cls._node(root, "assign")
             for region in card.assign.region:
@@ -259,7 +259,7 @@ class OutputManager:
         def _properties_card(cls, root: ET.Element, card) -> None:
             for category in ("external_property", "derived_property"):
                 for property in getattr(card, category):
-                    node = cls._node(root, category, name=property.name)
+                    node = cls._node(root, category, name=property.name.split(".", 1)[1])
                     for scope in ("region", "zone"):
                         for item in getattr(property, scope):
                             cls._model(cls._node(node, scope, name=item.name), item.model, item.parameters)

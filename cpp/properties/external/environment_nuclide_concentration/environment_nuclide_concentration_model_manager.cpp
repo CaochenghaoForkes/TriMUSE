@@ -7,8 +7,8 @@ namespace trimuse
 
 void EnvironmentNuclideConcentrationModelManager::register_models()
 {
-    registry_.register_model<ConstantEnvironmentNuclideConcentration>("constant");
-    registry_.register_model<TimeSeriesEnvironmentNuclideConcentration>("time_series", {"time"});
+    registry_.register_model<ConstantEnvironmentNuclideConcentration>("common.constant");
+    registry_.register_model<TimeSeriesEnvironmentNuclideConcentration>("common.time_series", {"external.time"});
 }
 
 void EnvironmentNuclideConcentrationModelManager::assign(int zone_attribute, const std::string& model_name, const ModelParameterMap& parameters, const std::string& value_type)

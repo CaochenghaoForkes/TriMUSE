@@ -9,7 +9,7 @@ namespace trimuse
 void NuclideDiffusionCoefModelManager::register_models()
 {
     registry_.register_model<ConstantNuclideDiffusionCoef>("common.constant");
-    registry_.register_model<TimeSeriesNuclideDiffusionCoef>("common.time_series", {"time"});
+    registry_.register_model<TimeSeriesNuclideDiffusionCoef>("common.time_series", {"external.time"});
     registry_.register_model<ArrheniusNuclideDiffusionCoef>("common.arrhenius", {"temperature"});
 }
 

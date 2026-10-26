@@ -8,7 +8,8 @@
 namespace trimuse
 {
 
-// 当前计算点与已取好的数值, 求解场只在组装此临时状态时读取
+// 当前计算点与已取好的数值; 属性键使用完整名称, 求解场仍使用 temperature/concentration 等场名。
+// 求解场只在组装此临时状态时读取。
 struct PropertiesStatePoint
 {
     int region_attribute = 0;

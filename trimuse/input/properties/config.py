@@ -31,7 +31,7 @@ class PropertiesCard:
 
     @dataclass
     class Property:
-        name: str
+        name: str  # 完整属性名, 如 external.power; XML 仅填写 power
         region: list[PropertiesCard.Region] = field(default_factory=list)
         zone: list[PropertiesCard.Zone] = field(default_factory=list)
         global_: PropertiesCard.Global | None = None
@@ -54,7 +54,7 @@ class PropertiesCardLoader:
 
     @classmethod
     def read_property(cls, element: ET.Element) -> PropertiesCard.Property:
-        name = XmlUtils.read_attribute(element, "name", required=True)
+        name = f'{element.tag.removesuffix("_property")}.{XmlUtils.read_attribute(element, "name", required=True)}'
         region = [cls.read_region(child) for child in XmlUtils.read_children(element, "region")]
         zone = [cls.read_zone(child) for child in XmlUtils.read_children(element, "zone")]
         global_element = XmlUtils.read_child(element, "global", required=False)
@@ -74,7 +74,7 @@ class PropertiesCardLoader:
 
     @staticmethod
     def read_zone(element: ET.Element) -> PropertiesCard.Zone:
-        """统一读取 constant 的标量或 time_series 的 times/values 参数"""
+        """读取 common.constant 的标量或 common.time_series 的 times/values 参数"""
         name = XmlUtils.read_attribute(element, "name", required=True)
         model_config = XmlUtils.read_model(element, context=name)
         return PropertiesCard.Zone(name=name, **model_config)

@@ -7,8 +7,8 @@ namespace trimuse
 
 void PowerModelManager::register_models()
 {
-    registry_.register_model<ConstantPower>("constant");
-    registry_.register_model<TimeSeriesPower>("time_series", {"time"});
+    registry_.register_model<ConstantPower>("common.constant");
+    registry_.register_model<TimeSeriesPower>("common.time_series", {"external.time"});
 }
 
 void PowerModelManager::assign(int region_attribute, const std::string& model_name, const ModelParameterMap& parameters, const std::string& value_type)

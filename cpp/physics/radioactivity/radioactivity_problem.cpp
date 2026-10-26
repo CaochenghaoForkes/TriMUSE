@@ -28,7 +28,7 @@ RadioactivityProblem::RadioactivityProblem(FemSystem& fem_system, FieldData& con
       capacity_manager_(fem_system),
       capacity_form_(concentration_field.mfem_grid_function().FESpace())
 {
-    properties_system_.mark_coupled("concentration", {"radioactivity.nuclide_diffusion_coef"});
+    properties_system_.mark_coupled("concentration", {"material.radioactivity.nuclide_diffusion_coef"});
     trimuse::initialize_concentration(fem_system_, concentration_field_, initial_configs);
     capacity_manager_.add_integrators(capacity_form_);
     capacity_form_.Assemble();
@@ -63,7 +63,7 @@ void RadioactivityProblem::solve_steady()
     const auto& regions = fem_system_.mesh_data().region_attributes();
     const bool nonlinear = std::any_of(regions.begin(), regions.end(), [this](int region)
     {
-        return properties_system_.coupled_with_field("radioactivity.nuclide_diffusion_coef", region, "concentration");
+        return properties_system_.coupled_with_field("material.radioactivity.nuclide_diffusion_coef", region, "concentration");
     });
     const NonlinearSolverConfig& picard = solver_system_.nonlinear_config("concentration");
     const int max_iterations = nonlinear ? picard.max_iterations : 1;
@@ -157,7 +157,7 @@ void RadioactivityProblem::solve_transient(double time_step, double theta)
     const auto& regions = fem_system_.mesh_data().region_attributes();
     const bool nonlinear = theta > 0.0 && std::any_of(regions.begin(), regions.end(), [this](int region)
     {
-        return properties_system_.coupled_with_field("radioactivity.nuclide_diffusion_coef", region, "concentration");
+        return properties_system_.coupled_with_field("material.radioactivity.nuclide_diffusion_coef", region, "concentration");
     });
     const NonlinearSolverConfig& picard = solver_system_.nonlinear_config("concentration");
     const int max_iterations = nonlinear ? picard.max_iterations : 1;

@@ -28,11 +28,11 @@ ThermalProblem::ThermalProblem(FemSystem& fem_system, FieldData& temperature_fie
 {
     if (problem_type_ == "steady")
     {
-        properties_system_.mark_coupled("temperature", {"thermal.conductivity"});
+        properties_system_.mark_coupled("temperature", {"material.thermal.conductivity"});
     }
     else
     {
-        properties_system_.mark_coupled("temperature", {"general.mass_density", "thermal.specific_heat", "thermal.conductivity"});
+        properties_system_.mark_coupled("temperature", {"material.general.mass_density", "material.thermal.specific_heat", "material.thermal.conductivity"});
     }
     trimuse::initialize_temperature(fem_system_, temperature_field_, initial_configs);
 }
@@ -65,7 +65,7 @@ void ThermalProblem::solve_steady()
     const auto& regions = fem_system_.mesh_data().region_attributes();
     const bool nonlinear = std::any_of(regions.begin(), regions.end(), [this](int region)
     {
-        return properties_system_.coupled_with_field("thermal.conductivity", region, "temperature");
+        return properties_system_.coupled_with_field("material.thermal.conductivity", region, "temperature");
     });
     const NonlinearSolverConfig& picard = solver_system_.nonlinear_config("temperature");
     const int max_iterations = nonlinear ? picard.max_iterations : 1;
@@ -164,9 +164,9 @@ void ThermalProblem::solve_transient(double time_step, double theta)
     const auto& regions = fem_system_.mesh_data().region_attributes();
     const bool nonlinear = theta > 0.0 && std::any_of(regions.begin(), regions.end(), [this](int region)
     {
-        return properties_system_.coupled_with_field("general.mass_density", region, "temperature") ||
-               properties_system_.coupled_with_field("thermal.specific_heat", region, "temperature") ||
-               properties_system_.coupled_with_field("thermal.conductivity", region, "temperature");
+        return properties_system_.coupled_with_field("material.general.mass_density", region, "temperature") ||
+               properties_system_.coupled_with_field("material.thermal.specific_heat", region, "temperature") ||
+               properties_system_.coupled_with_field("material.thermal.conductivity", region, "temperature");
     });
     const NonlinearSolverConfig& picard = solver_system_.nonlinear_config("temperature");
     const int max_iterations = nonlinear ? picard.max_iterations : 1;

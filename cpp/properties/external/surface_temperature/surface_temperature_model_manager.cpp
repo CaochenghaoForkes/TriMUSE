@@ -7,8 +7,8 @@ namespace trimuse
 
 void SurfaceTemperatureModelManager::register_models()
 {
-    registry_.register_model<ConstantSurfaceTemperature>("constant");
-    registry_.register_model<TimeSeriesSurfaceTemperature>("time_series", {"time"});
+    registry_.register_model<ConstantSurfaceTemperature>("common.constant");
+    registry_.register_model<TimeSeriesSurfaceTemperature>("common.time_series", {"external.time"});
 }
 
 void SurfaceTemperatureModelManager::assign(int zone_attribute, const std::string& model_name, const ModelParameterMap& parameters, const std::string& value_type)

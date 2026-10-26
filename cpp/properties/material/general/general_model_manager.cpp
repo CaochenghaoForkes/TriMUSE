@@ -13,12 +13,12 @@ void GeneralModelManager::register_models()
 
 void GeneralModelManager::assign(int region_attribute, const std::string& property_name, const std::string& model_name, const ModelParameterMap& parameters)
 {
-    if (property_name == "porosity")
+    if (property_name == "material.general.porosity")
     {
         porosity_model_manager_.assign(region_attribute, model_name, parameters);
         return;
     }
-    if (property_name == "mass_density")
+    if (property_name == "material.general.mass_density")
     {
         mass_density_model_manager_.assign(region_attribute, model_name, parameters);
         return;
@@ -28,11 +28,11 @@ void GeneralModelManager::assign(int region_attribute, const std::string& proper
 
 StateValue GeneralModelManager::evaluate(const std::string& property_name, const PropertiesStatePoint& state_point) const
 {
-    if (property_name == "porosity")
+    if (property_name == "material.general.porosity")
     {
         return porosity_model_manager_.evaluate(state_point);
     }
-    if (property_name == "mass_density")
+    if (property_name == "material.general.mass_density")
     {
         return mass_density_model_manager_.evaluate(state_point);
     }
@@ -41,11 +41,11 @@ StateValue GeneralModelManager::evaluate(const std::string& property_name, const
 
 const std::vector<std::string>& GeneralModelManager::required_states(const std::string& property_name, const std::string& model_name) const
 {
-    if (property_name == "porosity")
+    if (property_name == "material.general.porosity")
     {
         return porosity_model_manager_.required_states(model_name);
     }
-    if (property_name == "mass_density")
+    if (property_name == "material.general.mass_density")
     {
         return mass_density_model_manager_.required_states(model_name);
     }

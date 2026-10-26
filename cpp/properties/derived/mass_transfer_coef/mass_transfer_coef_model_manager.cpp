@@ -7,8 +7,8 @@ namespace trimuse
 
 void MassTransferCoefModelManager::register_models()
 {
-    registry_.register_model<ConstantMassTransferCoef>("constant");
-    registry_.register_model<TimeSeriesMassTransferCoef>("time_series", {"time"});
+    registry_.register_model<ConstantMassTransferCoef>("common.constant");
+    registry_.register_model<TimeSeriesMassTransferCoef>("common.time_series", {"external.time"});
 }
 
 void MassTransferCoefModelManager::assign(int zone_attribute, const std::string& model_name, const ModelParameterMap& parameters)

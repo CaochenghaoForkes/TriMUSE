@@ -8,7 +8,7 @@ namespace trimuse
 void MassDensityModelManager::register_models()
 {
     registry_.register_model<ConstantMassDensity>("common.constant");
-    registry_.register_model<TimeSeriesMassDensity>("common.time_series", {"time"});
+    registry_.register_model<TimeSeriesMassDensity>("common.time_series", {"external.time"});
 }
 
 void MassDensityModelManager::assign(int region_attribute, const std::string& model_name, const ModelParameterMap& parameters)

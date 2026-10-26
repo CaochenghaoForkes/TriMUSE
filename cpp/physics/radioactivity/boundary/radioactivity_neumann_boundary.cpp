@@ -7,7 +7,7 @@ namespace trimuse
 
 double RadioactivityNeumannBoundary::evaluate(const PropertiesFieldData& properties_field_data, int boundary_attribute)
 {
-    return -std::get<double>(properties_field_data.zone_values.at("nuclide_flux").at(boundary_attribute).value());
+    return -std::get<double>(properties_field_data.zone_values.at("external.nuclide_flux").at(boundary_attribute).value());
 }
 
 }
