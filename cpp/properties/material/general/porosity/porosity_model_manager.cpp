@@ -1,12 +1,14 @@
 #include "properties/material/general/porosity/porosity_model_manager.hpp"
-#include "properties/common/common_model_adapter.hpp"
+#include "properties/material/general/porosity/common/constant_porosity.hpp"
+#include "properties/material/general/porosity/common/time_series_porosity.hpp"
 
 namespace trimuse
 {
 
 void PorosityModelManager::register_models()
 {
-    register_common_models<PorosityModel>(registry_);
+    registry_.register_model<ConstantPorosity>("common.constant");
+    registry_.register_model<TimeSeriesPorosity>("common.time_series", {"time"});
 }
 
 void PorosityModelManager::assign(int region_attribute, const std::string& model_name, const ModelParameterMap& parameters)

@@ -1,29 +1,29 @@
 #include "properties/external/environment_nuclide_concentration/environment_nuclide_concentration_model_manager.hpp"
+#include "properties/external/environment_nuclide_concentration/constant_environment_nuclide_concentration.hpp"
+#include "properties/external/environment_nuclide_concentration/time_series_environment_nuclide_concentration.hpp"
 
 namespace trimuse
 {
 
 void EnvironmentNuclideConcentrationModelManager::register_models()
 {
-    common_model_manager_.register_models();
+    registry_.register_model<ConstantEnvironmentNuclideConcentration>("constant");
+    registry_.register_model<TimeSeriesEnvironmentNuclideConcentration>("time_series", {"time"});
 }
 
 void EnvironmentNuclideConcentrationModelManager::assign(int zone_attribute, const std::string& model_name, const ModelParameterMap& parameters, const std::string& value_type)
 {
-    zone_model_map_.insert_or_assign(zone_attribute, common_model_manager_.create(model_name, parameters, value_type));
+    zone_model_map_[zone_attribute] = registry_.registration(model_name).factory(parameters, value_type);
 }
 
 StateValue EnvironmentNuclideConcentrationModelManager::evaluate(const PropertiesStatePoint& point) const
 {
-    return std::visit([&point](const auto& model)
-    {
-        return model.evaluate(point);
-    }, zone_model_map_.at(point.zone_attribute));
+    return zone_model_map_.at(point.zone_attribute)->evaluate(point);
 }
 
 const std::vector<std::string>& EnvironmentNuclideConcentrationModelManager::required_states(const std::string& model_name) const
 {
-    return common_model_manager_.required_states(model_name);
+    return registry_.registration(model_name).required_states;
 }
 
 }

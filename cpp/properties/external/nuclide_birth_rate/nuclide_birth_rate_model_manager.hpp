@@ -1,12 +1,22 @@
 #pragma once
 
-#include <optional>
+#include <memory>
 #include <string>
+#include <vector>
 
-#include "properties/common/common_model_manager.hpp"
+#include "common/model_registry.hpp"
+#include "properties/properties_state_point.hpp"
 
 namespace trimuse
 {
+
+class NuclideBirthRateModel
+{
+public:
+    virtual ~NuclideBirthRateModel() = default;
+
+    virtual StateValue evaluate(const PropertiesStatePoint& point) const = 0;
+};
 
 class NuclideBirthRateModelManager
 {
@@ -20,8 +30,8 @@ public:
     const std::vector<std::string>& required_states(const std::string& model_name) const;
 
 private:
-    CommonModelManager common_model_manager_;
-    std::optional<CommonModel> model_;
+    ModelRegistry<NuclideBirthRateModel, const std::string&> registry_;
+    std::unique_ptr<NuclideBirthRateModel> model_;
 };
 
 }

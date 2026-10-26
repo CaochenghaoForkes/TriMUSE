@@ -1,13 +1,15 @@
 #include "properties/derived/volumetric_nuclide_birth_rate/volumetric_nuclide_birth_rate_model_manager.hpp"
 #include "properties/derived/volumetric_nuclide_birth_rate/uniform_from_birth_rate.hpp"
-#include "properties/common/common_model_adapter.hpp"
+#include "properties/derived/volumetric_nuclide_birth_rate/constant_volumetric_nuclide_birth_rate.hpp"
+#include "properties/derived/volumetric_nuclide_birth_rate/time_series_volumetric_nuclide_birth_rate.hpp"
 
 namespace trimuse
 {
 
 void VolumetricNuclideBirthRateModelManager::register_models()
 {
-    register_common_models<VolumetricNuclideBirthRateModel, StateValue>(registry_, "constant", "time_series");
+    registry_.register_model<ConstantVolumetricNuclideBirthRate>("constant");
+    registry_.register_model<TimeSeriesVolumetricNuclideBirthRate>("time_series", {"time"});
     registry_.register_model<UniformFromBirthRate>("uniform_from_birth_rate", {"nuclide_birth_rate", "uranium_fraction", "region_volume"});
 }
 

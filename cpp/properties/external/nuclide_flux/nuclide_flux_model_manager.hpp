@@ -1,12 +1,23 @@
 #pragma once
 
+#include <memory>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
-#include "properties/common/common_model_manager.hpp"
+#include "common/model_registry.hpp"
+#include "properties/properties_state_point.hpp"
 
 namespace trimuse
 {
+
+class NuclideFluxModel
+{
+public:
+    virtual ~NuclideFluxModel() = default;
+
+    virtual StateValue evaluate(const PropertiesStatePoint& point) const = 0;
+};
 
 class NuclideFluxModelManager
 {
@@ -20,8 +31,8 @@ public:
     const std::vector<std::string>& required_states(const std::string& model_name) const;
 
 private:
-    CommonModelManager common_model_manager_;
-    std::unordered_map<int, CommonModel> zone_model_map_;
+    ModelRegistry<NuclideFluxModel, const std::string&> registry_;
+    std::unordered_map<int, std::unique_ptr<NuclideFluxModel>> zone_model_map_;
 };
 
 }

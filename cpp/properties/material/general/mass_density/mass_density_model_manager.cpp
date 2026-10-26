@@ -1,12 +1,14 @@
 #include "properties/material/general/mass_density/mass_density_model_manager.hpp"
-#include "properties/common/common_model_adapter.hpp"
+#include "properties/material/general/mass_density/common/constant_mass_density.hpp"
+#include "properties/material/general/mass_density/common/time_series_mass_density.hpp"
 
 namespace trimuse
 {
 
 void MassDensityModelManager::register_models()
 {
-    register_common_models<MassDensityModel>(registry_);
+    registry_.register_model<ConstantMassDensity>("common.constant");
+    registry_.register_model<TimeSeriesMassDensity>("common.time_series", {"time"});
 }
 
 void MassDensityModelManager::assign(int region_attribute, const std::string& model_name, const ModelParameterMap& parameters)

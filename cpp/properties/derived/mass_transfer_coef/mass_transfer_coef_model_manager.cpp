@@ -1,12 +1,14 @@
 #include "properties/derived/mass_transfer_coef/mass_transfer_coef_model_manager.hpp"
-#include "properties/common/common_model_adapter.hpp"
+#include "properties/derived/mass_transfer_coef/constant_mass_transfer_coef.hpp"
+#include "properties/derived/mass_transfer_coef/time_series_mass_transfer_coef.hpp"
 
 namespace trimuse
 {
 
 void MassTransferCoefModelManager::register_models()
 {
-    register_common_models<MassTransferCoefModel, StateValue>(registry_, "constant", "time_series");
+    registry_.register_model<ConstantMassTransferCoef>("constant");
+    registry_.register_model<TimeSeriesMassTransferCoef>("time_series", {"time"});
 }
 
 void MassTransferCoefModelManager::assign(int zone_attribute, const std::string& model_name, const ModelParameterMap& parameters)

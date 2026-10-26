@@ -85,7 +85,3 @@ set_target_properties(
     PROPERTIES
     POSITION_INDEPENDENT_CODE ON
 )
-
-# 手动构建的 FEM 检查程序, 不增加日常构建的工作量。
-add_executable(trimuse_fem_region_test EXCLUDE_FROM_ALL fem/tests/region_field_test.cpp)
-target_link_libraries(trimuse_fem_region_test PRIVATE trimuse_core)

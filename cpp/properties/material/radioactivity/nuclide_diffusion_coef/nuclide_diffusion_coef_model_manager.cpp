@@ -1,13 +1,15 @@
 #include "properties/material/radioactivity/nuclide_diffusion_coef/nuclide_diffusion_coef_model_manager.hpp"
 #include "properties/material/radioactivity/nuclide_diffusion_coef/common/arrhenius_nuclide_diffusion_coef.hpp"
-#include "properties/common/common_model_adapter.hpp"
+#include "properties/material/radioactivity/nuclide_diffusion_coef/common/constant_nuclide_diffusion_coef.hpp"
+#include "properties/material/radioactivity/nuclide_diffusion_coef/common/time_series_nuclide_diffusion_coef.hpp"
 
 namespace trimuse
 {
 
 void NuclideDiffusionCoefModelManager::register_models()
 {
-    register_common_models<NuclideDiffusionCoefModel>(registry_);
+    registry_.register_model<ConstantNuclideDiffusionCoef>("common.constant");
+    registry_.register_model<TimeSeriesNuclideDiffusionCoef>("common.time_series", {"time"});
     registry_.register_model<ArrheniusNuclideDiffusionCoef>("common.arrhenius", {"temperature"});
 }
 
