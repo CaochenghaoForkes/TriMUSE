@@ -13,6 +13,8 @@ class FiniteElementSpaceData // 选择单元内基函数 把局部空间连接�
 public:
     FiniteElementSpaceData(MeshData& mesh_data, int order, int vector_dimension = 1);
 
+    FiniteElementSpaceData(mfem::Mesh& mesh, int order, int vector_dimension = 1);
+
     int order() const; // 物理场的有限元插值阶次
 
     int vector_dimension() const; // 场变量的分量数 如温度是1 应变是空间维度数
@@ -28,7 +30,7 @@ public:
     const mfem::FiniteElementSpace& mfem_space() const;
 
 private:
-    MeshData& mesh_data_;
+    mfem::Mesh& mesh_;
 
     int order_; // 物理场的有限元插值阶次
 

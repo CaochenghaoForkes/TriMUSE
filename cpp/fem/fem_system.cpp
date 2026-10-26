@@ -1,6 +1,7 @@
 #include "fem/fem_system.hpp"
 
 #include <algorithm>
+#include <stdexcept>
 
 namespace trimuse
 {
@@ -40,9 +41,32 @@ FemSystem::QuadratureRules FemSystem::make_quadrature_rules(const MeshData& mesh
     return rules;
 }
 
-void FemSystem::add_field(const std::string& name, int order, int vector_dimension) // 将名为 name 的场, 创建并初始化一个 FieldObjects 对象，然后返回拥有它的 unique_ptr 智能指针,并存入哈希表
+void FemSystem::add_field(const std::string& name, int order, int vector_dimension) // 将名为 name 的场, 创建并初始化一个 FieldObjects 对象，然后返回拥有它的 unique_ptr 智能指针存入哈希表
 {
+    if (region_field_map_.count(name))
+    {
+        throw std::invalid_argument("场已使用分区域空间: " + name);
+    }
     field_map_.emplace(name, std::make_unique<FieldObjects>(mesh_data_, order, vector_dimension));
+}
+
+void FemSystem::add_region_field(const std::string& name, int order, int vector_dimension) // 将名为 name 的场, 创建并初始化一个分域场对象，然后返回拥有它的 unique_ptr 智能指针存入哈希表
+{
+    if (field_map_.count(name))
+    {
+        throw std::invalid_argument("场已使用全域空间: " + name);
+    }
+    region_field_map_.emplace(name, std::make_unique<RegionFieldData>(mesh_data_, order, vector_dimension));
+}
+
+RegionFieldData& FemSystem::region_field(const std::string& name) // 返回名为 name 的场的子域场数据
+{
+    return *region_field_map_.at(name);
+}
+
+const RegionFieldData& FemSystem::region_field(const std::string& name) const // 返回名为 name 的场的子域场数据
+{
+    return *region_field_map_.at(name);
 }
 
 MeshData& FemSystem::mesh_data() // 返回场使用的网格

@@ -2,6 +2,7 @@
 #include "common/attributes_to_vector.hpp"
 
 #include <algorithm>
+#include <stdexcept>
 
 namespace trimuse
 {
@@ -10,6 +11,7 @@ MeshData::MeshData(const std::string& mesh_path)
     : mfem_mesh_(mesh_path, 1, 1, true) // 网格路径, 生成边, 准备细化数据, 修正反向单元
 {
     build_region_elements();
+    build_interfaces();
     calculate_region_volumes();
 }
 
@@ -56,6 +58,62 @@ const std::unordered_map<int, double>& MeshData::region_volumes() const // 各�
 const std::vector<int>& MeshData::region_elements(int region_attribute) const // 指定材料区域的域内单元编号 
 {
     return region_elements_.at(region_attribute);
+}
+
+RegionMeshData& MeshData::region_mesh(int region_attribute) // 按区域编号取得子网格管理对象：没有就创建，有了就直接返回
+{
+    auto& mesh = region_meshes_[region_attribute]; 
+    if (!mesh) // 判断智能指针是否为空 则需要初始化
+    {
+        if (mfem_mesh_.Nonconforming()) // 当前实现不支持带悬挂节点等非协调连接的网格，所以明确报错
+        {
+            throw std::invalid_argument("分区域空间当前仅支持协调网格");
+        }
+        if (!region_elements_.count(region_attribute))
+        {
+            throw std::invalid_argument("不存在的区域编号: " + std::to_string(region_attribute));
+        }
+        mesh = std::make_unique<RegionMeshData>(mfem_mesh_, region_attribute); // 创建并保存区域子网格
+    }
+    return *mesh; // 返回管理对象的引用
+}
+
+const std::vector<MeshData::Interface>& MeshData::interfaces() const // 让外部代码只读访问已经建立的内部界面列表
+{
+    return interfaces_;
+}
+
+mfem::FaceElementTransformations& MeshData::interface_transformations(int interface_index) // 获取某个内部界面片及其两侧单元的几何映射，方便后续在同一个界面积分点上计算两侧场值
+{
+    // interfaces_[interface_index].face 先根据 interfaces_ 列表中的索引，取得这个界面片的原网格面编号
+    // mfem_mesh_.GetFaceElementTransformations() 让 MFEM 获取该面的双侧几何变换对象，其中主要包含：
+    // Face：参考面 → 实际空间的映射
+    // Elem1、Elem2：两侧参考单元 → 实际空间的映射
+    // Loc1、Loc2：同一个参考面积分点 → 两侧参考单元中的对应坐标
+    // Elem1No、Elem2No：两侧的原网格单元编号
+    return *mfem_mesh_.GetFaceElementTransformations(interfaces_[interface_index].face); 
+}
+
+void MeshData::build_interfaces() // 遍历网格中的所有面，找出两侧属于不同 region 的内部面，并把它们保存到 interfaces_
+{
+    std::vector<int> boundary_attributes(mfem_mesh_.GetNumFaces(), 0); // 创建一个长度等于网格面总数的数组，全部初始化为 0， 注意：即使两个域内单元都属于 kernel，它们之间的公共面仍然是一个网格面，并有自己的 face 索引；公共面只计一次
+    for (int boundary = 0; boundary < mfem_mesh_.GetNBE(); ++boundary) // 遍历所有边界单元 这里也可能包含输入网格中显式标记的内部材料界面，不只是外边界 注意：边界单元本身已经是 1d点 2d线 3d片了
+    {
+        boundary_attributes[mfem_mesh_.GetBdrElementFaceIndex(boundary)] = mfem_mesh_.GetBdrAttribute(boundary); // GetBdrElementFaceIndex(boundary) 这个边界单元对应原网格中全部面中的索引 GetBdrAttribute(boundary) 这个边界单元的边界属性编号(如 xml 中定义的 interfacei 的对应的编号) 例如，边界单元 5 对应面 12，属性编号为 41 相当于 boundary_attributes[12] = 41;
+    }
+    // boundary_attributes 记录了 原始网格面单元索引 -> 人为定义的交界面 interface 的 id (对于非材料界面的 face 其对应 0)
+    for (int face = 0; face < mfem_mesh_.GetNumFaces(); ++face) // 遍历全部网格面 包括外边界面、同区域内部面，以及不同区域之间的界面
+    {
+        int first, second; // 声明两个变量，用于接收这个面两侧的域单元编号 
+        mfem_mesh_.GetFaceElements(face, &first, &second); // 查询当前面连接的两个域单元，将编号写入 first、second
+        if (second < 0 || mfem_mesh_.GetAttribute(first) == mfem_mesh_.GetAttribute(second)) // second<0 没有第二侧域单元，是外边界面 两侧单元的区域属性相同：属于同一 region 内部，不是区域界面
+        {
+            continue; // 跳过不是材料界面的面
+        }
+        const InterfaceSide first_side{mfem_mesh_.GetAttribute(first), first}; // 创建第一侧记录 包含 {第一侧的区域编号, 第一侧的原网格单元编号}
+        const InterfaceSide second_side{mfem_mesh_.GetAttribute(second), second}; // 创建第二侧记录 包含 {第二侧的区域编号, 第二侧的原网格单元编号}
+        interfaces_.push_back({face, boundary_attributes[face], {first_side, second_side}}); // 构造一个 Interface 对象，并追加到 interfaces_ {当前面的原网格编号,当前面的边界标识,{第一侧信息, 第二侧信息}}
+    }
 }
 
 void MeshData::build_region_elements()

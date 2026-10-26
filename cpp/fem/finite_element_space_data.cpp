@@ -4,7 +4,12 @@ namespace trimuse
 {
 
 FiniteElementSpaceData::FiniteElementSpaceData(MeshData& mesh_data, int order, int vector_dimension)
-    : mesh_data_(mesh_data),
+    : FiniteElementSpaceData(mesh_data.mfem_mesh(), order, vector_dimension)
+{
+}
+
+FiniteElementSpaceData::FiniteElementSpaceData(mfem::Mesh& mesh, int order, int vector_dimension)
+    : mesh_(mesh),
       order_(order),
       vector_dimension_(vector_dimension)
 {
@@ -14,11 +19,11 @@ FiniteElementSpaceData::FiniteElementSpaceData(MeshData& mesh_data, int order, i
     // H1: 一个函数空间的名字 
     // H1 函数本身及其一阶弱导数都平方可积 \[H^1(\Omega)=\left\{u:\ u\in L^2(\Omega),\\frac{\partial u}{\partial x_i}\in L^2(\Omega)\right\}\]
     // H1 表现为: 1.每个单元内部用多项式插值 2.相邻单元共享界面上的场值，保证整体连续 3.不要求梯度跨单元连续
-    collection_ = std::make_unique<mfem::H1_FECollection>(order_, mesh_data_.dimension());
+    collection_ = std::make_unique<mfem::H1_FECollection>(order_, mesh_.Dimension());
 
     // 把网格、有限元集合和场的分量数结合起来，建立真正的有限元空间，并安排自由度编号
     // 参数1在哪张网格上建立空间(有哪些单元、单元间如何连接、哪些顶点边面由相邻单元共享) 参数2使用哪种有限元(对线段、三角形或四面体，采样什么阶次的有限元) 参数3场有几个分量
-    space_ = std::make_unique<mfem::FiniteElementSpace>(&mesh_data_.mfem_mesh(), collection_.get(), vector_dimension_);
+    space_ = std::make_unique<mfem::FiniteElementSpace>(&mesh_, collection_.get(), vector_dimension_);
 }
 
 int FiniteElementSpaceData::order() const

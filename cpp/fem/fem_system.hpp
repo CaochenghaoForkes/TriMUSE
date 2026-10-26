@@ -11,6 +11,7 @@
 #include "fem/mesh_data.hpp"
 #include "fem/finite_element_space_data.hpp"
 #include "fem/field_data.hpp"
+#include "fem/region_field_data.hpp"
 
 namespace trimuse
 {
@@ -27,6 +28,12 @@ public:
     FemSystem& operator=(FemSystem&&) = delete; // 内部空间引用公共网格, 管理对象保持固定地址
 
     void add_field(const std::string& name, int order, int vector_dimension = 1); // 将名为 name 的场, 创建并初始化一个 FieldObjects 对象，然后返回拥有它的 unique_ptr 智能指针,并存入哈希表
+
+    void add_region_field(const std::string& name, int order, int vector_dimension = 1); // 将名为 name 的场, 创建并初始化一个分域场对象，然后返回拥有它的 unique_ptr 智能指针存入哈希表
+
+    RegionFieldData& region_field(const std::string& name); // 返回名为 name 的场的子域场数据
+
+    const RegionFieldData& region_field(const std::string& name) const; // 返回名为 name 的场的子域场数据
 
     MeshData& mesh_data(); // 返回可写网格数据
 
@@ -81,6 +88,17 @@ private:
     std::vector<std::size_t> domain_quadrature_offsets_; // 它不仅存储每个单元的积分点起始位置，还要多存一个最后单元结束后的位置，也就是全域积分点总数 因此要 +1 (如：单元编号：    0    1    2 积分点数量：  3    4    2 offsets = [0,   3,   7,   9])
 
     std::unordered_map<std::string, std::unique_ptr<FieldObjects>> field_map_; // 按场名称管理各场对象的哈希表 场名称->独占拥有一个 FieldObjects 的智能指针；该对象包含有限元空间和场数据
+    /*
+        region_field_map_
+            "concentration" → RegionFieldData
+                                区域 3 → 空间 + 浓度数据
+                                区域 9 → 空间 + 浓度数据
+
+            "displacement"  → RegionFieldData
+                                区域 3 → 空间 + 位移数据
+                                区域 9 → 空间 + 位移数据
+    */
+    std::unordered_map<std::string, std::unique_ptr<RegionFieldData>> region_field_map_; // 按场名称管理分区域场对象的哈希表 
 };
 
 }
