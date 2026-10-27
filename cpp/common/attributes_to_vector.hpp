@@ -6,8 +6,7 @@
 namespace trimuse
 {
 
-// 将 MFEM 属性数组转换为标准库动态数组
-inline std::vector<int> attributes_to_vector(const mfem::Array<int>& attributes)
+inline std::vector<int> attributes_to_vector(const mfem::Array<int>& attributes) // 将 MFEM 属性数组转换为标准库动态数组
 {
     std::vector<int> values;
     values.reserve(attributes.Size());
