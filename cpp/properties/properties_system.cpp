@@ -355,12 +355,14 @@ void PropertiesSystem::evaluate_and_store_points(const Manager& manager, const P
     const mfem::Mesh& mesh = fem_system_.mesh_data().mfem_mesh(); // 取得原网格
     std::vector<std::string> common_required; // 非积分点属性，如时间、区域属性
     std::vector<std::string> point_required; // 积分点属性，如积分点孔隙率
-    std::vector<std::string> field_required; // 温度、浓度等求解场
+    std::vector<std::pair<std::string, FieldView>> field_required; // 温度、浓度等求解场, 区域更新时统一选定试探场或已保存场
     for (const std::string& required_name : required)
     {
         if (solution_field_states.count(required_name) != 0)
         {
-            field_required.push_back(required_name); // 如果是求解场，加入 field_required，然后处理下一个依赖
+            const auto trial = trial_fields.find(required_name); // 为当前依赖的求解场选择数据来源: 有试探场就用试探场，否则用 FemSystem 中保存的场，并把选好的视图存入列表
+            field_required.emplace_back(required_name,
+                trial != trial_fields.end() ? trial->second : fem_system_.field_view(required_name));
             continue;
         }
         (property_info(required_name).scope == PropertyScope::IntegrationPoint ? point_required : common_required).push_back(required_name); // 积分点属性加入 point_required 其他属性加入 common_required
@@ -374,14 +376,11 @@ void PropertiesSystem::evaluate_and_store_points(const Manager& manager, const P
     {
         const mfem::Geometry::Type geometry = mesh.GetElementBaseGeometry(element);
         const mfem::IntegrationRule* rule = fem_system_.domain_quadrature_rule(geometry);
-        mfem::IsoparametricTransformation transformation;
-        mesh.GetElementTransformation(element, &transformation);
         const auto& positions = fem_system_.domain_quadrature_positions(element); // 取得之前缓存的、该单元全部积分点的实际空间坐标，避免重新计算坐标
         const std::size_t offset = fem_system_.domain_quadrature_offset(element); // 取得该单元积分点在全域连续数组中的起始下标
         for (int point_index = 0; point_index < rule->GetNPoints(); ++point_index) // 遍历当前单元的积分点
         {
             const mfem::IntegrationPoint& integration_point = rule->IntPoint(point_index);
-            transformation.SetIntPoint(&integration_point);
             const auto& position = positions[point_index]; // 读取这个积分点已经缓存的实际坐标
             const std::size_t index = offset + point_index; // 将局部积分点编号转换为全域积分点下标
 
@@ -392,21 +391,9 @@ void PropertiesSystem::evaluate_and_store_points(const Manager& manager, const P
             point.z = position[2];
             point.values = common_point.values;
             load_required_states(point, point_required, index); // 按全域积分点下标 index，读取该点需要的积分点属性
-            for (const std::string& name : field_required) // 逐个处理温度、浓度等场依赖
+            for (const auto& [name, field] : field_required) // 由 FEM 层统一选择区域、映射单元编号并取值
             {
-                const auto trial = trial_fields.find(name);
-                const mfem::GridFunction& field = trial != trial_fields.end()
-                    ? *trial->second : fem_system_.field_data(name).mfem_grid_function(); // 有试探场：使用试探场 没有试探场：使用 FemSystem 中保存的场
-                if (field.FESpace()->GetVDim() == 1) // 标量场 如 积分点温度 = Σ 单元自由度温度 × 对应形函数值
-                {
-                    point.values[name] = field.GetValue(transformation, integration_point); // 就在当前积分点插值得到一个标量，并存入状态点
-                }
-                else // 多分量场
-                {
-                    mfem::Vector components; // 在当前积分点计算场的所有分量，例如三维位移的三个分量
-                    field.GetVectorValue(transformation, integration_point, components);
-                    point.values[name] = VectorValue(components.GetData(), components.GetData() + components.Size()); // 把 MFEM 向量中的分量复制到 VectorValue，再存入状态点 这里统一存为向量，并没有自动转换成 Tensor2DValue 或 Tensor3DValue
-                }
+                point.values[name] = field.evaluate(region_attribute, element, integration_point);
             }
             values[index] = manager.evaluate(property.name, point); // 计算并保存当前点的属性
         }

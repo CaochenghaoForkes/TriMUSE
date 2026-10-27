@@ -99,6 +99,16 @@ const FieldData& FemSystem::field_data(const std::string& name) const // 返回�
     return field_map_.at(name)->field_data;
 }
 
+FieldView FemSystem::field_view(const std::string& name) const // 根据场名找到对应的连续场或分域场，并返回一个统一的 FieldView，不复制场数据
+{
+    const auto region = region_field_map_.find(name); // region 是迭代器，不是分域场对象
+    if (region != region_field_map_.end()) // 如果找到了，说明这个场使用分区域空间
+    {
+        return region->second.get(); // region->second.get() 取得 std::unique_ptr<RegionFieldData>  但函数要求返回 FieldView 所以编译器会调用对应的转换构造函数 相当于 return FieldView(region->second.get());
+    }
+    return &field_data(name).mfem_grid_function(); // 如果没找到分域场 首先 field_data(name): 取得同名连续场的数据对象 然后 .mfem_grid_function(): 取得其中的 GridFunction 引用 最后调用 FieldView(const mfem::GridFunction*)，构造返回的视图
+}
+
 const mfem::IntegrationRule* FemSystem::domain_quadrature_rule(mfem::Geometry::Type geometry) const // 返回域内 geometry 型参考单元的求积规则
 {
     return domain_quadrature_rules_.at(geometry);

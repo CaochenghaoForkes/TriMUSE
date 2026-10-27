@@ -11,6 +11,7 @@
 #include "fem/mesh_data.hpp"
 #include "fem/finite_element_space_data.hpp"
 #include "fem/field_data.hpp"
+#include "fem/field_view.hpp"
 #include "fem/region_field_data.hpp"
 
 namespace trimuse
@@ -46,6 +47,8 @@ public:
     FieldData& field_data(const std::string& name); // 返回某场可写场数据
 
     const FieldData& field_data(const std::string& name) const; // 返回某场可读场数据
+
+    FieldView field_view(const std::string& name) const; // 统一访问连续场或分域场, 不复制场数据
 
     const mfem::IntegrationRule* domain_quadrature_rule(mfem::Geometry::Type geometry) const; // 返回域内 geometry 型参考单元的求积规则
 

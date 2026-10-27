@@ -23,6 +23,7 @@ add_library(
     fem/region_mesh_data.cpp
     fem/finite_element_space_data.cpp
     fem/field_data.cpp
+    fem/field_view.cpp
     fem/region_field_data.cpp
     fem/fem_system.cpp
     physics/thermal/boundary/thermal_boundary_manager.cpp

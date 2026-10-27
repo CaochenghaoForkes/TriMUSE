@@ -19,7 +19,7 @@ namespace trimuse
 class PropertiesSystem
 {
 public:
-    using FieldMap = std::unordered_map<std::string, const mfem::GridFunction*>; // 场名 -> 场值
+    using FieldMap = std::unordered_map<std::string, FieldView>; // 场名 -> 连续场或分域场的只读视图, 用于传入试探场
 
     explicit PropertiesSystem(const FemSystem& fem_system); // Global、Region、Zone 初始化为 std::nullopt IntegrationPoint 创建空数组 并预存储各个区域的体积
 
