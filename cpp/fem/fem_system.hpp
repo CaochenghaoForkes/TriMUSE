@@ -32,6 +32,8 @@ public:
 
     void add_region_field(const std::string& name, int order, int vector_dimension = 1); // 将名为 name 的场, 创建并初始化一个分域场对象，然后返回拥有它的 unique_ptr 智能指针存入哈希表
 
+    bool has_region_field(const std::string& name) const { return region_field_map_.count(name) != 0; }
+
     RegionFieldData& region_field(const std::string& name); // 返回名为 name 的场的子域场数据
 
     const RegionFieldData& region_field(const std::string& name) const; // 返回名为 name 的场的子域场数据

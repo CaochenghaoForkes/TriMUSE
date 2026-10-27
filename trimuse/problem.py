@@ -22,7 +22,10 @@ class Thermal:
         initial_configs = self.prepare_initial(input_cards.thermal.initial, mesh_info.region_attributes)
         source_configs = self.prepare_source(input_cards.thermal.source, mesh_info.region_attributes)
         boundary_configs = self.prepare_boundary(input_cards.thermal.boundary, mesh_info.boundary_attributes)
-        self.thermal_problem = ThermalProblem(fem, properties, solver, output, problem_type, initial_configs, source_configs, boundary_configs)
+        interface_configs = [(mesh_info.boundary_attributes[item.name], item.model, item.parameters)
+                             for item in input_cards.thermal.interfaces.interface]
+        self.thermal_problem = ThermalProblem(fem, properties, solver, output, problem_type,
+                                             initial_configs, source_configs, boundary_configs, interface_configs)
 
     @staticmethod
     def prepare_initial(initial: ThermalCard.Initial, region_attributes: dict[str, int]) -> list[ProblemConfigEntry]:

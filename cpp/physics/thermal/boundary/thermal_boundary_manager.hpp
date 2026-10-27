@@ -1,56 +1,50 @@
 #pragma once
 
-#include <memory>
-#include <string>
-#include <vector>
-
-#include "common/model_parameters.hpp"
-#include "fem/fem_system.hpp"
-#include "fem/geometric_weighted_coefficient.hpp"
-#include "properties/properties_field_data.hpp"
+#include <array>
+#include <map>
+#include "common/model_registry.hpp"
+#include "physics/thermal/boundary/thermal_boundary_model.hpp"
+#include "properties/properties_system.hpp"
 
 namespace trimuse
 {
 
-struct ThermalBoundaryConfig
-{
-    int boundary_attribute;
-    std::string model_name;
-    ModelParameterMap parameters;
-};
-
 class ThermalBoundaryManager
 {
 public:
-    ThermalBoundaryManager(FemSystem& fem_system, const std::vector<ThermalBoundaryConfig>& boundary_configs);
+    explicit ThermalBoundaryManager(const std::vector<ThermalBoundaryConfig>& configs); // 注册热边界模型 并为各个边界配置具体模型
 
-    void update(const PropertiesFieldData& properties_field_data);
+    void update(const PropertiesFieldData& properties); // 更新各边界模型的返回值，并分别标记矩阵项、右端项和指定温度是否需要更新
 
-    void add_integrators(mfem::BilinearForm& bilinear_form);
+    void mark_coupled(PropertiesSystem& properties, const std::string& field) const; // 向属性系统登记: 边界模型所依赖的属性，哪些需要随指定求解场更新
 
-    void add_integrators(mfem::LinearForm& linear_form);
+    bool coupled(const PropertiesSystem& properties, const std::string& field) const; // 判断场与依赖属性是否存在耦合关系
 
-    void apply_essential_conditions(mfem::GridFunction& temperature, mfem::Array<int>& essential_true_dofs) const;
+    bool required_no_change(int zone, BoundaryPart part) const; // 判断指定边界分区的某一部分是否可以复用
+
+    void assembled(int zone, BoundaryPart part); // 标记指定边界分区的指定部分已被组装更新
+
+    std::vector<int> zones() const; // 返回当前边界管理器中，已配置边界模型的所有 zone 编号
+
+    const ThermalBoundaryValues& values(int zone) const; // 返回指定区域的 values.matrix: 边界矩阵系数 values.load 边界右端系数 values.temperature 指定表面温度
+
+    bool essential(int zone) const; // 判断指定区域是否是一类边界条件需要约束
 
 private:
-    struct BoundaryCoefficients
+    struct Assignment // 保存某个边界分区的模型、依赖属性、最新求值结果，以及组装变化标记
     {
-        explicit BoundaryCoefficients(const FemSystem& fem_system)
-            : weighted_matrix(matrix, fem_system), weighted_rhs(rhs, fem_system) {}
+        std::unique_ptr<ThermalBoundaryModel> model; // 独占拥有该分区的具体边界模型对象，例如 ThermalRobinBoundary
 
-        mfem::ConstantCoefficient matrix{0.0}; // Robin: h; Neumann 无左端项
-        mfem::ConstantCoefficient rhs{0.0}; // Robin: h T_infinity; Neumann: -q_n
-        mfem::ConstantCoefficient temperature{0.0}; // Dirichlet: 指定表面温度, 不乘几何权重
-        GeometricWeightedCoefficient weighted_matrix;
-        GeometricWeightedCoefficient weighted_rhs;
+        std::vector<std::string> required; // 保存模型依赖的属性名称
+
+        ThermalBoundaryValues values; // values.matrix: 边界矩阵系数 values.load 边界右端系数 values.temperature 指定表面温度
+
+        std::array<bool, 3> dirty{true, true, true}; // 分别记录这三部分是否需要处理重组
     };
 
-    FemSystem& fem_system_;
-    std::vector<ThermalBoundaryConfig> boundary_configs_;
-    std::vector<mfem::Array<int>> boundary_markers_;
-    mfem::Array<int> essential_boundary_marker_; // 所有 Dirichlet 分区的并集
-    // 与配置一一对应, 对象地址固定, 供积分器持续引用。
-    std::vector<std::unique_ptr<BoundaryCoefficients>> boundary_coefficients_;
+    ModelRegistry<ThermalBoundaryModel> registry_; // 模型名 -> 注册记录{工厂函数、依赖属性名称列表}
+
+    std::map<int, Assignment> models_; // 保存各边界分区的实际分配 如 边界 41 → Assignment{Robin 模型对象、依赖属性、缓存值、dirty}
 };
 
 }

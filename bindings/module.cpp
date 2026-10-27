@@ -52,7 +52,9 @@ PYBIND11_MODULE(_core, module)
             py::arg("name"),
             py::arg("order"),
             py::arg("vector_dimension") = 1
-        );
+        )
+        .def("add_region_field", &trimuse::FemSystem::add_region_field,
+             py::arg("name"), py::arg("order"), py::arg("vector_dimension") = 1);
     
     py::class_<trimuse::OutputManager>(module, "OutputManager")
         .def(py::init<trimuse::FemSystem&, const std::string&>(),
@@ -103,15 +105,26 @@ PYBIND11_MODULE(_core, module)
                          trimuse::SolverSystem& solver, trimuse::OutputManager& output, const std::string& problem_type,
                          const std::vector<ProblemConfigEntry>& initial_configs,
                          const std::vector<ProblemConfigEntry>& source_configs,
-                         const std::vector<ProblemConfigEntry>& boundary_configs)
+                         const std::vector<ProblemConfigEntry>& boundary_configs,
+                         const std::vector<ProblemConfigEntry>& interface_configs)
         {
+            const auto interfaces = problem_configs<trimuse::ThermalInterfaceConfig>(interface_configs);
+            if (fem.has_region_field("temperature"))
+            {
+                return std::make_unique<trimuse::ThermalProblem>(fem, fem.region_field("temperature"), properties, solver, output, problem_type,
+                    problem_configs<trimuse::ThermalInitialConfig>(initial_configs),
+                    problem_configs<trimuse::ThermalDomainConfig>(source_configs),
+                    problem_configs<trimuse::ThermalBoundaryConfig>(boundary_configs), interfaces);
+            }
             return std::make_unique<trimuse::ThermalProblem>(fem, fem.field_data("temperature"), properties, solver, output, problem_type,
                 problem_configs<trimuse::ThermalInitialConfig>(initial_configs),
-                problem_configs<trimuse::ThermalSourceConfig>(source_configs),
-                problem_configs<trimuse::ThermalBoundaryConfig>(boundary_configs));
+                problem_configs<trimuse::ThermalDomainConfig>(source_configs),
+                problem_configs<trimuse::ThermalBoundaryConfig>(boundary_configs), interfaces);
         }), py::arg("fem_system"), py::arg("properties_system"), py::arg("solver_system"), py::arg("output_manager"), py::arg("problem_type"),
             py::arg("initial_configs"), py::arg("source_configs"), py::arg("boundary_configs"),
+            py::arg("interface_configs") = std::vector<ProblemConfigEntry>{},
             py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::keep_alive<1, 4>(), py::keep_alive<1, 5>())
+        .def("assembly_counts", &trimuse::ThermalProblem::assembly_counts)
         .def("solve", &trimuse::ThermalProblem::solve, py::arg("time_step") = 0.0, py::arg("theta") = 1.0);
 
     py::class_<trimuse::RadioactivityProblem>(module, "RadioactivityProblem")

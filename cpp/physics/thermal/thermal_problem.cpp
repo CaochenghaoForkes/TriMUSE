@@ -1,256 +1,145 @@
 #include "physics/thermal/thermal_problem.hpp"
 
-#include <algorithm>
 #include <chrono>
 #include <cmath>
-#include <memory>
 #include <stdexcept>
 
 namespace trimuse
 {
-
-ThermalProblem::ThermalProblem(FemSystem& fem_system, FieldData& temperature_field, PropertiesSystem& properties_system,
-                               SolverSystem& solver_system, OutputManager& output_manager,
-                               const std::string& problem_type,
-                               const std::vector<ThermalInitialConfig>& initial_configs,
-                               const std::vector<ThermalSourceConfig>& source_configs,
-                               const std::vector<ThermalBoundaryConfig>& boundary_configs)
-    : fem_system_(fem_system),
-      temperature_field_(temperature_field),
-      properties_system_(properties_system),
-      solver_system_(solver_system),
-      output_manager_(output_manager),
-      problem_type_(problem_type),
-      source_manager_(fem_system, source_configs),
-      boundary_manager_(fem_system, boundary_configs),
-      conduction_manager_(fem_system),
-      capacity_manager_(fem_system)
+ThermalProblem::ThermalProblem(FemSystem& fem, FieldData& temperature, PropertiesSystem& properties,
+    SolverSystem& solver, OutputManager& output, const std::string& problem_type,
+    const std::vector<ThermalInitialConfig>& initial, const std::vector<ThermalDomainConfig>& sources,
+    const std::vector<ThermalBoundaryConfig>& boundaries, const std::vector<ThermalInterfaceConfig>& interfaces)
+    : ThermalProblem(fem, ThermalField(fem, temperature), properties, solver, output, problem_type, initial, sources, boundaries, interfaces)
 {
-    if (problem_type_ == "steady")
-    {
-        properties_system_.mark_coupled("temperature", {"material.thermal.conductivity"});
-    }
-    else
-    {
-        properties_system_.mark_coupled("temperature", {"material.general.mass_density", "material.thermal.specific_heat", "material.thermal.conductivity"});
-    }
-    trimuse::initialize_temperature(fem_system_, temperature_field_, initial_configs);
+}
+ThermalProblem::ThermalProblem(FemSystem& fem, RegionFieldData& temperature, PropertiesSystem& properties,
+    SolverSystem& solver, OutputManager& output, const std::string& problem_type,
+    const std::vector<ThermalInitialConfig>& initial, const std::vector<ThermalDomainConfig>& sources,
+    const std::vector<ThermalBoundaryConfig>& boundaries, const std::vector<ThermalInterfaceConfig>& interfaces)
+    : ThermalProblem(fem, ThermalField(fem, temperature), properties, solver, output, problem_type, initial, sources, boundaries, interfaces)
+{
+}
+ThermalProblem::ThermalProblem(FemSystem& fem, ThermalField temperature, PropertiesSystem& properties,
+    SolverSystem& solver, OutputManager& output, const std::string& problem_type,
+    const std::vector<ThermalInitialConfig>& initial, const std::vector<ThermalDomainConfig>& sources,
+    const std::vector<ThermalBoundaryConfig>& boundaries, const std::vector<ThermalInterfaceConfig>& interfaces)
+    : temperature_(std::move(temperature)), properties_(properties), solver_(solver), output_(output),
+      transient_(problem_type == "transient"), assembly_(fem, temperature_, sources, boundaries, interfaces)
+{
+    assembly_.mark_coupled(properties_, transient_);
+    if (temperature_.regional()) { initialize_temperature(*temperature_.region_target(), initial); }
+    else { initialize_temperature(fem, *temperature_.continuous_target(), initial); }
+    temperature_.load();
+    assembly_.project_initial();
+    temperature_.accept();
+}
+
+void ThermalProblem::accept_temperature()
+{
+    temperature_.accept();
+    // 收敛后的属性与最终温度同步; 上一时间步快照仍由外部调度统一提交。
+    properties_.update_field_dependent_materials("temperature", {{"temperature", temperature_.view()}}, true);
 }
 
 void ThermalProblem::solve(double time_step, double theta)
 {
-    output_manager_.clear_solve_information("temperature");
+    output_.clear_solve_information("temperature");
     const auto started = std::chrono::steady_clock::now();
-    if (problem_type_ == "steady")
+    const auto before = assembly_.counts();
+    temperature_.load();
+    if (transient_ && time_step == 0.0)
     {
-        solve_steady();
-    }
-    else
-    {
-        solve_transient(time_step, theta);
-    }
-    if (problem_type_ == "steady" || time_step != 0.0)
-    {
-        const double elapsed = std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count();
-        output_manager_.append_solve_information("temperature", "solve_elapsed_seconds", elapsed);
-    }
-}
-
-void ThermalProblem::solve_steady()
-{
-    mfem::GridFunction& temperature = temperature_field_.mfem_grid_function();
-    mfem::FiniteElementSpace* space = temperature.FESpace();
-    mfem::GridFunction trial_temperature(space);
-    trial_temperature = temperature;
-    const auto& regions = fem_system_.mesh_data().region_attributes();
-    const bool nonlinear = std::any_of(regions.begin(), regions.end(), [this](int region)
-    {
-        return properties_system_.coupled_with_field("material.thermal.conductivity", region, "temperature");
-    });
-    const NonlinearSolverConfig& picard = solver_system_.nonlinear_config("temperature");
-    const int max_iterations = nonlinear ? picard.max_iterations : 1;
-    source_manager_.update(properties_system_.field_data());
-    boundary_manager_.update(properties_system_.field_data());
-    mfem::Array<int> essential_true_dofs;
-    boundary_manager_.apply_essential_conditions(trial_temperature, essential_true_dofs); // 1.把指定表面温度写入 trial_temperature 对应的边界自由度 2.把这些需要约束的真实自由度编号填入 essential_true_dofs
-
-    mfem::LinearForm source_form(space);
-    source_manager_.add_integrators(source_form);
-    boundary_manager_.add_integrators(source_form);
-    source_form.Assemble(); // 本次求解的原始载荷固定, 不依赖 Picard 试探温度
-
-    for (int iteration = 0; iteration < max_iterations; ++iteration)
-    {
-        mfem::Vector previous_temperature(trial_temperature); // Picard 前一轮解
-        properties_system_.update_field_dependent_materials("temperature", {{"temperature", &trial_temperature}}, true);
-        conduction_manager_.update(properties_system_.field_data());
-
-        mfem::BilinearForm conduction_form(space);
-        conduction_manager_.add_integrators(conduction_form);
-        boundary_manager_.add_integrators(conduction_form);
-        conduction_form.Assemble();
-
-        mfem::SparseMatrix system_matrix;
-        mfem::Vector right_hand_side(source_form); // 消元可能修改右端, 每轮从原始载荷复制。
-        mfem::Vector true_temperature, true_right_hand_side;
-        conduction_form.FormLinearSystem(essential_true_dofs, trial_temperature, right_hand_side, system_matrix, true_temperature, true_right_hand_side, 1);
-        solver_system_.solve_linear("temperature", system_matrix, true_right_hand_side, true_temperature, output_manager_);
-        conduction_form.RecoverFEMSolution(true_temperature, right_hand_side, trial_temperature);
-
-        previous_temperature -= trial_temperature;
-        const double increment = previous_temperature.Normlinf();
-        if (!std::isfinite(increment))
-        {
-            throw std::runtime_error("稳态导热迭代产生非有限温度");
-        }
-        if (!nonlinear || increment <= picard.absolute_tolerance + picard.relative_tolerance * trial_temperature.Normlinf())
-        {
-            temperature = trial_temperature;
-            output_manager_.append_solve_information("temperature", "picard_iterations", iteration + 1);
-            output_manager_.append_solve_information("temperature", "final_temperature_increment_inf_norm_K", increment);
-            return;
-        }
-    }
-    throw std::runtime_error("稳态导热 Picard 迭代未收敛");
-}
-
-void ThermalProblem::solve_transient(double time_step, double theta)
-{
-    // 初始时刻施加指定边界温度, 不执行时间推进。
-    if (time_step == 0.0)
-    {
-        boundary_manager_.update(properties_system_.field_data());
-        mfem::Array<int> essential_true_dofs;
-        boundary_manager_.apply_essential_conditions(temperature_field_.mfem_grid_function(), essential_true_dofs);
+        assembly_.update_boundary(properties_.field_data());
+        assembly_.apply_initial_constraints();
+        accept_temperature();
         return;
     }
-    mfem::GridFunction& temperature = temperature_field_.mfem_grid_function();
-    mfem::FiniteElementSpace* space = temperature.FESpace();
-    mfem::Vector old_temperature(temperature);
-    mfem::GridFunction trial_temperature(space);
-    trial_temperature = temperature;
-
-    // 上一步的属性快照固定不变 K 同时包含域内导热和 Robin 左端项
-    // F 同时包含体积热源、Robin 和 Neumann 右端项
-    mfem::BilinearForm old_capacity(space), old_conduction(space);
-    mfem::LinearForm old_source(space);
-    mfem::Vector old_right_hand_side(space->GetVSize());
-    old_right_hand_side = 0.0;
-    if (theta < 1.0)
+    iterate(time_step, theta);
+    output_.append_solve_information("temperature", "solve_elapsed_seconds",
+        std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count());
+    for (const auto& [name, count] : assembly_.counts())
     {
-        const PropertiesFieldData& old_properties = properties_system_.previous_field_data();
-        capacity_manager_.update(old_properties);
-        conduction_manager_.update(old_properties);
-        source_manager_.update(old_properties);
-        boundary_manager_.update(old_properties);
-        capacity_manager_.add_integrators(old_capacity);
-        conduction_manager_.add_integrators(old_conduction);
-        source_manager_.add_integrators(old_source);
-        boundary_manager_.add_integrators(old_conduction);
-        boundary_manager_.add_integrators(old_source);
-        old_capacity.Assemble();
-        old_conduction.Assemble();
-        old_source.Assemble();
-        old_capacity.Finalize();
-        old_conduction.Finalize();
-
-        // 整个时间步内固定: (1-theta)(F_n-K_n T_n), 仅计算一次。
-        old_conduction.SpMat().Mult(old_temperature, old_right_hand_side);
-        old_right_hand_side *= -1.0;
-        old_right_hand_side += old_source;
-        old_right_hand_side *= 1.0 - theta;
+        const auto old = before.find(name);
+        output_.append_solve_information("temperature", name + "_assemblies",
+            count - (old == before.end() ? 0 : old->second));
     }
+}
 
-    const auto& regions = fem_system_.mesh_data().region_attributes();
-    const bool nonlinear = theta > 0.0 && std::any_of(regions.begin(), regions.end(), [this](int region)
+void ThermalProblem::iterate(double time_step, double theta)
+{
+    const mfem::Vector old_temperature = temperature_.values();
+    ThermalAssembly::State old;
+    mfem::Vector old_rhs(temperature_.size()); old_rhs = 0.0;
+    if (transient_ && theta < 1.0)
     {
-        return properties_system_.coupled_with_field("material.general.mass_density", region, "temperature") ||
-               properties_system_.coupled_with_field("material.thermal.specific_heat", region, "temperature") ||
-               properties_system_.coupled_with_field("material.thermal.conductivity", region, "temperature");
-    });
-    const NonlinearSolverConfig& picard = solver_system_.nonlinear_config("temperature");
-    const int max_iterations = nonlinear ? picard.max_iterations : 1;
-
-    // 无论 theta 取何值, 本质边界均约束为新时刻的指定温度; 旧温度向量保持不变。
-    boundary_manager_.update(properties_system_.field_data());
-    mfem::Array<int> essential_true_dofs;
-    boundary_manager_.apply_essential_conditions(trial_temperature, essential_true_dofs);
-    mfem::LinearForm new_source(space);
-    if (theta > 0.0) // 新时刻的自然边界和源仅在 theta>0 时参与组装。
-    {
-        source_manager_.update(properties_system_.field_data());
-        source_manager_.add_integrators(new_source);
-        boundary_manager_.add_integrators(new_source);
-        new_source.Assemble(); // 本时间步固定, 不在 Picard 中重复积分。
+        old = assembly_.update(properties_.previous_field_data(), true);
+        old.conduction->Mult(old_temperature, old_rhs);
+        old_rhs *= -1.0;
+        old_rhs += *old.load;
+        old_rhs *= 1.0 - theta;
     }
-    for (int iteration = 0; iteration < max_iterations; ++iteration)
+    // 在新时刻施加本质边界, 不修改旧温度或已缓存的矩阵。
+    assembly_.update_boundary(properties_.field_data());
+    assembly_.apply_initial_constraints();
+    const bool nonlinear = (!transient_ || theta > 0.0) && assembly_.coupled(properties_, transient_);
+    const auto& picard = solver_.nonlinear_config("temperature");
+    for (int iteration = 0; iteration < (nonlinear ? picard.max_iterations : 1); ++iteration)
     {
-        mfem::Vector previous_trial(trial_temperature);
-        mfem::Vector right_hand_side(space->GetVSize());
-        std::unique_ptr<mfem::SparseMatrix> system_matrix;
-
-        if (theta == 0.0)
+        mfem::Vector previous = temperature_.values(), rhs(temperature_.size());
+        ThermalAssembly::State current;
+        if (!transient_ || theta > 0.0)
         {
-            old_capacity.SpMat().Mult(old_temperature, right_hand_side); // SpMat() 取出已装配的旧热容矩阵 计算 MnTn 写入 right_hand_side
-            right_hand_side /= time_step; // 右端变成 MnTn/delta_t
-            system_matrix = std::make_unique<mfem::SparseMatrix>(old_capacity.SpMat()); // 取 Mn
-            *system_matrix *= 1.0 / time_step; // 左端矩阵为 Mn/delta_t
+            properties_.update_field_dependent_materials("temperature", {{"temperature", temperature_.view()}}, true);
+            current = assembly_.update(properties_.field_data(), transient_);
+        }
+        std::unique_ptr<mfem::SparseMatrix> matrix;
+        if (!transient_)
+        {
+            matrix = std::make_unique<mfem::SparseMatrix>(*current.conduction);
+            rhs = *current.load;
         }
         else
         {
-            properties_system_.update_field_dependent_materials("temperature", {{"temperature", &trial_temperature}}, true);
-            const PropertiesFieldData& new_properties = properties_system_.field_data();
-            capacity_manager_.update(new_properties);
-            conduction_manager_.update(new_properties);
-            mfem::BilinearForm new_capacity(space), new_conduction(space);
-            capacity_manager_.add_integrators(new_capacity);
-            conduction_manager_.add_integrators(new_conduction);
-            boundary_manager_.add_integrators(new_conduction);
-            new_capacity.Assemble();
-            new_conduction.Assemble();
-            new_capacity.Finalize();
-            new_conduction.Finalize();
-
-            // theta=1 直接使用 M_{n+1}, 不访问或组装旧热容矩阵。
-            std::unique_ptr<mfem::SparseMatrix> mixed_capacity;
-            const mfem::SparseMatrix* capacity_matrix = &new_capacity.SpMat();
-            if (theta < 1.0)
+            // 保留原有 theta 离散: M_theta=(1-theta)M_n+theta M_{n+1}。
+            std::unique_ptr<mfem::SparseMatrix> mixed_mass;
+            const mfem::SparseMatrix* mass = theta == 0.0 ? old.mass.get() : current.mass.get();
+            if (theta > 0.0 && theta < 1.0)
             {
-                mixed_capacity.reset(mfem::Add(1.0 - theta, old_capacity.SpMat(), theta, new_capacity.SpMat()));
-                capacity_matrix = mixed_capacity.get(); // M_theta = (1-theta) M_n + theta M_{n+1}
+                mixed_mass.reset(mfem::Add(1.0 - theta, *old.mass, theta, *current.mass));
+                mass = mixed_mass.get();
             }
-            capacity_matrix->Mult(old_temperature, right_hand_side); // right_hand_side = M_thetaTn 其中 M_theta=(1-theta)Mn+thetaMn+1
-            right_hand_side /= time_step; // right_hand_side = M_thetaTn/delta_t
-            right_hand_side.Add(theta, new_source); // right_hand_side = M_thetaTn/delta_t + theta*Fn+1
-            system_matrix.reset(mfem::Add(1.0 / time_step, *capacity_matrix, theta, new_conduction.SpMat())); // A=M_theta/delta_t + thetaKn+1
+            mass->Mult(old_temperature, rhs);
+            rhs /= time_step;
+            rhs += old_rhs;
+            if (theta > 0.0)
+            {
+                rhs.Add(theta, *current.load);
+                matrix.reset(mfem::Add(1.0 / time_step, *mass, theta, *current.conduction));
+            }
+            else
+            {
+                matrix = std::make_unique<mfem::SparseMatrix>(*mass);
+                *matrix *= 1.0 / time_step;
+            }
         }
-
-        if (theta < 1.0)
+        mfem::SparseMatrix system;
+        mfem::Vector load, solution;
+        assembly_.form_system(*matrix, rhs, system, load, solution);
+        solver_.solve_linear("temperature", system, load, solution, output_);
+        assembly_.recover(solution);
+        const auto trial = temperature_.values();
+        previous -= trial;
+        const double increment = previous.Normlinf();
+        if (!std::isfinite(increment)) { throw std::runtime_error("导热迭代产生非有限温度"); }
+        if (!nonlinear || increment <= picard.absolute_tolerance + picard.relative_tolerance * trial.Normlinf())
         {
-            right_hand_side += old_right_hand_side;
-        }
-        // 当前为共形串行 H1 空间, 总体自由度与真实自由度一致; 对最终矩阵对称消元。
-        for (const int dof : essential_true_dofs)
-        {
-            system_matrix->EliminateRowCol(dof, trial_temperature[dof], right_hand_side); // 在方程 AT=b 中，把编号为 dof 的温度固定为 trial_temperature[dof]
-        }
-        solver_system_.solve_linear("temperature", *system_matrix, right_hand_side, trial_temperature, output_manager_);
-
-        previous_trial -= trial_temperature;
-        const double increment = previous_trial.Normlinf();
-        if (!std::isfinite(increment))
-        {
-            throw std::runtime_error("瞬态导热迭代产生非有限温度");
-        }
-        if (!nonlinear || increment <= picard.absolute_tolerance + picard.relative_tolerance * trial_temperature.Normlinf())
-        {
-            temperature = trial_temperature;
-            output_manager_.append_solve_information("temperature", "picard_iterations", iteration + 1);
-            output_manager_.append_solve_information("temperature", "final_temperature_increment_inf_norm_K", increment);
+            accept_temperature();
+            output_.append_solve_information("temperature", "picard_iterations", iteration + 1);
+            output_.append_solve_information("temperature", "final_temperature_increment_inf_norm_K", increment);
             return;
         }
     }
-    throw std::runtime_error("瞬态导热 Picard 迭代未收敛");
+    throw std::runtime_error("导热 Picard 迭代未收敛");
 }
-
 }

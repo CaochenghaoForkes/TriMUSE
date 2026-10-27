@@ -49,6 +49,7 @@ class XmlLoader:
         simulation = cls._load_simulation(chief.input_files.simulation)
         postprocess = cls._load_postprocess(chief.input_files.postprocess)
         InputCardsExamine.examine(geometry_mesh, material, properties, thermal, postprocess, radioactivity)
+        InputCardsExamine.check_thermal_space(simulation, thermal)
         input_cards = InputCards(chief=chief, geometry_mesh=geometry_mesh, material=material, properties=properties, thermal=thermal, simulation=simulation, postprocess=postprocess, radioactivity=radioactivity)
         return input_cards
 

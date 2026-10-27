@@ -18,5 +18,6 @@ struct ThermalInitialConfig
 
 // 仅在初始时刻调用, 不施加后续的温度边界约束
 void initialize_temperature(const FemSystem& fem_system, FieldData& temperature_field, const std::vector<ThermalInitialConfig>& initial_configs);
+void initialize_temperature(RegionFieldData& temperature_field, const std::vector<ThermalInitialConfig>& initial_configs);
 
 }

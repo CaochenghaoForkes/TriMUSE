@@ -63,6 +63,15 @@ private:
 
 }
 
+void initialize_temperature(RegionFieldData& temperature_field, const std::vector<ThermalInitialConfig>& initial_configs)
+{
+    for (const auto& config : initial_configs)
+    {
+        if (config.model_name != "uniform") { throw std::invalid_argument("尚未支持的初始温度模型: " + config.model_name); }
+        temperature_field.field_data(config.region_attribute).assign(std::get<double>(config.parameters.at("uniform_value")));
+    }
+}
+
 void initialize_temperature(const FemSystem& fem_system, FieldData& temperature_field, const std::vector<ThermalInitialConfig>& initial_configs)
 {
     std::unordered_map<int, double> region_values;

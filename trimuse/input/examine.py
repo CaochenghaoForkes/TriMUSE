@@ -4,9 +4,19 @@ from .properties.config import PropertiesCard
 from .thermal.config import ThermalCard
 from .radioactivity.config import RadioactivityCard
 from .postprocess.config import PostprocessCard
+from .simulation.config import SimulationCard
 
 class InputCardsExamine:
     """只负责卡间一致性, 各卡自身的检查由对应 examine 完成"""
+
+    @staticmethod
+    def check_thermal_space(simulation: SimulationCard, thermal: ThermalCard | None) -> None:
+        """有温度跳跃的界面必须使用分域空间"""
+        if thermal is None or all(item.model == "perfect_contact" for item in thermal.interfaces.interface):
+            return
+        temperature = next((item for item in simulation.solver.field if item.name == "temperature"), None)
+        if temperature is None or temperature.fem_space.continuity != "region":
+            raise ValueError("conductance/insulated 热界面要求 temperature 的 fem_space 设置 continuity=\"region\"")
 
     @classmethod
     def examine(cls, geometry_mesh: GeometryMeshCard, material: MaterialCard, properties: PropertiesCard, thermal: ThermalCard | None, postprocess: PostprocessCard, radioactivity: RadioactivityCard | None = None) -> None:

@@ -1,15 +1,17 @@
 #pragma once
-
-#include "properties/properties_field_data.hpp"
-
+#include "physics/thermal/boundary/thermal_boundary_model.hpp"
 namespace trimuse
 {
 
-class ThermalNeumannBoundary
+class ThermalNeumannBoundary final : public ThermalBoundaryModel
 {
 public:
-    // q_n = -k grad(T) · n, 外流为正; 弱形式右端系数为 -q_n。
-    static double evaluate(const PropertiesFieldData& properties_field_data, int boundary_attribute);
+    explicit ThermalNeumannBoundary(const ModelParameterMap&) {}
+
+    ThermalBoundaryValues evaluate(const PropertiesFieldData& properties, int zone) const override
+    {
+        return {0.0, -scalar(properties, "external.heat_flux", zone), 0.0}; // 热流向外为正只添加到右端载荷向量
+    }
 };
 
 }

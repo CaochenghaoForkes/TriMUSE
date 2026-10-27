@@ -16,7 +16,8 @@
         <!-- 按求解变量名关联问题中的场, 可选 temperature、concentration，field 可重复 -->
         <field name="[str]">
             <!-- 默认 H1 一阶, 几何网格阶次与场阶次分别设置 -->
-            <fem_space family="H1" order="[int]"/>
+            <!-- continuity 可省略, 默认 continuous; region 当前仅用于 temperature -->
+            <fem_space family="H1" order="[int]" continuity="[continuous][region]"/>
             <!-- 初版默认 cg, none, 1e-8, 1000, 可省略相应属性或整个节点 -->
             <!-- preconditioner: none 不使用预条件, jacobi 对角缩放, symmetric_gauss_seidel 对称 Gauss-Seidel -->
             <linear_solver method="cg" preconditioner="[none][jacobi][symmetric_gauss_seidel]" relative_tolerance="[float]" max_iterations="[int]"/>

@@ -29,9 +29,19 @@ public:
     const SolveInformation& solve_information(const std::string& field_name) const;
 
 private:
+    // 分域场以父网格上的不连续场输出, 保留界面两侧值及原有 PVD 路径。
+    struct FieldOutput
+    {
+        std::unique_ptr<mfem::L2_FECollection> collection;
+        std::unique_ptr<mfem::FiniteElementSpace> space;
+        std::unique_ptr<mfem::GridFunction> values;
+        std::unique_ptr<mfem::ParaViewDataCollection> collection_output;
+    };
+    void update_region_output(const std::string& name, mfem::GridFunction& output);
+
     FemSystem& fem_system_;
     std::string output_directory_;
-    std::unordered_map<std::string, std::unique_ptr<mfem::ParaViewDataCollection>> field_outputs_;
+    std::unordered_map<std::string, FieldOutput> field_outputs_;
     std::unordered_map<std::string, SolveInformation> solve_information_; // 场名 → 本次求解的有序信息, 允许名称重复
 };
 

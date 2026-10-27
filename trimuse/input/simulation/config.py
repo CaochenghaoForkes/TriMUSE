@@ -37,6 +37,7 @@ class SimulationCard:
 
             family: str = "H1"
             order: int = 1
+            continuity: str = "continuous"  # [continuous,region], region 当前用于温度场
 
         @dataclass
         class Quadrature:
@@ -174,7 +175,8 @@ class SimulationCardLoader:
         """初版默认使用一阶 H1 空间"""
         family = XmlUtils.read_attribute(element, "family", default="H1")
         order = XmlUtils.read_attribute(element, "order", int, default=1)
-        fem_space = SimulationCard.Solver.FemSpace(family=family, order=order)
+        continuity = XmlUtils.read_attribute(element, "continuity", default="continuous")
+        fem_space = SimulationCard.Solver.FemSpace(family=family, order=order, continuity=continuity)
         return fem_space
 
     @staticmethod

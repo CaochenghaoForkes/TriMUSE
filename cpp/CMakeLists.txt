@@ -26,16 +26,6 @@ add_library(
     fem/field_view.cpp
     fem/region_field_data.cpp
     fem/fem_system.cpp
-    physics/thermal/boundary/thermal_boundary_manager.cpp
-    physics/thermal/boundary/thermal_robin_boundary.cpp
-    physics/thermal/boundary/thermal_neumann_boundary.cpp
-    physics/thermal/boundary/thermal_dirichlet_boundary.cpp
-    physics/thermal/source/volumetric_power_source.cpp
-    physics/thermal/source/thermal_source_manager.cpp
-    physics/thermal/thermal_conduction_manager.cpp
-    physics/thermal/thermal_capacity_manager.cpp
-    physics/thermal/initial/thermal_initial_condition.cpp
-    physics/thermal/thermal_problem.cpp
     physics/radioactivity/boundary/radioactivity_boundary_manager.cpp
     physics/radioactivity/boundary/radioactivity_robin_boundary.cpp
     physics/radioactivity/boundary/radioactivity_neumann_boundary.cpp
@@ -55,10 +45,14 @@ add_library(
 file(GLOB_RECURSE PROPERTY_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/properties/*.cpp"
 )
+file(GLOB_RECURSE THERMAL_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/physics/thermal/*.cpp"
+)
 
 target_sources(trimuse_core PRIVATE
     common/linear_interpolation.cpp
     ${PROPERTY_SOURCES}
+    ${THERMAL_SOURCES}
 )
 
 target_include_directories(
@@ -86,3 +80,9 @@ set_target_properties(
     PROPERTIES
     POSITION_INDEPENDENT_CODE ON
 )
+
+option(TRIMUSE_BUILD_THERMAL_TESTS "Build thermal assembly/interface regression checks" OFF)
+if(TRIMUSE_BUILD_THERMAL_TESTS)
+    add_executable(trimuse_thermal_test ../tests/thermal_regression.cpp)
+    target_link_libraries(trimuse_thermal_test PRIVATE trimuse_core)
+endif()

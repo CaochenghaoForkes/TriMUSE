@@ -1,145 +1,84 @@
 #include "physics/thermal/boundary/thermal_boundary_manager.hpp"
-#include "physics/thermal/boundary/thermal_robin_boundary.hpp"
-#include "physics/thermal/boundary/thermal_neumann_boundary.hpp"
 #include "physics/thermal/boundary/thermal_dirichlet_boundary.hpp"
-
-#include <stdexcept>
+#include "physics/thermal/boundary/thermal_neumann_boundary.hpp"
+#include "physics/thermal/boundary/thermal_robin_boundary.hpp"
 
 namespace trimuse
 {
 
-namespace
+ThermalBoundaryManager::ThermalBoundaryManager(const std::vector<ThermalBoundaryConfig>& configs) // 注册热边界模型 并为各个边界配置具体模型
 {
-
-class BoundaryMassIntegrator final : public mfem::MassIntegrator // 重写边界单元积分器 \[K^\Gamma_{ij}=\int_{\Gamma_e}N_i\,h\,N_j\,\mathrm dS\]
-{   // 如果用默认的 MassIntegrator MFEM 会选择默认积分规则，我们做这个小包装就是希望它遵守输入中的 boundary_order
-public:
-    BoundaryMassIntegrator(mfem::Coefficient& coefficient, const FemSystem& fem_system)
-        : mfem::MassIntegrator(coefficient), fem_system_(fem_system) {}
-
-    void AssembleElementMatrix(const mfem::FiniteElement& element, mfem::ElementTransformation& transformation, mfem::DenseMatrix& matrix) override // 重写 MFEM 装配边界单元时的方法 传入该边界单元的有限元、几何映射，以及用于接收计算结果的单元矩阵
-    {   // element 当前边界单元使用的参考有限元，包括参考形状、基函数和自由度等信息
-        SetIntRule(fem_system_.boundary_quadrature_rule(element.GetGeomType())); // 根据边界单元形状，选取我们保存的求积规则
-        mfem::MassIntegrator::AssembleElementMatrix(element, transformation, matrix); // 调用基类的方法，真正计算：积分_边界单元(Ni*h*Nj)dS 传入矩阵
-    }
-
-private:
-    const FemSystem& fem_system_;
-};
-
-class BoundaryLFIntegrator final : public mfem::BoundaryLFIntegrator // 边界右端积分, 系数为 Robin 的 hT_infinity 或 Neumann 的 -q_n
-{
-public:
-    BoundaryLFIntegrator(mfem::Coefficient& coefficient, const FemSystem& fem_system)
-        : mfem::BoundaryLFIntegrator(coefficient), fem_system_(fem_system) {}
-
-    using mfem::BoundaryLFIntegrator::AssembleRHSElementVect;
-
-    void AssembleRHSElementVect(const mfem::FiniteElement& element, mfem::ElementTransformation& transformation, mfem::Vector& vector) override
+    registry_.register_model<ThermalDirichletBoundary>("dirichlet", {"external.surface_temperature"});
+    registry_.register_model<ThermalNeumannBoundary>("neumann", {"external.heat_flux"});
+    registry_.register_model<ThermalRobinBoundary>("robin", {"derived.heat_transfer_coef", "external.environment_temperature"});
+    for (const auto& config : configs) // 逐条读取边界配置
     {
-        SetIntRule(fem_system_.boundary_quadrature_rule(element.GetGeomType())); // 按边界单元形状选求积规则
-        mfem::BoundaryLFIntegrator::AssembleRHSElementVect(element, transformation, vector); // 计算积分_边界单元(Ni*Coef)dS, 写入边界单元载荷向量 vector
-    }
-
-private:
-    const FemSystem& fem_system_;
-};
-
-}
-
-ThermalBoundaryManager::ThermalBoundaryManager(FemSystem& fem_system, const std::vector<ThermalBoundaryConfig>& boundary_configs)
-    : fem_system_(fem_system),
-      boundary_configs_(boundary_configs),
-      boundary_markers_(boundary_configs.size())
-{
-    const int marker_size = fem_system_.mesh_data().mfem_mesh().bdr_attributes.Max(); // 最大边界物理组编号
-    essential_boundary_marker_.SetSize(marker_size);
-    essential_boundary_marker_ = 0;
-    for (std::size_t index = 0; index < boundary_configs_.size(); ++index)
-    {
-        mfem::Array<int>& marker = boundary_markers_[index];
-        marker.SetSize(marker_size);
-        marker = 0;
-        marker[boundary_configs_[index].boundary_attribute - 1] = 1;
-        if (boundary_configs_[index].model_name == "dirichlet")
-        {
-            essential_boundary_marker_[boundary_configs_[index].boundary_attribute - 1] = 1;
-        }
-        boundary_coefficients_.push_back(std::make_unique<BoundaryCoefficients>(fem_system)); // 为当前边界创建系数存储并交给智能指针管理
+        const auto& entry = registry_.registration(config.model_name); // 取得指定模型的注册记录 entry.factory(工厂函数) entry.required_states(依赖属性)
+        models_.emplace(config.boundary_attribute, Assignment{entry.factory(config.parameters), entry.required_states}); // 边界区域编号 -> 该区域的模型信息{具体模型,依赖参数} // 41 → Assignment{Robin 模型对象,{换热系数属性名, 环境温度属性名},{0, 0, 0},{true, true, true}}
     }
 }
 
-void ThermalBoundaryManager::update(const PropertiesFieldData& properties_field_data)
+void ThermalBoundaryManager::update(const PropertiesFieldData& properties) // 更新各边界模型的返回值，并分别标记矩阵项、右端项和指定温度是否需要更新
 {
-    for (std::size_t index = 0; index < boundary_configs_.size(); ++index)
+    for (auto& [zone, assignment] : models_) // 遍历各个边界区域的编号与对应模型信息
     {
-        const ThermalBoundaryConfig& config = boundary_configs_[index];
-        BoundaryCoefficients& coefficients = *boundary_coefficients_[index];
-        if (config.model_name == "robin")
-        {
-            const RobinValues values = ThermalRobinBoundary::evaluate(properties_field_data, config.boundary_attribute);
-            coefficients.matrix.constant = values.matrix_coefficient;
-            coefficients.rhs.constant = values.rhs_coefficient;
-        }
-        else if (config.model_name == "neumann")
-        {
-            coefficients.rhs.constant = ThermalNeumannBoundary::evaluate(properties_field_data, config.boundary_attribute);
-        }
-        else if (config.model_name == "dirichlet")
-        {
-            coefficients.temperature.constant = ThermalDirichletBoundary::evaluate(properties_field_data, config.boundary_attribute);
-        }
+        const auto value = assignment.model->evaluate(properties, zone); // 根据传入的属性与各个区域的具体模型更新边界返回值 {matrix,load,temperature}
+        assignment.dirty[0] = assignment.dirty[0] || value.matrix != assignment.values.matrix; // 矩阵系数发生变化，或者此前尚未完成组装，就保持 dirty[0]=true
+        assignment.dirty[1] = assignment.dirty[1] || value.load != assignment.values.load; // 右端项同理
+        assignment.dirty[2] = assignment.dirty[2] || value.temperature != assignment.values.temperature; // 同样判断指定表面温度
+        assignment.values = value; // 把新返回值保存下来，供组装层读取，也作为下次比较的基准
     }
 }
 
-// 分别添加矩阵和载荷积分器, 固定载荷可以在 Picard 循环外独立组装。
-void ThermalBoundaryManager::add_integrators(mfem::BilinearForm& bilinear_form)
+void ThermalBoundaryManager::mark_coupled(PropertiesSystem& properties, const std::string& field) const // 向属性系统登记: 边界模型所依赖的属性，哪些需要随指定求解场更新
 {
-    for (std::size_t index = 0; index < boundary_configs_.size(); ++index)
-    {
-        if (boundary_configs_[index].model_name == "robin")
-        {
-            bilinear_form.AddBoundaryIntegrator(new BoundaryMassIntegrator(boundary_coefficients_[index]->weighted_matrix, fem_system_), boundary_markers_[index]);
-        }
+    for (const auto& [zone, assignment] : models_) // 遍历各边界分区及其模型记录
+    { 
+        properties.mark_coupled(field, assignment.required); 
     }
 }
 
-void ThermalBoundaryManager::add_integrators(mfem::LinearForm& linear_form)
+bool ThermalBoundaryManager::coupled(const PropertiesSystem& properties, const std::string& field) const // 判断场与依赖属性是否存在耦合关系
 {
-    for (std::size_t index = 0; index < boundary_configs_.size(); ++index)
+    for (const auto& [zone, assignment] : models_)
+    for (const auto& name : assignment.required)
     {
-        BoundaryCoefficients& coefficients = *boundary_coefficients_[index];
-        if (boundary_configs_[index].model_name == "robin")
-        {
-            linear_form.AddBoundaryIntegrator(new BoundaryLFIntegrator(coefficients.weighted_rhs, fem_system_), boundary_markers_[index]);
-        }
-        else if (boundary_configs_[index].model_name == "neumann")
-        {
-            linear_form.AddBoundaryIntegrator(new BoundaryLFIntegrator(coefficients.weighted_rhs, fem_system_), boundary_markers_[index]);
-        }
-        else if (boundary_configs_[index].model_name != "dirichlet")
-        {
-            throw std::logic_error("尚未实现的热边界模型: " + boundary_configs_[index].model_name);
+        if (properties.coupled_with_field(name, zone, field)) 
+        { 
+            return true; 
         }
     }
+    return false;
 }
 
-void ThermalBoundaryManager::apply_essential_conditions(mfem::GridFunction& temperature, mfem::Array<int>& essential_true_dofs) const
-{   
-    for (std::size_t index = 0; index < boundary_configs_.size(); ++index)
-    {
-        if (boundary_configs_[index].model_name == "dirichlet")
-        {
-            // 找到该分区上的温度自由度 把它们的值设为指定表面温度
-            // boundary_coefficients_[index]->temperature 该分区指定的温度系数
-            // boundary_markers_[index] 选择该边界分区的 marker，告诉 MFEM 在哪里设置温度
-            temperature.ProjectBdrCoefficient(boundary_coefficients_[index]->temperature, boundary_markers_[index]); 
-        }
+bool ThermalBoundaryManager::required_no_change(int zone, BoundaryPart part) const // 判断指定边界分区的某一部分是否可以复用
+{
+    return !models_.at(zone).dirty[static_cast<int>(part)]; // 找到编号为 zone 的边界模型记录 -> static_cast<int>(part) 将枚举 BoundaryPart 转为数组下标 -> 查看该部分是否发生变化
+}
+
+void ThermalBoundaryManager::assembled(int zone, BoundaryPart part) // 标记指定边界分区的指定部分已被组装更新
+{
+    models_.at(zone).dirty[static_cast<int>(part)] = false;
+}
+
+std::vector<int> ThermalBoundaryManager::zones() const // 返回当前边界管理器中，已配置边界模型的所有 zone 编号
+{
+    std::vector<int> result;
+    for (const auto& [zone, assignment] : models_) 
+    { 
+        result.push_back(zone); 
     }
-    // 根据 Dirichlet 边界标记，找出所有需要约束的真实自由度编号
-    // essential_boundary_marker_ 标明哪些边界物理组属于 Dirichlet 边界
-    // essential_true_dofs 输出，MFEM 将这些边界对应的真实自由度编号(节点温度未知量的编号)填进去
-    temperature.FESpace()->GetEssentialTrueDofs(essential_boundary_marker_, essential_true_dofs);
+    return result;
+}
+
+const ThermalBoundaryValues& ThermalBoundaryManager::values(int zone) const // 返回指定区域的 values.matrix: 边界矩阵系数 values.load 边界右端系数 values.temperature 指定表面温度
+{ 
+    return models_.at(zone).values; 
+}
+
+bool ThermalBoundaryManager::essential(int zone) const // 判断指定区域是否是一类边界条件需要约束
+{ 
+    return models_.at(zone).model->essential(); 
 }
 
 }

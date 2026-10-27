@@ -14,6 +14,8 @@ class ThermalCardExamine:
         for temperature in card.initial.temperature:
             location = f"initial.temperature.{temperature.region}"
             cls.check_parameters(temperature.parameters, location)
+            if temperature.model != "uniform":
+                raise ValueError(f"{location}: model 必须为 uniform")
             if temperature.model == "uniform":
                 cls.check_scalar(temperature.parameters, "uniform_value", location, nonnegative=True)
         for items, location in ((card.boundary, "boundary"), (card.interfaces.interface, "interfaces"), (card.source.region, "source")):
@@ -24,6 +26,15 @@ class ThermalCardExamine:
                 cls.check_parameters(item.parameters, f"{location}.{item.name}")
         for boundary in card.boundary:
             cls.check_boundary(boundary)
+        for item in card.source.region:
+            if item.model != "volumetric_power":
+                raise ValueError(f"source.{item.name}: model 必须为 volumetric_power")
+        for item in card.interfaces.interface:
+            location = f"interfaces.{item.name}"
+            if item.model not in ("perfect_contact", "conductance", "insulated"):
+                raise ValueError(f"{location}: model 必须为 [perfect_contact,conductance,insulated]")
+            if item.model == "conductance":
+                cls.check_scalar(item.parameters, "heat_transfer_coef", location, nonnegative=True)
 
     @staticmethod
     def check_parameters(parameters: dict[str, float | list[float]], location: str) -> None:

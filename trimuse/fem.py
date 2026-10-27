@@ -18,5 +18,6 @@ class FemManager:
             boundary_quadrature_order=quadrature.boundary_order
         )
         for field in solver_config.field:
-            self.fem_system.add_field(field.name, order=field.fem_space.order, vector_dimension=1)
-            print(f"有限元场已创建: {field.name}, 阶次: {field.fem_space.order}")
+            add_field = self.fem_system.add_region_field if field.fem_space.continuity == "region" else self.fem_system.add_field
+            add_field(field.name, order=field.fem_space.order, vector_dimension=1)
+            print(f"有限元场已创建: {field.name}, 阶次: {field.fem_space.order}, 连续性: {field.fem_space.continuity}")

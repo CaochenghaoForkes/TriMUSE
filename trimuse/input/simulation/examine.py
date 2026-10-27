@@ -38,6 +38,10 @@ class SimulationCardExamine:
                 raise ValueError(f"{item.name}: preconditioner 必须为 [none,jacobi,symmetric_gauss_seidel]")
             if item.fem_space.family != "H1" or item.fem_space.order < 1:
                 raise ValueError(f"{item.name}: 初版使用 H1 空间, order 至少为 1")
+            if item.fem_space.continuity not in ("continuous", "region"):
+                raise ValueError(f"{item.name}: continuity 必须为 [continuous,region]")
+            if item.fem_space.continuity == "region" and item.name != "temperature":
+                raise ValueError(f"{item.name}: 当前仅温度求解器支持分域空间")
             if item.linear_solver.max_iterations < 1:
                 raise ValueError(f"{item.name}: max_iterations 必须为正整数")
             cls.check_tolerance(item.linear_solver.relative_tolerance, item.name)
