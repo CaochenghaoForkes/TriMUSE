@@ -380,7 +380,7 @@ void PropertiesSystem::evaluate_and_store_points(const Manager& manager, const P
         const std::size_t offset = fem_system_.domain_quadrature_offset(element); // 取得该单元积分点在全域连续数组中的起始下标
         for (int point_index = 0; point_index < rule->GetNPoints(); ++point_index) // 遍历当前单元的积分点
         {
-            const mfem::IntegrationPoint& integration_point = rule->IntPoint(point_index);
+            const mfem::IntegrationPoint& integration_point = rule->IntPoint(point_index); // 注意 integration_point 是单元中的参考坐标 而我们 field.evaluate() 用的也正是单元中的参考坐标
             const auto& position = positions[point_index]; // 读取这个积分点已经缓存的实际坐标
             const std::size_t index = offset + point_index; // 将局部积分点编号转换为全域积分点下标
 

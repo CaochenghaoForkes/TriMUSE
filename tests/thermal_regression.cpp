@@ -1,4 +1,5 @@
 #include "physics/thermal/thermal_problem.hpp"
+#include "physics/thermal/interface/thermal_interface_context.hpp"
 
 #include <cmath>
 #include <filesystem>
@@ -149,64 +150,96 @@ void perfect_contact(const std::string& file, int order, double theta, bool nonl
     }
 }
 
-void interface_solution(int dimension, mfem::Element::Type geometry, int order)
+void interface_access(int dimension, mfem::Element::Type geometry, bool curved)
 {
-    context = "interface " + std::to_string(dimension) + "/" + std::to_string(geometry);
-    FemSystem fem(mesh_file(dimension, geometry, false), 2 * order + 6, 2 * order + 4);
-    fem.add_region_field("temperature", order);
-    PropertiesSystem properties(fem);
-    std::vector<ThermalDomainConfig> sources;
-    std::vector<ThermalBoundaryConfig> boundaries{{2, "dirichlet", {}}};
-    if (dimension == 1)
+    context = "interface access " + std::to_string(dimension) + "/" + std::to_string(geometry);
+    FemSystem fem(mesh_file(dimension, geometry, curved), 8, 6);
+    fem.add_region_field("temperature", 2);
+    fem.add_field("continuous", 2);
+    auto base = [](const mfem::Vector& x)
     {
-        properties.assign(3, "derived.volumetric_power.common.constant", {{"constant_value", 24.0}});
-        properties.assign(2, "external.surface_temperature.common.constant", {{"constant_value", 300.0}});
-        sources.push_back({3, "volumetric_power", {}});
+        double result = 100.0;
+        for (int c = 0; c < x.Size(); ++c) { result += 10.0 * (c + 1) * x[c]; }
+        return result;
+    };
+    for (int region : fem.mesh_data().region_attributes())
+    {
+        mfem::FunctionCoefficient value([&](const mfem::Vector& x) { return base(x) + region; });
+        fem.region_field("temperature").field_data(region).mfem_grid_function().ProjectCoefficient(value);
     }
-    else
+    mfem::FunctionCoefficient value(base);
+    fem.field_data("continuous").mfem_grid_function().ProjectCoefficient(value);
+    ThermalField regional(fem, fem.region_field("temperature"));
+    ThermalField continuous(fem, fem.field_data("continuous"));
+    for (const auto& interface : fem.mesh_data().interfaces())
     {
-        properties.assign(1, "external.surface_temperature.common.constant", {{"constant_value", 400.0}});
-        properties.assign(2, "external.surface_temperature.common.constant", {{"constant_value", 400.0 - 0.5 - 1.0 - 1.0 / 3.0}});
-        boundaries.push_back({1, "dirichlet", {}});
-    }
-    materials(properties);
-    SolverSystem solver({solver_config()}); OutputManager output(fem, directory.string());
-    ThermalProblem problem(fem, fem.region_field("temperature"), properties, solver, output, "steady",
-        {{3, "uniform", {{"uniform_value", 300.0}}}, {17, "uniform", {{"uniform_value", 300.0}}}},
-        sources, boundaries, {{41, "conductance", {{"heat_transfer_coef", 2.0}}}});
-    update(properties, 0); problem.solve();
-    const auto view = fem.field_view("temperature");
-    for (std::size_t i = 0; i < fem.mesh_data().interfaces().size(); ++i)
-    {
-        const auto& face = fem.mesh_data().interfaces()[i];
-        auto& t = fem.mesh_data().interface_transformations(i);
-        const auto& rule = *fem.boundary_quadrature_rule(t.GetGeometryType());
+        ThermalInterfaceContext regional_context(interface, fem, regional);
+        ThermalInterfaceContext continuous_context(interface, fem, continuous);
+        const auto& rule = regional_context.quadrature_rule();
         for (int q = 0; q < rule.GetNPoints(); ++q)
         {
-            t.SetAllIntPoints(&rule.IntPoint(q));
-            double values[2];
+            const auto& ip = rule.IntPoint(q);
+            const auto point = regional_context.point(ip);
+            const auto continuous_point = continuous_context.point(ip);
+            auto& t = regional_context.transformations();
+            t.SetAllIntPoints(&ip);
+            mfem::Vector positions[2]{mfem::Vector(dimension), mfem::Vector(dimension)};
+            t.Elem1->Transform(t.GetElement1IntPoint(), positions[0]);
+            t.Elem2->Transform(t.GetElement2IntPoint(), positions[1]);
             for (int side = 0; side < 2; ++side)
             {
-                values[side] = std::get<double>(view.evaluate(face.sides[side].region_attribute, face.sides[side].element,
-                    side == 0 ? t.GetElement1IntPoint() : t.GetElement2IntPoint()));
+                close(point.x, positions[side][0], 1e-12);
+                close(point.y, dimension > 1 ? positions[side][1] : 0.0, 1e-12);
+                close(point.z, dimension > 2 ? positions[side][2] : 0.0, 1e-12);
+                close(point.temperature[side], base(positions[side]) + interface.sides[side].region_attribute, 1e-10);
+                close(continuous_point.temperature[side], base(positions[side]), 1e-10);
             }
-            const double jump = (face.sides[0].region_attribute == 3 ? 1 : -1) * (values[0] - values[1]);
-            close(jump, dimension == 1 ? 2.0 : 1.0, 1e-7); // q=h[T], 两侧通量平衡。
+            // Context 不持有点值快照, 修改试探温度后立即读到新值。
+            auto values = regional.values(); values += 7.0; regional.set_values(values);
+            const auto updated = regional_context.point(ip);
+            for (int side = 0; side < 2; ++side) { close(updated.temperature[side], point.temperature[side] + 7.0, 1e-10); }
+            values -= 7.0; regional.set_values(values);
         }
     }
-    if (dimension > 1)
+    bool rejected = false;
+    try { ThermalInterfaceManager invalid(fem, continuous, {{41, "insulated", {}}}); }
+    catch (const std::invalid_argument&) { rejected = true; }
+    check(rejected, "insulation accepted on a continuous field");
+    rejected = false;
+    try { ThermalInterfaceManager invalid(fem, regional, {{41, "conductance", {}}}); }
+    catch (const std::out_of_range&) { rejected = true; }
+    check(rejected, "unregistered interface model accepted");
+}
+
+void mixed_interfaces()
+{
+    context = "mixed interface models";
+    const auto filename = (directory / "mixed.mesh").string();
     {
-        for (int e = 0; e < fem.mesh_data().element_count(); ++e)
-        {
-            const int region = fem.mesh_data().mfem_mesh().GetAttribute(e);
-            const auto& ip = mfem::Geometries.GetCenter(fem.mesh_data().mfem_mesh().GetElementBaseGeometry(e));
-            mfem::Vector x(dimension); fem.mesh_data().mfem_mesh().GetElementTransformation(e)->Transform(ip, x);
-            const double expected = region == 3 ? 400.0 - x[dimension - 1] : 398.5 - 2.0 / 3.0 * (x[dimension - 1] - 0.5);
-            close(std::get<double>(view.evaluate(region, e, ip)), expected, 1e-7);
-        }
+        auto mesh = mfem::Mesh::MakeCartesian1D(4);
+        mesh.GetElement(0)->SetAttribute(3);
+        mesh.GetElement(1)->SetAttribute(17);
+        mesh.GetElement(2)->SetAttribute(42);
+        mesh.GetElement(3)->SetAttribute(42);
+        mesh.AddBdrPoint(1, 41); mesh.AddBdrPoint(2, 43);
+        mesh.FinalizeTopology(); mesh.SetAttributes();
+        std::ofstream stream(filename); mesh.Print(stream);
     }
-    output.add_field("temperature", "interface-output-" + std::to_string(dimension) + "-" + std::to_string(geometry));
-    output.save("temperature", 0, 0.0, 0.0);
+    FemSystem fem(filename, 6, 5); fem.add_region_field("temperature", 2);
+    ThermalField field(fem, fem.region_field("temperature"));
+    // 41 未配置, 使用默认理想接触；43 显式绝热。
+    ThermalInterfaceManager manager(fem, field, {{43, "insulated", {}}});
+    const auto& p = manager.prolongation();
+    check(p.Width() == field.size() - 1, "incorrect number of mixed interface constraints");
+    for (const auto& interface : fem.mesh_data().interfaces())
+    {
+        mfem::Array<int> dofs[2];
+        for (int side = 0; side < 2; ++side)
+        { field.face_dofs(interface.sides[side].region_attribute, interface.face, dofs[side]); }
+        const int first = p.GetJ()[p.GetI()[dofs[0][0]]];
+        const int second = p.GetJ()[p.GetI()[dofs[1][0]]];
+        check((first == second) == (interface.boundary_attribute == 41), "model applied to the wrong physical interface");
+    }
 }
 
 void cache_invalidation(const std::string& file)
@@ -315,11 +348,13 @@ int main(int argc, char** argv)
         }
         perfect_contact(mesh_file(dimension, geometry, true), 2, 0.5, true);
         perfect_contact(mesh_file(dimension, geometry, true), 2, 1.0, true, "steady");
-        interface_solution(dimension, geometry, 2);
+        interface_access(dimension, geometry, false);
+        interface_access(dimension, geometry, true);
         const auto file = mesh_file(dimension, geometry, false);
         cache_invalidation(file);
         insulated(file);
     }
+    mixed_interfaces();
     nonconforming();
     std::cout << "PASS: " << checks << " thermal checks\n";
 }

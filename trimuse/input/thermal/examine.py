@@ -31,10 +31,8 @@ class ThermalCardExamine:
                 raise ValueError(f"source.{item.name}: model 必须为 volumetric_power")
         for item in card.interfaces.interface:
             location = f"interfaces.{item.name}"
-            if item.model not in ("perfect_contact", "conductance", "insulated"):
-                raise ValueError(f"{location}: model 必须为 [perfect_contact,conductance,insulated]")
-            if item.model == "conductance":
-                cls.check_scalar(item.parameters, "heat_transfer_coef", location, nonnegative=True)
+            if item.model not in ("perfect_contact", "insulated"):
+                raise ValueError(f"{location}: model 必须为 [perfect_contact,insulated]")
 
     @staticmethod
     def check_parameters(parameters: dict[str, float | list[float]], location: str) -> None:

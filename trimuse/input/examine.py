@@ -16,7 +16,7 @@ class InputCardsExamine:
             return
         temperature = next((item for item in simulation.solver.field if item.name == "temperature"), None)
         if temperature is None or temperature.fem_space.continuity != "region":
-            raise ValueError("conductance/insulated 热界面要求 temperature 的 fem_space 设置 continuity=\"region\"")
+            raise ValueError("insulated 热界面要求 temperature 的 fem_space 设置 continuity=\"region\"")
 
     @classmethod
     def examine(cls, geometry_mesh: GeometryMeshCard, material: MaterialCard, properties: PropertiesCard, thermal: ThermalCard | None, postprocess: PostprocessCard, radioactivity: RadioactivityCard | None = None) -> None:

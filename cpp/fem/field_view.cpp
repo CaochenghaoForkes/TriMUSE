@@ -29,7 +29,7 @@ StateValue FieldView::evaluate(int region_attribute, int parent_element, const m
         return field->GetValue(element, point); // 标量场直接返回一个数值
     }
     mfem::Vector components; // 创建一个 MFEM 向量，用来接收各分量
-    field->GetVectorValue(element, point, components); // 在该单元的参考积分点计算所有分量
+    field->GetVectorValue(element, point, components); // 在该单元的参考积分点计算所有分量 注意这个 point 是单元中的参考坐标
     return VectorValue(components.GetData(), components.GetData() + components.Size()); // 用一段数据的起止指针构造 VectorValue
 }
 

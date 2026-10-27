@@ -7,7 +7,7 @@
 3. `conduction/`、`capacity/`、`source/`：分别注册 Fourier、rho_cp、volumetric_power。
 4. `boundary/`：Dirichlet、Neumann、Robin 分别提供约束值、右端项、矩阵系数。
 5. `thermal_field.*`：连续/分域温度的独立试探场、单元编号与整体自由度映射。
-6. `interface/thermal_interface_manager.*`：双侧界面积分、理想接触约束。
+6. `interface/`：界面配置、模型注册、双侧点访问与连续约束构建, 具体阅读顺序见下文。
 7. `thermal_assembly.*`：积分组装、贡献缓存、约束及线性系统形成。
 8. `thermal_problem.*`：初始状态、theta 时间离散、Picard 迭代与收敛提交。
 
@@ -62,15 +62,26 @@ thermal 卡的 interfaces 中，每个内部界面可选择：
 
 ```xml
 <interface name="interface_1" model="perfect_contact"/>
-<interface name="interface_2" model="conductance">
-    <parameter name="heat_transfer_coef" value="5000" unit="[W]/[m]^2[K]" si_unit="[W]/[m]^2[K]"/>
-</interface>
-<interface name="interface_3" model="insulated"/>
+<interface name="interface_2" model="insulated"/>
 ```
 
 - 未指定的界面默认 perfect_contact。用精确自由度约束 P 保证温度连续，求解 P^T A P，不使用大罚参数。
-- conductance 使用常数 h，界面贡献为 h(T_a-T_b)(v_a-v_b)，两侧通量守恒并允许温度跳跃。
-- insulated 不连接两侧。后两种模型要求分域空间；h=0 与绝热等价。
+- insulated 不连接两侧, 要求分域空间。
+
+界面框架全部位于 `thermal/interface/`：
+
+1. `thermal_interface_model.hpp`：配置和模型基类。模型接收一个网格界面片的 context, 向组装器提供约束。
+2. `perfect_contact.*`、`insulated.*`：分别实现连接与绝热, 每个模型独立文件。
+3. `thermal_interface_context.*`：引用现有 Interface、ThermalField 和 FemSystem,
+   提供双侧几何变换、求积规则, 以及同一界面积分点的实际 x/y/z 和两侧试探温度。
+   点值按需读取, 不缓存旧的试探温度；两侧顺序保持 MFEM 的 Elem1/Elem2 顺序。
+4. `thermal_interface_assembly.*`：根据父连续空间编号匹配自由度, 汇集连接并形成 P。
+5. `thermal_interface_manager.*`：复用 ModelRegistry 注册模型, 按界面物理标识分配模型,
+   为未指定的界面使用默认理想接触, 调用模型构建约束。
+
+当前两个模型仅需要固定的拓扑约束, 因而只在初始化时构建一次, 不计算界面积分点数据。
+以后增加空间变化热阻等积分型模型时, 可复用 context 的双侧点访问, 增加具体物理求值
+和局部积分贡献接口, 并在时间步/迭代更新阶段组装。动态系数、历史损伤与接触状态更新尚未实现。
 
 独立区域初温可不同；理想接触时用几何加权 L2 投影构造连续的初始状态。
 外边界只作用于原网格的外部面，不使用子网格自动生成的内部边界标识。
@@ -88,5 +99,6 @@ cmake --build build --parallel 4
 ```
 
 检查连续/分域理想接触等价性、1D/2D/3D 的一二阶及曲边网格、稳态/瞬态非线性、
-三种 theta 格式、有限界面传热解析解、绝热区域独立性、缓存失效范围及连续空间悬挂节点约束。
+三种 theta 格式、界面点坐标与双侧温度、混合界面模型、绝热区域独立性、
+缓存失效范围及连续空间悬挂节点约束。
 测试数据写入指定目录。测试构建默认关闭，可用 `-DTRIMUSE_BUILD_THERMAL_TESTS=OFF` 恢复。

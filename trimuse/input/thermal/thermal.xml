@@ -19,10 +19,7 @@
     <!-- interfaces 可省略, 默认理想接触, interface 可重复 -->
     <interfaces>
         <interface name="[str]" model="perfect_contact"/>
-        <!-- 以下两种模型要求 simulation 卡的 temperature 使用 continuity="region" -->
-        <interface name="[str]" model="conductance">
-            <parameter name="heat_transfer_coef" value="[float]" unit="[str]" si_unit="[W]/[m]^2[K]"/>
-        </interface>
+        <!-- 绝热界面要求 simulation 卡的 temperature 使用 continuity="region" -->
         <interface name="[str]" model="insulated"/>
     </interfaces>
     <!-- source 可省略, 区域热源模型负责提供 W/m³ -->
