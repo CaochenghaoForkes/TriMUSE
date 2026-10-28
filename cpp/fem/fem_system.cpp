@@ -146,7 +146,7 @@ const FemSystem::QuadraturePositions& FemSystem::domain_quadrature_positions(int
     return domain_quadrature_positions_[element];
 }
 
-std::size_t FemSystem::domain_quadrature_offset(int element) const // 返回指定单元的积分点在全域连续积分点数组中的起始位置
+std::size_t FemSystem::domain_quadrature_offset(int element) const // 传入原网格单元编号返回指定单元的积分点在全域连续积分点数组中的起始位置 全域积分点偏移基于原网格的单元编号和求积规则，与场采用连续空间还是分域空间无关
 {
     return domain_quadrature_offsets_[element];
 }
