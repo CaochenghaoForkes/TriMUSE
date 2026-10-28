@@ -226,7 +226,13 @@ ThermalAssembly::State ThermalAssembly::update(const PropertiesFieldData& proper
     refresh_boundary();
     if (last_domain_ != conduction_cache_.sum || last_boundary_ != boundary_matrix_cache_.sum)
     {
-        state_.conduction.reset(mfem::Add(1.0, *conduction_cache_.sum, 1.0, *boundary_matrix_cache_.sum));
+        std::unique_ptr<mfem::SparseMatrix> conduction(
+            mfem::Add(1.0, *conduction_cache_.sum, 1.0, *boundary_matrix_cache_.sum));
+        if (const auto* interface_matrix = interface_.matrix())
+        {
+            state_.conduction.reset(mfem::Add(1.0, *conduction, 1.0, *interface_matrix));
+        }
+        else { state_.conduction = std::move(conduction); }
         last_domain_ = conduction_cache_.sum; last_boundary_ = boundary_matrix_cache_.sum;
     }
     if (last_source_ != source_cache_.sum || last_boundary_load_ != boundary_load_cache_.sum)

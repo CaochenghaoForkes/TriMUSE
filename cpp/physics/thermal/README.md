@@ -62,26 +62,34 @@ thermal 卡的 interfaces 中，每个内部界面可选择：
 
 ```xml
 <interface name="interface_1" model="perfect_contact"/>
-<interface name="interface_2" model="insulated"/>
+<interface name="interface_2" model="uniform_from_constant_resistance">
+    <parameter name="constant_resistance" value="1e-4" unit="[m]^2[K]/[W]" si_unit="[m]^2[K]/[W]"/>
+</interface>
 ```
 
 - 未指定的界面默认 perfect_contact。用精确自由度约束 P 保证温度连续，求解 P^T A P，不使用大罚参数。
-- insulated 不连接两侧, 要求分域空间。
+- uniform_from_constant_resistance 要求分域空间, 参数 constant_resistance 是单位面积热阻 R,
+  单位 m²·K/W, 必须为有限正数。整个界面上 q=(T_a-T_b)/R, 两侧温度可以不同。
+  R=0 的精确连续条件用 perfect_contact；独立的 insulated 模型已删除。
 
 界面框架全部位于 `thermal/interface/`：
 
-1. `thermal_interface_model.hpp`：配置和模型基类。模型接收一个网格界面片的 context, 向组装器提供约束。
-2. `perfect_contact.*`、`insulated.*`：分别实现连接与绝热, 每个模型独立文件。
+1. `thermal_interface_model.hpp`：配置和模型基类。模型接收一个网格界面片的 context, 向组装器提供约束或传热贡献。
+2. `perfect_contact.*`、`uniform_from_constant_resistance.*`：分别实现理想接触与恒定热阻, 每个模型独立文件。
 3. `thermal_interface_context.*`：引用现有 Interface、ThermalField 和 FemSystem,
    提供双侧几何变换、求积规则, 以及同一界面积分点的实际 x/y/z 和两侧试探温度。
    点值按需读取, 不缓存旧的试探温度；两侧顺序保持 MFEM 的 Elem1/Elem2 顺序。
-4. `thermal_interface_assembly.*`：根据父连续空间编号匹配自由度, 汇集连接并形成 P。
+4. `thermal_interface_assembly.*`：汇集自由度连接形成 P, 汇集传热贡献形成界面矩阵。
+   `thermal_interface_integrator.*`：逐面积分 h[N_a;-N_b][N_a;-N_b]^T,
+   形成两侧对角和交叉矩阵块, 并使用 1D/2D 的几何权重。
 5. `thermal_interface_manager.*`：复用 ModelRegistry 注册模型, 按界面物理标识分配模型,
-   为未指定的界面使用默认理想接触, 调用模型构建约束。
+   为未指定的界面使用默认理想接触, 保存初始化得到的约束和界面矩阵。
 
-当前两个模型仅需要固定的拓扑约束, 因而只在初始化时构建一次, 不计算界面积分点数据。
-以后增加空间变化热阻等积分型模型时, 可复用 context 的双侧点访问, 增加具体物理求值
-和局部积分贡献接口, 并在时间步/迭代更新阶段组装。动态系数、历史损伤与接触状态更新尚未实现。
+当前两个模型的约束或系数均固定, 因而只在初始化时构建一次, 后续时间步和迭代复用。
+恒定热阻只增加导热矩阵, 不增加热容或外部热源, 双侧传热贡献大小相等、符号相反。
+积分器接收 mfem::Coefficient, 可在各积分点求值。以后增加空间变化热阻时可提供相应系数对象,
+并复用 context 的坐标/双侧取值及现有积分器。随时间或场值变化的系数还需接入更新与缓存失效；
+历史损伤与接触状态更新尚未实现。
 
 独立区域初温可不同；理想接触时用几何加权 L2 投影构造连续的初始状态。
 外边界只作用于原网格的外部面，不使用子网格自动生成的内部边界标识。
@@ -93,12 +101,9 @@ thermal 卡的 interfaces 中，每个内部界面可选择：
 在项目根目录执行：
 
 ```sh
-cmake -S . -B build -DTRIMUSE_BUILD_THERMAL_TESTS=ON
 cmake --build build --parallel 4
-./build/cpp/trimuse_thermal_test /tmp/trimuse-thermal-tests
 ```
 
 检查连续/分域理想接触等价性、1D/2D/3D 的一二阶及曲边网格、稳态/瞬态非线性、
-三种 theta 格式、界面点坐标与双侧温度、混合界面模型、绝热区域独立性、
+三种 theta 格式、界面点坐标与双侧温度、混合界面模型、恒定热阻的温度跳跃与热量守恒、
 缓存失效范围及连续空间悬挂节点约束。
-测试数据写入指定目录。测试构建默认关闭，可用 `-DTRIMUSE_BUILD_THERMAL_TESTS=OFF` 恢复。

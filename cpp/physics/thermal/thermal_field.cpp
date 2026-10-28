@@ -47,7 +47,7 @@ int ThermalField::local_element(int element) const // 将原网格的域单元�
     return regional() ? region_trial_->local_element(element) : element; // 如果是分域场，先根据原单元确定所属区域，再返回它在该区域子网格中的局部单元编号 如果是连续场，场直接定义在原网格上，原样返回编号即可
 }
 
-void ThermalField::element_dofs(int element, mfem::Array<int>& dofs) const // 根据原网格的域单元编号，将该单元对应的自由度编号填入 dofs
+void ThermalField::element_dofs(int element, mfem::Array<int>& dofs) const // 根据原网格的域单元编号，将该单元对应的分域场整体/连续场中的整体自由度编号填入 dofs
 {
     if (regional()) 
     { 

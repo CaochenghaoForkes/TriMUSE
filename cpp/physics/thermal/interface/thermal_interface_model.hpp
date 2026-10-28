@@ -22,7 +22,7 @@ public:
     
     virtual bool requires_region_field() const { return true; } // 判断该模型是否要求分域场，默认要求
 
-    virtual void assemble(const ThermalInterfaceContext& context, ThermalInterfaceAssembly& assembly) const = 0; // 具体模型必须实现的操作 context 提供当前界面片、两侧场、几何变换及积分点取值接口 assembly 接收模型给出的自由度连接，最终建立约束矩阵 P 
+    virtual void assemble(const ThermalInterfaceContext& context, ThermalInterfaceAssembly& assembly) const = 0; // context 提供界面和双侧数据; assembly 汇集模型给出的自由度约束或传热积分贡献
 };
 
 }

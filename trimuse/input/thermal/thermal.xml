@@ -19,8 +19,11 @@
     <!-- interfaces 可省略, 默认理想接触, interface 可重复 -->
     <interfaces>
         <interface name="[str]" model="perfect_contact"/>
-        <!-- 绝热界面要求 simulation 卡的 temperature 使用 continuity="region" -->
-        <interface name="[str]" model="insulated"/>
+        <!-- 热阻界面要求 simulation 卡的 temperature 使用 continuity="region" -->
+        <!-- constant_resistance 为单位面积热阻, 必须为有限正数; 零热阻使用 perfect_contact -->
+        <interface name="[str]" model="uniform_from_constant_resistance">
+            <parameter name="constant_resistance" value="[float]" unit="[str]" si_unit="[m]^2[K]/[W]"/>
+        </interface>
     </interfaces>
     <!-- source 可省略, 区域热源模型负责提供 W/m³ -->
     <source>

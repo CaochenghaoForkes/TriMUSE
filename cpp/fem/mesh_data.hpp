@@ -15,7 +15,7 @@ namespace trimuse
 class MeshData // 划分计算域 读取网格 得到各单元及连接关系 保留材料区域与边界的属性编号
 {
 public:
-    struct InterfaceSide // 记录内部界面某一侧所属的区域和单元,一个内部界面有两侧,因此需要两个这样的记录
+    struct InterfaceSide // 记录内部界面某一侧所属的在原网格中的区域和单元,一个内部界面有两侧,因此需要两个这样的记录
     {
         int region_attribute; // 这一侧属于哪个区域
         int element; // 这一侧紧邻界面的域单元编号 (原网格编号)
@@ -25,7 +25,7 @@ public:
     {
         int face; // 该界面在原网格中的面索引; 1D 为点, 2D 为边, 3D 为面
         int boundary_attribute; // 输入网格给这个界面指定的边界属性编号, 未标记时为 0, 一个完整的材料界面通常包含多个网格面，它们可以具有相同的 boundary_attribute，但各自的 face 不同
-        std::array<InterfaceSide, 2> sides; // sides[0]：第一侧的区域编号和单元编号，对应 MFEM 的 Elem1、Loc1; sides[1]：第二侧的信息，对应 Elem2、Loc2
+        std::array<InterfaceSide, 2> sides; // sides[0]：第一侧的原网格中区域编号和单元编号 sides[1]：第二侧的原网格中信息
     };
 
     explicit MeshData(const std::string& mesh_path);

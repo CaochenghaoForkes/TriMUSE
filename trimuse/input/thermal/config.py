@@ -38,7 +38,7 @@ class ThermalCard:
 
         @dataclass
         class Interface:
-            """理想接触或绝热界面"""
+            """理想接触或恒定热阻界面"""
 
             name: str
             model: str
