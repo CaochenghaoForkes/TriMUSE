@@ -50,12 +50,7 @@ def main(chief_path: str | Path) -> None:
 
     # 按本次求解场创建对应问题, 热与放射性可分别或同时启用。
     problem_types = {"temperature": Thermal, "concentration": Radioactivity}
-    problems = {
-        field.name: problem_types[field.name](input_cards, mesh_info, fem_manager.fem_system,
-                                              properties_manager.properties_system, solver_manager.solver_system,
-                                              output_manager.field_output)
-        for field in input_cards.simulation.problem.field
-    }
+    problems = {field.name: problem_types[field.name](input_cards, mesh_info, fem_manager.fem_system, properties_manager.properties_system, solver_manager.solver_system, output_manager.field_output) for field in input_cards.simulation.problem.field}
 
     # 创建耦合求解对象
     coupling_manager = CouplingManager(input_cards.simulation, properties_manager, problems, output_manager)

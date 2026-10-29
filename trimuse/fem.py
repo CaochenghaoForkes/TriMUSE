@@ -12,11 +12,7 @@ class FemManager:
 
     def __init__(self, mesh_info: MeshInfo, solver_config: SimulationCard.Solver) -> None:
         quadrature = solver_config.quadrature
-        self.fem_system = FemSystem(
-            str(mesh_info.path),
-            domain_quadrature_order=quadrature.domain_order,
-            boundary_quadrature_order=quadrature.boundary_order
-        )
+        self.fem_system = FemSystem(str(mesh_info.path), domain_quadrature_order=quadrature.domain_order, boundary_quadrature_order=quadrature.boundary_order)
         for field in solver_config.field:
             add_field = self.fem_system.add_region_field if field.fem_space.continuity == "region" else self.fem_system.add_field
             add_field(field.name, order=field.fem_space.order, vector_dimension=1)

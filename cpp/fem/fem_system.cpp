@@ -20,7 +20,7 @@ FemSystem::FemSystem(const std::string& mesh_path, int domain_quadrature_order, 
             radial_origin_x_ = std::min(radial_origin_x_, mesh.GetVertex(vertex)[0]); // 网格顶点中最小 x 坐标
         }
     }
-    cache_domain_quadrature_positions();
+    cache_domain_quadrature_positions(); // 缓存每个域单元上所有积分点的实际空间坐标，同时建立积分点的全域连续编号。 对固定网格，后续更新材料属性时就可以直接读取，不必重复计算坐标映射
 }
 
 FemSystem::FieldObjects::FieldObjects(MeshData& mesh_data, int order, int vector_dimension) // 创建一个场所需的对象组合，包含有限元空间(该场的有限元空间，确定插值阶次、分量数及自由度组织)，以及场数据(依附于上述空间，存储该场的全部自由度值)

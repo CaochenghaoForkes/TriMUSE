@@ -19,11 +19,10 @@ class OutputManager:
 
     def __init__(self, input_cards: InputCards) -> None:
         self.input_cards = input_cards
-        directory = Path(input_cards.chief.output.directory).expanduser().resolve()
-        self.directory = directory
+        self.directory = Path(input_cards.chief.output.directory).expanduser().resolve()
         suffix = 2
         while self.directory.exists():
-            self.directory = directory.parent.with_name(f"{directory.parent.name}_{suffix}") / directory.name
+            self.directory = self.directory.parent.with_name(f"{self.directory.parent.name}_{suffix}") / self.directory.name
             suffix += 1
         self.directory.mkdir(parents=True)
         input_cards.chief.output.directory = str(self.directory)
@@ -101,7 +100,7 @@ class OutputManager:
         self._append_report("\n[simulation_summary]\n" + summary + "simulation_completed\n")
 
     def write_input_cards(self) -> None:
-        """委托输入卡写入器保存本次计算配置。"""
+        """委托输入卡写入器保存本次计算配置"""
         self.input_card_writer.write_input_cards()
 
     class InputCardWriter:
