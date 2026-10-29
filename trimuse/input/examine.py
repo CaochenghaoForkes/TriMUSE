@@ -187,6 +187,11 @@ class InputCardsExamine:
         missing = region_names - initial_regions
         if missing:
             raise ValueError(f"以下区域未配置初始温度: {', '.join(sorted(missing))}")
+        for interface in thermal.interfaces.interface:
+            if interface.model == "local_from_constant_resistance":
+                dimension = 2 if "theta_mins" in interface.parameters else 3
+                if geometry_mesh.model.dimension != dimension:
+                    raise ValueError(f"热界面 {interface.name}: 局部热阻角度参数与几何维数不一致，仅支持 2D/3D")
         interface_names = {region.outer_boundary.name for region in regions[:-1]}
         boundary_names = InputCardsExamine.outer_boundary_names(geometry_mesh)
         if geometry_mesh.model.dimension == 1:

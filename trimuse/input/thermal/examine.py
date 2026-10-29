@@ -31,12 +31,35 @@ class ThermalCardExamine:
                 raise ValueError(f"source.{item.name}: model 必须为 volumetric_power")
         for item in card.interfaces.interface:
             location = f"interfaces.{item.name}"
-            if item.model not in ("perfect_contact", "uniform_from_constant_resistance"):
-                raise ValueError(f"{location}: model 必须为 [perfect_contact,uniform_from_constant_resistance]")
+            if item.model not in ("perfect_contact", "uniform_from_constant_resistance", "local_from_constant_resistance"):
+                raise ValueError(f"{location}: model 必须为 [perfect_contact,uniform_from_constant_resistance,local_from_constant_resistance]")
             if item.model == "uniform_from_constant_resistance":
                 cls.check_scalar(item.parameters, "constant_resistance", location, nonnegative=True)
                 if item.parameters["constant_resistance"] == 0:
                     raise ValueError(f"{location}: constant_resistance 必须大于零, 零热阻请使用 perfect_contact")
+            elif item.model == "local_from_constant_resistance":
+                cls.check_local_resistance(item.parameters, location)
+
+    @staticmethod
+    def check_local_resistance(parameters: dict[str, float | list[float]], location: str) -> None:
+        """每项定义一块角度区域；单块也接受标量，重叠时按输入顺序优先。"""
+        planar = "theta_mins" in parameters
+        names = ("theta_mins", "theta_maxs") if planar else ("thetas", "phis", "angular_distance_mins", "angular_distance_maxs")
+        allowed = {"constant_resistances", *names}
+        if set(parameters) != allowed:
+            raise ValueError(f"{location}: 所需参数为 {', '.join(sorted(allowed))}")
+        arrays = {name: value if isinstance(value, list) else [value] for name, value in parameters.items()}
+        count = len(arrays["constant_resistances"])
+        if count == 0 or any(len(values) != count for values in arrays.values()):
+            raise ValueError(f"{location}: 参数列表必须非空且长度一致")
+        if any(value <= 0 for value in arrays["constant_resistances"]):
+            raise ValueError(f"{location}: constant_resistances 必须大于零")
+        minimums, maximums = (arrays[name] for name in names[-2:])
+        if any(not 0 <= lower < upper <= math.pi for lower, upper in zip(minimums, maximums)):
+            raise ValueError(f"{location}: 角范围必须满足 0 ≤ min < max ≤ π，si_unit 使用 [rad]")
+        if not planar and (any(not 0 <= value <= math.pi for value in arrays["thetas"])
+                           or any(not 0 <= value < 2 * math.pi for value in arrays["phis"])):
+            raise ValueError(f"{location}: theta 须在 [0,π]，phi 须在 [0,2π)，si_unit 使用 [rad]")
 
     @staticmethod
     def check_parameters(parameters: dict[str, float | list[float]], location: str) -> None:

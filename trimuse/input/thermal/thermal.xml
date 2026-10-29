@@ -24,6 +24,26 @@
         <interface name="[str]" model="uniform_from_constant_resistance">
             <parameter name="constant_resistance" value="[float]" unit="[str]" si_unit="[m]^2[K]/[W]"/>
         </interface>
+        <!-- 局部热阻: 按网格面片中心判定，选中整片为有限热阻，其余整片为完美接触。
+             角度原点自动使用几何卡 center；角度内部统一 rad，热阻为 m²·K/W。
+             列表逐项对应，长度一致；一块区域可只填一个数；重叠时采用第一项。
+             区域边缘为网格尺度近似，窄区域需足够细的界面网格。2D/3D 仅保留对应写法。 -->
+        <!-- 2D 轴对称: theta 从上极点到下极点，0 到 180 度。 -->
+        <interface name="[str]" model="local_from_constant_resistance">
+            <parameter name="constant_resistances" value="[float] [float]" unit="[m]^2[K]/[W]" si_unit="[m]^2[K]/[W]"/>
+            <parameter name="theta_mins" value="10 60" unit="[degree]" si_unit="[rad]"/>
+            <parameter name="theta_maxs" value="15 65" unit="[degree]" si_unit="[rad]"/>
+        </interface>
+        <!-- 3D: thetas/phis 为中心方向；angular_distance_mins/maxs 为相对该方向的角距离。
+             min=0 为球冠，min>0 为环带，约定与几何卡一致。
+        <interface name="[str]" model="local_from_constant_resistance">
+            <parameter name="constant_resistances" value="[float] [float]" unit="[m]^2[K]/[W]" si_unit="[m]^2[K]/[W]"/>
+            <parameter name="thetas" value="30 90" unit="[degree]" si_unit="[rad]"/>
+            <parameter name="phis" value="0 180" unit="[degree]" si_unit="[rad]"/>
+            <parameter name="angular_distance_mins" value="0 10" unit="[degree]" si_unit="[rad]"/>
+            <parameter name="angular_distance_maxs" value="15 20" unit="[degree]" si_unit="[rad]"/>
+        </interface>
+        -->
     </interfaces>
     <!-- source 可省略, 区域热源模型负责提供 W/m³ -->
     <source>

@@ -22,8 +22,15 @@ class Thermal:
         initial_configs = self.prepare_initial(input_cards.thermal.initial, mesh_info.region_attributes)
         source_configs = self.prepare_source(input_cards.thermal.source, mesh_info.region_attributes)
         boundary_configs = self.prepare_boundary(input_cards.thermal.boundary, mesh_info.boundary_attributes)
-        interface_configs = [(mesh_info.boundary_attributes[item.name], item.model, item.parameters)
-                             for item in input_cards.thermal.interfaces.interface]
+        geometry = input_cards.geometry_mesh.geometry
+        center = getattr(geometry, geometry.source).center
+        interface_configs = []
+        for item in input_cards.thermal.interfaces.interface:
+            parameters = item.parameters
+            if item.model == "local_from_constant_resistance":
+                # 局部分区沿用几何中心，内部坐标使用 m；不修改用户输入参数。
+                parameters = {**parameters, "center": [center.x, center.y, center.z]}
+            interface_configs.append((mesh_info.boundary_attributes[item.name], item.model, parameters))
         self.thermal_problem = ThermalProblem(fem, properties, solver, output, problem_type,
                                              initial_configs, source_configs, boundary_configs, interface_configs)
 

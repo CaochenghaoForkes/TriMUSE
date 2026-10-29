@@ -2,6 +2,7 @@
 #include "physics/thermal/interface/thermal_interface_assembly.hpp"
 #include "physics/thermal/interface/perfect_contact.hpp"
 #include "physics/thermal/interface/uniform_from_constant_resistance.hpp"
+#include "physics/thermal/interface/local_from_constant_resistance.hpp"
 
 #include <stdexcept>
 
@@ -12,6 +13,7 @@ ThermalInterfaceManager::ThermalInterfaceManager(FemSystem& fem, TrialField& fie
 {
     registry_.register_model<ThermalPerfectContact>("perfect_contact");
     registry_.register_model<ThermalUniformFromConstantResistance>("uniform_from_constant_resistance");
+    registry_.register_model<ThermalLocalFromConstantResistance>("local_from_constant_resistance");
 
     for (const auto& config : configs)
     {
