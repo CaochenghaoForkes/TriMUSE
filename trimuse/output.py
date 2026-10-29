@@ -19,8 +19,14 @@ class OutputManager:
 
     def __init__(self, input_cards: InputCards) -> None:
         self.input_cards = input_cards
-        self.directory = Path(input_cards.chief.output.directory).expanduser().resolve()
-        self.directory.mkdir(parents=True, exist_ok=True)
+        directory = Path(input_cards.chief.output.directory).expanduser().resolve()
+        self.directory = directory
+        suffix = 2
+        while self.directory.exists():
+            self.directory = directory.parent.with_name(f"{directory.parent.name}_{suffix}") / directory.name
+            suffix += 1
+        self.directory.mkdir(parents=True)
+        input_cards.chief.output.directory = str(self.directory)
         self.input_card_writer = self.InputCardWriter(input_cards, self.directory)
         self.report_file = self.directory / "simulation_report.txt"
         self.started_at = self._now()
@@ -33,18 +39,6 @@ class OutputManager:
     @staticmethod
     def _now() -> str:
         return datetime.now(ZoneInfo("Asia/Shanghai")).isoformat(timespec="seconds")
-
-    @staticmethod
-    def is_complete(directory: str | Path) -> bool:
-        """只读取报告末尾, 最后一行固定标记表示模拟已完成"""
-        report_file = Path(directory) / "simulation_report.txt"
-        if not report_file.is_file():
-            return False
-        with report_file.open("rb") as report:
-            report.seek(0, 2)
-            report.seek(max(0, report.tell() - 128))
-            lines = report.read().splitlines()
-        return bool(lines) and lines[-1].strip() == b"simulation_completed"
 
     def record_mesh(self, mesh_path: str | Path) -> None:
         """统计实际导出的原始网格, 不统计后处理细分单元; 总数包含各维数单元"""
@@ -64,7 +58,7 @@ class OutputManager:
         }
 
     def initialize_field_output(self, fem_system: FemSystem) -> None:
-        """只在求解分支创建 C++ 输出对象, 后处理分支不加载内核"""
+        """创建 C++ 场输出对象并初始化本次运行报告"""
         from _core import OutputManager as CoreOutputManager
         self.field_output = CoreOutputManager(fem_system, str(self.directory))
         for field in self.input_cards.simulation.problem.field:
@@ -171,7 +165,6 @@ class OutputManager:
             self._node(chief, "random", seed=cards.chief.random_seed)
             # Loader 会追加 seed 子目录, 此处写回用户目录, 避免重读后重复追加。
             self._node(chief, "output", directory=self.directory.parent)
-            self._node(chief, "workflow", mode=cards.chief.workflow.mode)
             input_files = self._node(chief, "input_files")
             writers = {
                 "geometry_mesh": self._geometry_card,
