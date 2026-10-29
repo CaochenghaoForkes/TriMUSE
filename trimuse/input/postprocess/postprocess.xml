@@ -41,4 +41,7 @@
     </sections>
     <!-- 属性名称使用空格分隔; 当前可选 temperature、concentration，仅列出实际启用的场 -->
     <properties names="temperature concentration"/>
+    <!-- 可任选 png、csv、gif, 空格分隔; 省略时默认全部输出 -->
+    <!-- gif 用于线和截面的时间动画; 只选 gif 时不保留中间 PNG -->
+    <output formats="png csv gif"/>
 </postprocess>

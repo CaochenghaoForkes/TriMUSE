@@ -8,6 +8,7 @@ from vtkmodules.vtkCommonDataModel import vtkGenericCell
 
 from .output_reader import OutputReader
 from .point_plotter import PointPlotter
+from .sample_writer import save_sample_csv
 from .plot_style import plot_style, annotate_time, property_label, BOUNDARY_COLORS, scientific_axes
 
 if TYPE_CHECKING:
@@ -80,11 +81,11 @@ class LinePlotter:
         directory = self.postprocess_directory / "lines" / line_name / property_name
         directory.mkdir(parents=True, exist_ok=True)
         path = directory / f"{frame_directory}.csv"
-        np.savetxt(path, data, delimiter=",", fmt=["%d", "%.18e", "%.18e", "%.18e", "%.18e", "%.18e"], header=f"index,x_m,y_m,z_m,r_m,{property_name}", comments="")
+        save_sample_csv(path, data, property_name)
         return path
 
     @plot_style
-    def plot(self, data: np.ndarray, property_name: str, line_name: str, frame_directory: str, time: float, boundaries: list[tuple[str, float]] | None = None, value_limits: tuple[float, float] | None = None, annotation: list[str] | None = None) -> Path:
+    def plot(self, data: np.ndarray, property_name: str, line_name: str, frame_directory: str, time: float, boundaries: list[tuple[str, float]] | None = None, value_limits: tuple[float, float] | None = None, annotation: list[str] | None = None, image_directory: Path | None = None) -> Path:
         """以到颗粒中心的距离 r 为横轴, 图内标注模拟时间"""
         from matplotlib.figure import Figure
         from matplotlib.backends.backend_agg import FigureCanvasAgg
@@ -108,7 +109,7 @@ class LinePlotter:
         axis.grid(False)
         scientific_axes(axis)
         figure.tight_layout()
-        directory = self.postprocess_directory / "lines" / line_name / property_name
+        directory = (image_directory if image_directory is not None else self.postprocess_directory) / "lines" / line_name / property_name
         directory.mkdir(parents=True, exist_ok=True)
         path = directory / f"{frame_directory}.png"
         figure.savefig(path)

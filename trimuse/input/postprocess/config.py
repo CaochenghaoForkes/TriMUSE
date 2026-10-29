@@ -44,10 +44,15 @@ class PostprocessCard:
         center: PostprocessCard.Center | None = None
         normal: PostprocessCard.Direction | None = None
 
+    @dataclass
+    class Output:
+        formats: list[str] = field(default_factory=lambda: ["png", "csv", "gif"])
+
     properties: list[str]
     points: list[Point] = field(default_factory=list)
     lines: list[Line] = field(default_factory=list)
     sections: list[Section] = field(default_factory=list)
+    output: Output = field(default_factory=Output)
 
 class PostprocessCardLoader:
     @classmethod
@@ -66,7 +71,10 @@ class PostprocessCardLoader:
         sections = [cls.read_section(child) for child in XmlUtils.read_children(sections_element, "section")] if sections_element is not None else []
         properties_element = XmlUtils.read_child(root, "properties")
         properties = XmlUtils.read_attribute(properties_element, "names", list[str], required=True)
-        postprocess_card = PostprocessCard(properties=properties, points=points, lines=lines, sections=sections)
+        output_element = XmlUtils.read_child(root, "output", required=False)
+        formats = XmlUtils.read_attribute(output_element, "formats", list[str], default=["png", "csv", "gif"])
+        postprocess_card = PostprocessCard(properties=properties, points=points, lines=lines, sections=sections,
+                                         output=PostprocessCard.Output(formats=formats))
         return postprocess_card
 
     @staticmethod

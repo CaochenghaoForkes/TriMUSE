@@ -10,6 +10,7 @@ from vtkmodules.vtkCommonCore import vtkIdList
 from vtkmodules.vtkFiltersGeometry import vtkDataSetSurfaceFilter
 
 from .output_reader import OutputReader
+from .sample_writer import save_sample_csv
 from .plot_style import plot_style, annotate_time, property_label, BOUNDARY_COLORS, scientific_axes
 
 if TYPE_CHECKING:
@@ -93,7 +94,7 @@ class SectionPlotter:
         directory = self.postprocess_directory / "sections" / section_name / property_name
         directory.mkdir(parents=True, exist_ok=True)
         path = directory / f"{frame_directory}.csv"
-        np.savetxt(path, data, delimiter=",", fmt=["%d", "%.18e", "%.18e", "%.18e", "%.18e", "%.18e"], header=f"index,x_m,y_m,z_m,r_m,{property_name}", comments="")
+        save_sample_csv(path, data, property_name)
         return path
 
     @staticmethod
@@ -104,7 +105,7 @@ class SectionPlotter:
         return values.GetRange()
 
     @plot_style
-    def plot(self, section: vtkPolyData, property_name: str, section_name: str, frame_directory: str, time: float, normal: tuple[float, float, float], boundaries: list | None = None, value_limits: tuple[float, float] | None = None, annotation: list[str] | None = None) -> Path:
+    def plot(self, section: vtkPolyData, property_name: str, section_name: str, frame_directory: str, time: float, normal: tuple[float, float, float], boundaries: list | None = None, value_limits: tuple[float, float] | None = None, annotation: list[str] | None = None, image_directory: Path | None = None) -> Path:
         """在截面内显示标量云图, 标注时间; 2D 使用 xy, 3D 投影至平面正交坐标"""
         from matplotlib.figure import Figure
         from matplotlib.backends.backend_agg import FigureCanvasAgg
@@ -158,7 +159,7 @@ class SectionPlotter:
         annotate_time(axes, time, position=(0.90, 0.94), details=annotation, fontsize=self.annotation_fontsize)
         scientific_axes(axes)
         figure.tight_layout()
-        directory = self.postprocess_directory / "sections" / section_name / property_name
+        directory = (image_directory if image_directory is not None else self.postprocess_directory) / "sections" / section_name / property_name
         directory.mkdir(parents=True, exist_ok=True)
         path = directory / f"{frame_directory}.png"
         figure.savefig(path, bbox_inches="tight")

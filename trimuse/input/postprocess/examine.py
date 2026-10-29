@@ -7,6 +7,9 @@ class PostprocessCardExamine:
 
     @classmethod
     def examine(cls, card: PostprocessCard) -> None:
+        formats = card.output.formats
+        if not formats or len(formats) != len(set(formats)) or set(formats) - {"png", "csv", "gif"}:
+            raise ValueError("postprocess.output: formats 必须从 png、csv、gif 中选择, 非空且不能重复")
         if not card.properties or len(card.properties) != len(set(card.properties)):
             raise ValueError("postprocess.properties: names 必须非空且不能重复")
         for group, items in (("points", card.points), ("lines", card.lines), ("sections", card.sections)):

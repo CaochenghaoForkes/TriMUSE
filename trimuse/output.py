@@ -334,3 +334,4 @@ class OutputManager:
                     elif group == "sections":
                         cls._direction(element, "normal", item.normal)
             cls._node(root, "properties", names=card.properties)
+            cls._node(root, "output", formats=card.output.formats)

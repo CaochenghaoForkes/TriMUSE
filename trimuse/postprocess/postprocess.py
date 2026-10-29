@@ -1,6 +1,8 @@
 from __future__ import annotations
+from contextlib import ExitStack
 from math import cos, sin
 from pathlib import Path
+from tempfile import TemporaryDirectory
 import numpy as np
 from vtkmodules.vtkCommonDataModel import vtkStaticCellLocator
 
@@ -21,6 +23,8 @@ class PostprocessManager:
     def __init__(self, input_cards: InputCards) -> None:
         # 基本配置输入
         self.config = input_cards.postprocess
+        self.formats = set(self.config.output.formats)
+        self.image_directory: Path | None = None
         self.property_metadata = {
             "temperature": {"unit": "K", "color": "jet"},
             "concentration": {"unit": "atom/m³", "color": "viridis"},
@@ -73,56 +77,83 @@ class PostprocessManager:
 
     def process_points(self, property_name: str) -> None:
         """每个点保存一条时间序列及曲线"""
+        if not self.config.points or not self.formats.intersection({"png", "csv"}):
+            return
         locator = self.locators[property_name]
-        for point in self.config.points:
-            rows = self.point_plotter.extract(self.coordinates(point.center), property_name, locator)
-            data = self.point_plotter.save(rows, property_name, point.name)
-            self.point_plotter.plot(data, property_name, point.name, self.coordinates(point.center))
+        positions = [self.coordinates(point.center) for point in self.config.points]
+        series = [[] for _ in positions]
+        # 同一帧一次读取后采样全部点, 不为每个点重复读取整段场数据。
+        for time, mesh in self.reader.iter_frames(property_name):
+            values, _ = self.point_plotter.sample_points(mesh, positions, property_name, locator)
+            for rows, value in zip(series, values):
+                rows.append((time, value))
+        for point, rows in zip(self.config.points, series):
+            data = np.asarray(rows, dtype=float).reshape(-1, 2)
+            if "csv" in self.formats:
+                self.point_plotter.save(rows, property_name, point.name)
+            if "png" in self.formats:
+                self.point_plotter.plot(data, property_name, point.name, self.coordinates(point.center))
 
     def process_lines(self, property_name: str) -> None:
         """每条线逐帧保存空间分布及带时间标注的曲线"""
         locator = self.locators[property_name]
+        draw = bool(self.formats.intersection({"png", "gif"}))
         for line in self.lines:
             direction = self.direction(line.direction)
             annotation = direction_labels(line.direction.theta, line.direction.phi if self.dimension == 3 else None) if line.direction is not None else []
-            boundaries = self.boundary_geometry.radial_intersections(self.center, direction)
+            boundaries = self.boundary_geometry.radial_intersections(self.center, direction) if draw else None
             frames = []
             lower, upper = float("inf"), float("-inf")
             for frame_directory, time, data in self.line_plotter.extract(direction, line.sample_count, property_name, locator):
-                path = self.line_plotter.save(data, property_name, line.name, frame_directory)
-                frames.append((frame_directory, time, path))
-                lower, upper = min(lower, data[:, 5].min()), max(upper, data[:, 5].max())
+                path = self.line_plotter.save(data, property_name, line.name, frame_directory) if "csv" in self.formats else None
+                if draw:
+                    # 有 CSV 时复用磁盘数据; 否则只保留当前线的采样数组, 不缓存完整网格。
+                    frames.append((frame_directory, time, path if path is not None else data))
+                    lower, upper = min(lower, data[:, 5].min()), max(upper, data[:, 5].max())
             images = []
-            for frame_directory, time, path in frames:
-                data = np.loadtxt(path, delimiter=",", skiprows=1, ndmin=2)
-                images.append(self.line_plotter.plot(data, property_name, line.name, frame_directory, time, boundaries, (lower, upper), annotation))
-            self.animation_jobs.append((images, images[0].parent / "animation.gif"))
+            for frame_directory, time, saved in frames:
+                data = np.loadtxt(saved, delimiter=",", skiprows=1, ndmin=2) if isinstance(saved, Path) else saved
+                images.append(self.line_plotter.plot(data, property_name, line.name, frame_directory, time, boundaries, (lower, upper), annotation, self.image_directory))
+            if "gif" in self.formats:
+                self.animation_jobs.append((images, self.postprocess_directory / "lines" / line.name / property_name / "animation.gif"))
 
     def process_sections(self, property_name: str) -> None:
         """二维默认全截面, 三维使用指定中心和法线, 逐帧保存云图和数据"""
+        draw = bool(self.formats.intersection({"png", "gif"}))
         for section in self.sections:
             center = self.coordinates(section.center) if section.center is not None else self.center
             normal = (0.0, 0.0, 1.0) if self.dimension == 2 else self.direction(section.normal)
             angles = direction_labels(0.0, 0.0) if self.dimension == 2 else direction_labels(section.normal.theta, section.normal.phi)
             annotation = angles + coordinate_labels(center)
-            boundaries = self.boundary_geometry.section(center, normal)
+            boundaries = self.boundary_geometry.section(center, normal) if draw else None
             # 第一遍保存数据并统计整个序列的范围; 第二遍绘图不保留所有帧的网格。
             lower, upper = float("inf"), float("-inf")
             for frame_directory, time, data in self.section_plotter.extract(center, normal, property_name):
-                self.section_plotter.save(data, property_name, section.name, frame_directory)
-                minimum, maximum = self.section_plotter.value_range(data, property_name)
-                lower, upper = min(lower, minimum), max(upper, maximum)
+                if "csv" in self.formats:
+                    self.section_plotter.save(data, property_name, section.name, frame_directory)
+                if draw:
+                    minimum, maximum = self.section_plotter.value_range(data, property_name)
+                    lower, upper = min(lower, minimum), max(upper, maximum)
+            if not draw:
+                continue
             images = []
             for frame_directory, time, data in self.section_plotter.extract(center, normal, property_name):
-                images.append(self.section_plotter.plot(data, property_name, section.name, frame_directory, time, normal, boundaries, (lower, upper), annotation))
-            self.animation_jobs.append((images, images[0].parent / "animation.gif"))
+                images.append(self.section_plotter.plot(data, property_name, section.name, frame_directory, time, normal, boundaries, (lower, upper), annotation, self.image_directory))
+            if "gif" in self.formats:
+                self.animation_jobs.append((images, self.postprocess_directory / "sections" / section.name / property_name / "animation.gif"))
 
     def run(self) -> None:
         """按属性依次完成点、线和截面后处理"""
         self.animation_jobs.clear()
-        for name in self.config.properties:
-            self.process_points(name)
-            self.process_lines(name)
-            self.process_sections(name)
-        for images, path in self.animation_jobs:
-            save_gif(images, path)
+        with ExitStack() as stack:
+            # GIF 仍按原方式由 PNG 合成; 未选择 png 时只在临时目录保留中间帧。
+            self.image_directory = None
+            if "gif" in self.formats and "png" not in self.formats:
+                self.image_directory = Path(stack.enter_context(TemporaryDirectory(prefix="trimuse-gif-")))
+            for name in self.config.properties:
+                self.process_points(name)
+                self.process_lines(name)
+                self.process_sections(name)
+            for images, path in self.animation_jobs:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                save_gif(images, path)
