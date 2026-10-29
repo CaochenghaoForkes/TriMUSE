@@ -40,7 +40,7 @@ public:
 
     void recover(const mfem::Vector& temperature); // 传入独立自由度温度向量，把独立自由度温度恢复成完整温度向量，并写入试探场
 
-    const Counts& counts() const { return counts_; }
+    const Counts& counts() const { return counts_; } // 返回 组装次数统计
 
 private:
     void refresh_matrix(ThermalDomainManager& manager, AssemblyCache<mfem::SparseMatrix>& cache, bool diffusion, const std::string& counter); // 负责按需更新域内矩阵缓存：只重组发生变化的区域，再更新这些区域贡献的总和 导热矩阵和热容矩阵共用这套逻辑 cache: 对应缓存 cache.parts: 区域编号->该区域的矩阵贡献 cache.sum: 所有区域贡献之和

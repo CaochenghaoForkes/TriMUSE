@@ -32,7 +32,7 @@ public:
 
     void add_region_field(const std::string& name, int order, int vector_dimension = 1); // 将名为 name 的场, 创建并初始化一个分域场对象，然后返回拥有它的 unique_ptr 智能指针存入哈希表
 
-    bool has_region_field(const std::string& name) const { return region_field_map_.count(name) != 0; }
+    bool has_region_field(const std::string& name) const { return region_field_map_.count(name) != 0; } // 判断是否存在该名称的分域场
 
     RegionFieldData& region_field(const std::string& name); // 返回名为 name 的场的子域场数据
 
@@ -103,7 +103,7 @@ private:
                                 区域 3 → 空间 + 位移数据
                                 区域 9 → 空间 + 位移数据
     */
-    std::unordered_map<std::string, std::unique_ptr<RegionFieldData>> region_field_map_; // 按场名称管理分区域场对象的哈希表 
+    std::unordered_map<std::string, std::unique_ptr<RegionFieldData>> region_field_map_; // 按场名称管理分区域场对象的哈希表 场名 -> 对应的整个分域场对象
 };
 
 }

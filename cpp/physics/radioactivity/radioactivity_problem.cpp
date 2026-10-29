@@ -6,18 +6,6 @@
 
 namespace trimuse
 {
-namespace
-{
-TrialField checked_concentration(FemSystem& fem, TrialField field)
-{
-    const int region = fem.mesh_data().region_attributes().front();
-    if (field.space(region).GetVDim() != 1) // 检查场的分量数是否为 1，因为浓度是标量
-    {
-        throw std::invalid_argument("浓度场必须为标量 H1 场");
-    }
-    return field;
-}
-}
 
 RadioactivityProblem::RadioactivityProblem(FemSystem& fem, FieldData& concentration, PropertiesSystem& properties,
     SolverSystem& solver, OutputManager& output, const std::string& problem_type, double decay_constant,
@@ -37,7 +25,7 @@ RadioactivityProblem::RadioactivityProblem(FemSystem& fem, TrialField concentrat
     SolverSystem& solver, OutputManager& output, const std::string& problem_type, double decay_constant,
     const std::vector<RadioactivityInitialConfig>& initial, const std::vector<RadioactivityDomainConfig>& sources,
     const std::vector<RadioactivityBoundaryConfig>& boundaries, const std::vector<RadioactivityInterfaceConfig>& interfaces)
-    : concentration_(checked_concentration(fem, std::move(concentration))), properties_(properties), solver_(solver), output_(output),
+    : concentration_(std::move(concentration)), properties_(properties), solver_(solver), output_(output),
       transient_(problem_type == "transient"), assembly_(fem, concentration_, decay_constant, sources, boundaries, interfaces)
 {
     assembly_.mark_coupled(properties_);
