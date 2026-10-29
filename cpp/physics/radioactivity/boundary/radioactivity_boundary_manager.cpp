@@ -1,134 +1,84 @@
 #include "physics/radioactivity/boundary/radioactivity_boundary_manager.hpp"
-#include "physics/radioactivity/boundary/radioactivity_robin_boundary.hpp"
-#include "physics/radioactivity/boundary/radioactivity_neumann_boundary.hpp"
 #include "physics/radioactivity/boundary/radioactivity_dirichlet_boundary.hpp"
-
-#include <stdexcept>
+#include "physics/radioactivity/boundary/radioactivity_neumann_boundary.hpp"
+#include "physics/radioactivity/boundary/radioactivity_robin_boundary.hpp"
 
 namespace trimuse
 {
 
-namespace
+RadioactivityBoundaryManager::RadioactivityBoundaryManager(const std::vector<RadioactivityBoundaryConfig>& configs)
 {
-
-class BoundaryMassIntegrator final : public mfem::MassIntegrator
-{
-public:
-    BoundaryMassIntegrator(mfem::Coefficient& coefficient, const FemSystem& fem_system)
-        : mfem::MassIntegrator(coefficient), fem_system_(fem_system) {}
-
-    void AssembleElementMatrix(const mfem::FiniteElement& element, mfem::ElementTransformation& transformation, mfem::DenseMatrix& matrix) override
+    registry_.register_model<RadioactivityDirichletBoundary>("dirichlet", {"external.surface_nuclide_concentration"});
+    registry_.register_model<RadioactivityNeumannBoundary>("neumann", {"external.nuclide_flux"});
+    registry_.register_model<RadioactivityRobinBoundary>("robin", {"derived.mass_transfer_coef", "external.environment_nuclide_concentration"});
+    for (const auto& config : configs)
     {
-        SetIntRule(fem_system_.boundary_quadrature_rule(element.GetGeomType()));
-        mfem::MassIntegrator::AssembleElementMatrix(element, transformation, matrix);
-    }
-
-private:
-    const FemSystem& fem_system_;
-};
-
-class BoundaryLFIntegrator final : public mfem::BoundaryLFIntegrator
-{
-public:
-    BoundaryLFIntegrator(mfem::Coefficient& coefficient, const FemSystem& fem_system)
-        : mfem::BoundaryLFIntegrator(coefficient), fem_system_(fem_system) {}
-
-    using mfem::BoundaryLFIntegrator::AssembleRHSElementVect;
-
-    void AssembleRHSElementVect(const mfem::FiniteElement& element, mfem::ElementTransformation& transformation, mfem::Vector& vector) override
-    {
-        SetIntRule(fem_system_.boundary_quadrature_rule(element.GetGeomType()));
-        mfem::BoundaryLFIntegrator::AssembleRHSElementVect(element, transformation, vector);
-    }
-
-private:
-    const FemSystem& fem_system_;
-};
-
-}
-
-RadioactivityBoundaryManager::RadioactivityBoundaryManager(FemSystem& fem_system, const std::vector<RadioactivityBoundaryConfig>& boundary_configs)
-    : fem_system_(fem_system),
-      boundary_configs_(boundary_configs),
-      boundary_markers_(boundary_configs.size())
-{
-    const int marker_size = fem_system_.mesh_data().mfem_mesh().bdr_attributes.Max();
-    essential_boundary_marker_.SetSize(marker_size);
-    essential_boundary_marker_ = 0;
-    for (std::size_t index = 0; index < boundary_configs_.size(); ++index)
-    {
-        mfem::Array<int>& marker = boundary_markers_[index];
-        marker.SetSize(marker_size);
-        marker = 0;
-        marker[boundary_configs_[index].boundary_attribute - 1] = 1;
-        if (boundary_configs_[index].model_name == "dirichlet")
-        {
-            essential_boundary_marker_[boundary_configs_[index].boundary_attribute - 1] = 1;
-        }
-        boundary_coefficients_.push_back(std::make_unique<BoundaryCoefficients>(fem_system));
+        const auto& entry = registry_.registration(config.model_name);
+        models_.emplace(config.boundary_attribute, Assignment{entry.factory(config.parameters), entry.required_states});
     }
 }
 
-void RadioactivityBoundaryManager::update(const PropertiesFieldData& properties_field_data)
+void RadioactivityBoundaryManager::update(const PropertiesFieldData& properties)
 {
-    for (std::size_t index = 0; index < boundary_configs_.size(); ++index)
+    for (auto& [zone, assignment] : models_)
     {
-        const RadioactivityBoundaryConfig& config = boundary_configs_[index];
-        BoundaryCoefficients& coefficients = *boundary_coefficients_[index];
-        if (config.model_name == "robin")
-        {
-            const RadioactivityRobinValues values = RadioactivityRobinBoundary::evaluate(properties_field_data, config.boundary_attribute);
-            coefficients.matrix.constant = values.matrix_coefficient;
-            coefficients.rhs.constant = values.rhs_coefficient;
-        }
-        else if (config.model_name == "neumann")
-        {
-            coefficients.rhs.constant = RadioactivityNeumannBoundary::evaluate(properties_field_data, config.boundary_attribute);
-        }
-        else if (config.model_name == "dirichlet")
-        {
-            coefficients.concentration.constant = RadioactivityDirichletBoundary::evaluate(properties_field_data, config.boundary_attribute);
-        }
+        const auto value = assignment.model->evaluate(properties, zone);
+        assignment.dirty[0] = assignment.dirty[0] || value.matrix != assignment.values.matrix;
+        assignment.dirty[1] = assignment.dirty[1] || value.load != assignment.values.load;
+        assignment.dirty[2] = assignment.dirty[2] || value.concentration != assignment.values.concentration;
+        assignment.values = value;
     }
 }
 
-void RadioactivityBoundaryManager::add_integrators(mfem::BilinearForm& bilinear_form)
+void RadioactivityBoundaryManager::mark_coupled(PropertiesSystem& properties, const std::string& field) const
 {
-    for (std::size_t index = 0; index < boundary_configs_.size(); ++index)
+    for (const auto& [zone, assignment] : models_)
     {
-        if (boundary_configs_[index].model_name == "robin")
-        {
-            bilinear_form.AddBoundaryIntegrator(new BoundaryMassIntegrator(boundary_coefficients_[index]->weighted_matrix, fem_system_), boundary_markers_[index]);
-        }
+        properties.mark_coupled(field, assignment.required);
     }
 }
 
-void RadioactivityBoundaryManager::add_integrators(mfem::LinearForm& linear_form)
+bool RadioactivityBoundaryManager::coupled(const PropertiesSystem& properties, const std::string& field) const
 {
-    for (std::size_t index = 0; index < boundary_configs_.size(); ++index)
+    for (const auto& [zone, assignment] : models_)
+    for (const auto& name : assignment.required)
     {
-        const std::string& model_name = boundary_configs_[index].model_name;
-        if (model_name == "robin" || model_name == "neumann")
+        if (properties.coupled_with_field(name, zone, field))
         {
-            linear_form.AddBoundaryIntegrator(new BoundaryLFIntegrator(boundary_coefficients_[index]->weighted_rhs, fem_system_), boundary_markers_[index]);
-        }
-        else if (model_name != "dirichlet")
-        {
-            throw std::logic_error("尚未实现的核素边界模型: " + model_name);
+            return true;
         }
     }
+    return false;
 }
 
-void RadioactivityBoundaryManager::apply_essential_conditions(mfem::GridFunction& concentration, mfem::Array<int>& essential_true_dofs) const
+bool RadioactivityBoundaryManager::required_no_change(int zone, RadioactivityBoundaryPart part) const
 {
-    for (std::size_t index = 0; index < boundary_configs_.size(); ++index)
+    return !models_.at(zone).dirty[static_cast<int>(part)];
+}
+
+void RadioactivityBoundaryManager::assembled(int zone, RadioactivityBoundaryPart part)
+{
+    models_.at(zone).dirty[static_cast<int>(part)] = false;
+}
+
+std::vector<int> RadioactivityBoundaryManager::zones() const
+{
+    std::vector<int> result;
+    for (const auto& [zone, assignment] : models_)
     {
-        if (boundary_configs_[index].model_name == "dirichlet")
-        {
-            concentration.ProjectBdrCoefficient(boundary_coefficients_[index]->concentration, boundary_markers_[index]);
-        }
+        result.push_back(zone);
     }
-    concentration.FESpace()->GetEssentialTrueDofs(essential_boundary_marker_, essential_true_dofs);
+    return result;
+}
+
+const RadioactivityBoundaryValues& RadioactivityBoundaryManager::values(int zone) const
+{
+    return models_.at(zone).values;
+}
+
+bool RadioactivityBoundaryManager::essential(int zone) const
+{
+    return models_.at(zone).model->essential();
 }
 
 }

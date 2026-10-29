@@ -1,20 +1,19 @@
 #pragma once
-
-#include "properties/properties_field_data.hpp"
-
+#include "physics/radioactivity/boundary/radioactivity_boundary_model.hpp"
 namespace trimuse
 {
 
-struct RadioactivityRobinValues
-{
-    double matrix_coefficient; // h_m
-    double rhs_coefficient; // h_m c_infinity
-};
-
-class RadioactivityRobinBoundary
+class RadioactivityRobinBoundary final : public RadioactivityBoundaryModel
 {
 public:
-    static RadioactivityRobinValues evaluate(const PropertiesFieldData& properties_field_data, int boundary_attribute);
+    explicit RadioactivityRobinBoundary(const ModelParameterMap&) {}
+
+    RadioactivityBoundaryValues evaluate(const PropertiesFieldData& properties, int zone) const override
+    {
+        const double h = scalar(properties, "derived.mass_transfer_coef", zone);
+        // 左端 h_m c，右端 h_m c_infinity。
+        return {h, h * scalar(properties, "external.environment_nuclide_concentration", zone), 0.0};
+    }
 };
 
 }

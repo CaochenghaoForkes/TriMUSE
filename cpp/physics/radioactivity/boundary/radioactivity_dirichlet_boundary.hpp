@@ -1,14 +1,19 @@
 #pragma once
-
-#include "properties/properties_field_data.hpp"
-
+#include "physics/radioactivity/boundary/radioactivity_boundary_model.hpp"
 namespace trimuse
 {
 
-class RadioactivityDirichletBoundary
+class RadioactivityDirichletBoundary final : public RadioactivityBoundaryModel
 {
 public:
-    static double evaluate(const PropertiesFieldData& properties_field_data, int boundary_attribute);
+    explicit RadioactivityDirichletBoundary(const ModelParameterMap&) {}
+
+    bool essential() const override { return true; }
+
+    RadioactivityBoundaryValues evaluate(const PropertiesFieldData& properties, int zone) const override
+    {
+        return {0.0, 0.0, scalar(properties, "external.surface_nuclide_concentration", zone)};
+    }
 };
 
 }

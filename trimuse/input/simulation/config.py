@@ -37,7 +37,7 @@ class SimulationCard:
 
             family: str = "H1"
             order: int = 1
-            continuity: str = "continuous"  # [continuous,region], region 当前用于温度场
+            continuity: str = "continuous"  # [continuous,region], region 可用于温度场和浓度场
 
         @dataclass
         class Quadrature:

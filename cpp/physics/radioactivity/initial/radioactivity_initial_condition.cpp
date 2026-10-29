@@ -59,9 +59,8 @@ private:
     const FemSystem& fem_system_;
 };
 
-}
-
-void initialize_concentration(const FemSystem& fem_system, FieldData& concentration_field, const std::vector<RadioactivityInitialConfig>& initial_configs)
+std::unordered_map<int, double> initial_values(const FemSystem& fem_system,
+    const std::vector<RadioactivityInitialConfig>& initial_configs)
 {
     std::unordered_map<int, double> region_values;
     for (const RadioactivityInitialConfig& config : initial_configs)
@@ -73,6 +72,14 @@ void initialize_concentration(const FemSystem& fem_system, FieldData& concentrat
         const double inventory = std::get<double>(config.parameters.at("inventory"));
         region_values[config.region_attribute] = inventory / fem_system.mesh_data().region_volumes().at(config.region_attribute);
     }
+    return region_values;
+}
+
+}
+
+void initialize_concentration(const FemSystem& fem_system, FieldData& concentration_field, const std::vector<RadioactivityInitialConfig>& initial_configs)
+{
+    const auto region_values = initial_values(fem_system, initial_configs);
     const double uniform_value = region_values.begin()->second;
     if (std::all_of(region_values.begin(), region_values.end(), [uniform_value](const auto& item) { return item.second == uniform_value; }))
     {
@@ -112,6 +119,15 @@ void initialize_concentration(const FemSystem& fem_system, FieldData& concentrat
         throw std::runtime_error("初始浓度的 L2 投影未收敛");
     }
     mass_form.RecoverFEMSolution(true_concentration, right_hand_side, concentration);
+}
+
+void initialize_concentration(const FemSystem& fem_system, RegionFieldData& concentration_field,
+    const std::vector<RadioactivityInitialConfig>& initial_configs)
+{
+    for (const auto& [region, value] : initial_values(fem_system, initial_configs))
+    {
+        concentration_field.field_data(region).assign(value);
+    }
 }
 
 }

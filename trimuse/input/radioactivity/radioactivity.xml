@@ -22,7 +22,7 @@
         <boundary name="[str]" model="neumann"/>
         -->
     </boundaries>
-    <!-- 可省略, 默认连续空间下的理想接触 -->
+    <!-- 可省略，默认理想接触；连续场共享自由度，分域场连接两侧对应自由度 -->
     <interfaces>
         <interface name="[str]" model="perfect_contact"/>
     </interfaces>

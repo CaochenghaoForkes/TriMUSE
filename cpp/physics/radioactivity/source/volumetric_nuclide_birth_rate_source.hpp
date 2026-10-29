@@ -1,16 +1,18 @@
 #pragma once
-
-#include <cstddef>
-
-#include "properties/properties_field_data.hpp"
+#include "physics/radioactivity/common/radioactivity_domain_model.hpp"
 
 namespace trimuse
 {
 
-class VolumetricNuclideBirthRateSource
+class VolumetricNuclideBirthRateSource final : public RadioactivityDomainModel
 {
 public:
-    static double evaluate(const PropertiesFieldData& properties_field_data, std::size_t point_index);
+    explicit VolumetricNuclideBirthRateSource(const ModelParameterMap&) {}
+
+    double evaluate(const PropertiesFieldData& properties, std::size_t point) const override
+    {
+        return scalar(properties, "derived.volumetric_nuclide_birth_rate", point); // atom/(m³·s)
+    }
 };
 
 }

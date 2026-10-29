@@ -9,15 +9,15 @@
 namespace trimuse
 {
 
-struct ThermalInitialConfig
+struct ThermalInitialConfig // 某个区域采用哪个初始温度模型，以及该模型需要的参数
 {
-    int region_attribute;
-    std::string model_name;
-    ModelParameterMap parameters;
+    int region_attribute; // 原网格中的区域属性编号，不是单元编号
+    std::string model_name; // 初始温度模型名称
+    ModelParameterMap parameters; // 模型所需的参数字典
 };
 
-// 仅在初始时刻调用, 不施加后续的温度边界约束
 void initialize_temperature(const FemSystem& fem_system, FieldData& temperature_field, const std::vector<ThermalInitialConfig>& initial_configs);
+
 void initialize_temperature(RegionFieldData& temperature_field, const std::vector<ThermalInitialConfig>& initial_configs);
 
 }

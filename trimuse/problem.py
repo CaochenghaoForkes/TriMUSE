@@ -57,9 +57,11 @@ class Radioactivity:
         initial_configs = self.prepare_initial(card.initial, mesh_info.region_attributes)
         source_configs = self.prepare_source(card.source, mesh_info.region_attributes)
         boundary_configs = self.prepare_boundary(card.boundary, mesh_info.boundary_attributes)
+        interface_configs = [(mesh_info.boundary_attributes[item.name], item.model, item.parameters)
+                             for item in card.interfaces.interface]
         self.radioactivity_problem = RadioactivityProblem(
             fem, properties, solver, output, problem_type, card.nuclide.decay_constant,
-            initial_configs, source_configs, boundary_configs
+            initial_configs, source_configs, boundary_configs, interface_configs
         )
 
     @staticmethod

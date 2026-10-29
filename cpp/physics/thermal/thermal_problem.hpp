@@ -27,7 +27,7 @@ public:
     const ThermalAssembly::Counts& assembly_counts() const { return assembly_.counts(); }
 
 private:
-    ThermalProblem(FemSystem& fem, ThermalField temperature, PropertiesSystem& properties,
+    ThermalProblem(FemSystem& fem, TrialField temperature, PropertiesSystem& properties,
                    SolverSystem& solver, OutputManager& output, const std::string& problem_type,
                    const std::vector<ThermalInitialConfig>& initial,
                    const std::vector<ThermalDomainConfig>& sources,
@@ -36,7 +36,7 @@ private:
     void iterate(double time_step, double theta);
     void accept_temperature();
 
-    ThermalField temperature_;
+    TrialField temperature_;
     PropertiesSystem& properties_;
     SolverSystem& solver_;
     OutputManager& output_;

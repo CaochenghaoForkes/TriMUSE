@@ -5,7 +5,7 @@
 
 #include "common/model_registry.hpp"
 #include "physics/thermal/interface/thermal_interface_model.hpp"
-#include "physics/thermal/thermal_field.hpp"
+#include "physics/common/constraint/dof_constraints.hpp"
 
 namespace trimuse
 {
@@ -14,9 +14,11 @@ class ThermalInterfaceManager
 {
 public:
 
-    ThermalInterfaceManager(FemSystem& fem, ThermalField& field, const std::vector<ThermalInterfaceConfig>& configs);
+    ThermalInterfaceManager(FemSystem& fem, TrialField& field, const std::vector<ThermalInterfaceConfig>& configs);
 
-    const mfem::SparseMatrix& prolongation() const { return *prolongation_; }
+    const DofConstraints& constraints() const { return *constraints_; }
+
+    const mfem::SparseMatrix& prolongation() const { return constraints_->prolongation(); }
 
     const mfem::SparseMatrix* matrix() const { return matrix_.get(); }
 
@@ -25,7 +27,7 @@ private:
 
     std::map<int, std::unique_ptr<ThermalInterfaceModel>> models_; // 界面物理属性编号 -> 该界面使用的具体模型对象 一个物理界面可以包含多个网格面片，这些面片共用对应的模型对象
 
-    std::unique_ptr<mfem::SparseMatrix> prolongation_; // 约束映射矩阵 P
+    std::unique_ptr<DofConstraints> constraints_; // 公共自由度约束，持有映射矩阵 P
 
     std::unique_ptr<mfem::SparseMatrix> matrix_; // 所有热阻界面片贡献累加形成的界面传热矩阵 KI
 };

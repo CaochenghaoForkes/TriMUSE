@@ -8,7 +8,7 @@
 namespace trimuse
 {
 
-ThermalInterfaceManager::ThermalInterfaceManager(FemSystem& fem, ThermalField& field, const std::vector<ThermalInterfaceConfig>& configs)
+ThermalInterfaceManager::ThermalInterfaceManager(FemSystem& fem, TrialField& field, const std::vector<ThermalInterfaceConfig>& configs)
 {
     registry_.register_model<ThermalPerfectContact>("perfect_contact");
     registry_.register_model<ThermalUniformFromConstantResistance>("uniform_from_constant_resistance");
@@ -37,7 +37,7 @@ ThermalInterfaceManager::ThermalInterfaceManager(FemSystem& fem, ThermalField& f
         model->second->assemble(context, assembly); // 调用具体模型 理想接触: 登记两侧自由度连接 恒定热阻: 将该面片的传热贡献累加到界面矩阵
     }
     auto operators = assembly.finalize(); // 生成约束映射 P，整理界面传热矩阵，放入 Operators 返回
-    prolongation_ = std::move(operators.prolongation);
+    constraints_ = std::move(operators.constraints);
     matrix_ = std::move(operators.matrix); // 将两个矩阵的所有权转移给管理器长期保存，不复制矩阵数值 之后热问题可以直接复用这些构建结果
 }
 

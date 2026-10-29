@@ -133,15 +133,25 @@ PYBIND11_MODULE(_core, module)
                          const std::string& problem_type, double decay_constant,
                          const std::vector<ProblemConfigEntry>& initial_configs,
                          const std::vector<ProblemConfigEntry>& source_configs,
-                         const std::vector<ProblemConfigEntry>& boundary_configs)
+                         const std::vector<ProblemConfigEntry>& boundary_configs,
+                         const std::vector<ProblemConfigEntry>& interface_configs)
         {
-            return std::make_unique<trimuse::RadioactivityProblem>(fem, fem.field_data("concentration"), properties, solver, output, problem_type, decay_constant,
-                problem_configs<trimuse::RadioactivityInitialConfig>(initial_configs),
-                problem_configs<trimuse::RadioactivitySourceConfig>(source_configs),
-                problem_configs<trimuse::RadioactivityBoundaryConfig>(boundary_configs));
+            const auto initial = problem_configs<trimuse::RadioactivityInitialConfig>(initial_configs);
+            const auto sources = problem_configs<trimuse::RadioactivityDomainConfig>(source_configs);
+            const auto boundaries = problem_configs<trimuse::RadioactivityBoundaryConfig>(boundary_configs);
+            const auto interfaces = problem_configs<trimuse::RadioactivityInterfaceConfig>(interface_configs);
+            if (fem.has_region_field("concentration"))
+            {
+                return std::make_unique<trimuse::RadioactivityProblem>(fem, fem.region_field("concentration"),
+                    properties, solver, output, problem_type, decay_constant, initial, sources, boundaries, interfaces);
+            }
+            return std::make_unique<trimuse::RadioactivityProblem>(fem, fem.field_data("concentration"),
+                properties, solver, output, problem_type, decay_constant, initial, sources, boundaries, interfaces);
         }), py::arg("fem_system"), py::arg("properties_system"), py::arg("solver_system"), py::arg("output_manager"),
             py::arg("problem_type"), py::arg("decay_constant"),
             py::arg("initial_configs"), py::arg("source_configs"), py::arg("boundary_configs"),
+            py::arg("interface_configs") = std::vector<ProblemConfigEntry>{},
             py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::keep_alive<1, 4>(), py::keep_alive<1, 5>())
+        .def("assembly_counts", &trimuse::RadioactivityProblem::assembly_counts)
         .def("solve", &trimuse::RadioactivityProblem::solve, py::arg("time_step") = 0.0, py::arg("theta") = 1.0);
 }

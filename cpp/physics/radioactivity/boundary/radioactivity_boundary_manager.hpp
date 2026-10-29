@@ -1,56 +1,50 @@
 #pragma once
 
-#include <memory>
-#include <string>
-#include <vector>
-
-#include "common/model_parameters.hpp"
-#include "fem/fem_system.hpp"
-#include "fem/geometric_weighted_coefficient.hpp"
-#include "properties/properties_field_data.hpp"
+#include <array>
+#include <map>
+#include "common/model_registry.hpp"
+#include "physics/radioactivity/boundary/radioactivity_boundary_model.hpp"
+#include "properties/properties_system.hpp"
 
 namespace trimuse
 {
 
-struct RadioactivityBoundaryConfig
-{
-    int boundary_attribute;
-    std::string model_name;
-    ModelParameterMap parameters;
-};
-
 class RadioactivityBoundaryManager
 {
 public:
-    RadioactivityBoundaryManager(FemSystem& fem_system, const std::vector<RadioactivityBoundaryConfig>& boundary_configs);
+    explicit RadioactivityBoundaryManager(const std::vector<RadioactivityBoundaryConfig>& configs);
 
-    void update(const PropertiesFieldData& properties_field_data);
+    void update(const PropertiesFieldData& properties);
 
-    void add_integrators(mfem::BilinearForm& bilinear_form);
+    void mark_coupled(PropertiesSystem& properties, const std::string& field) const;
 
-    void add_integrators(mfem::LinearForm& linear_form);
+    bool coupled(const PropertiesSystem& properties, const std::string& field) const;
 
-    void apply_essential_conditions(mfem::GridFunction& concentration, mfem::Array<int>& essential_true_dofs) const;
+    bool required_no_change(int zone, RadioactivityBoundaryPart part) const;
+
+    void assembled(int zone, RadioactivityBoundaryPart part);
+
+    std::vector<int> zones() const;
+
+    const RadioactivityBoundaryValues& values(int zone) const;
+
+    bool essential(int zone) const;
 
 private:
-    struct BoundaryCoefficients
+    struct Assignment
     {
-        explicit BoundaryCoefficients(const FemSystem& fem_system)
-            : weighted_matrix(matrix, fem_system), weighted_rhs(rhs, fem_system) {}
+        std::unique_ptr<RadioactivityBoundaryModel> model;
 
-        mfem::ConstantCoefficient matrix{0.0}; // Robin: h_m
-        mfem::ConstantCoefficient rhs{0.0}; // Robin: h_m c_infinity; Neumann: -j_n
-        mfem::ConstantCoefficient concentration{0.0}; // Dirichlet: 指定表面浓度, 不乘几何权重
-        GeometricWeightedCoefficient weighted_matrix;
-        GeometricWeightedCoefficient weighted_rhs;
+        std::vector<std::string> required;
+
+        RadioactivityBoundaryValues values;
+
+        std::array<bool, 3> dirty{true, true, true};
     };
 
-    FemSystem& fem_system_;
-    std::vector<RadioactivityBoundaryConfig> boundary_configs_;
-    std::vector<mfem::Array<int>> boundary_markers_;
-    mfem::Array<int> essential_boundary_marker_;
-    // 系数地址固定, 供积分器持续引用; 每步通过 update 更新数值。
-    std::vector<std::unique_ptr<BoundaryCoefficients>> boundary_coefficients_;
+    ModelRegistry<RadioactivityBoundaryModel> registry_;
+
+    std::map<int, Assignment> models_;
 };
 
 }

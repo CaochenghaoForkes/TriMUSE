@@ -6,25 +6,38 @@
 
 namespace trimuse
 {
+namespace
+{
+TrialField checked_temperature(FemSystem& fem, TrialField field)
+{
+    const int region = fem.mesh_data().region_attributes().front();
+    if (field.space(region).GetVDim() != 1) // 检查场的分量数是否为 1，因为温度是标量
+    {
+        throw std::invalid_argument("温度场必须为标量 H1 场");
+    }
+    return field;
+}
+}
+
 ThermalProblem::ThermalProblem(FemSystem& fem, FieldData& temperature, PropertiesSystem& properties,
     SolverSystem& solver, OutputManager& output, const std::string& problem_type,
     const std::vector<ThermalInitialConfig>& initial, const std::vector<ThermalDomainConfig>& sources,
     const std::vector<ThermalBoundaryConfig>& boundaries, const std::vector<ThermalInterfaceConfig>& interfaces)
-    : ThermalProblem(fem, ThermalField(fem, temperature), properties, solver, output, problem_type, initial, sources, boundaries, interfaces)
+    : ThermalProblem(fem, TrialField(fem, temperature), properties, solver, output, problem_type, initial, sources, boundaries, interfaces)
 {
 }
 ThermalProblem::ThermalProblem(FemSystem& fem, RegionFieldData& temperature, PropertiesSystem& properties,
     SolverSystem& solver, OutputManager& output, const std::string& problem_type,
     const std::vector<ThermalInitialConfig>& initial, const std::vector<ThermalDomainConfig>& sources,
     const std::vector<ThermalBoundaryConfig>& boundaries, const std::vector<ThermalInterfaceConfig>& interfaces)
-    : ThermalProblem(fem, ThermalField(fem, temperature), properties, solver, output, problem_type, initial, sources, boundaries, interfaces)
+    : ThermalProblem(fem, TrialField(fem, temperature), properties, solver, output, problem_type, initial, sources, boundaries, interfaces)
 {
 }
-ThermalProblem::ThermalProblem(FemSystem& fem, ThermalField temperature, PropertiesSystem& properties,
+ThermalProblem::ThermalProblem(FemSystem& fem, TrialField temperature, PropertiesSystem& properties,
     SolverSystem& solver, OutputManager& output, const std::string& problem_type,
     const std::vector<ThermalInitialConfig>& initial, const std::vector<ThermalDomainConfig>& sources,
     const std::vector<ThermalBoundaryConfig>& boundaries, const std::vector<ThermalInterfaceConfig>& interfaces)
-    : temperature_(std::move(temperature)), properties_(properties), solver_(solver), output_(output),
+    : temperature_(checked_temperature(fem, std::move(temperature))), properties_(properties), solver_(solver), output_(output),
       transient_(problem_type == "transient"), assembly_(fem, temperature_, sources, boundaries, interfaces)
 {
     assembly_.mark_coupled(properties_, transient_);
