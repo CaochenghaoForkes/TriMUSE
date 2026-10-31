@@ -192,6 +192,9 @@ class OutputManager:
             model = getattr(card.geometry, card.geometry.source)
             node = cls._node(geometry, card.geometry.source)
             cls._center(node, model.center)
+            if card.geometry.source == "flat_multilayer_particle":
+                cls._quantity(node, "flattening_depth", model.flattening_depth, "[m]")
+                cls._quantity(node, "fillet_radius", model.fillet_radius, "[m]")
             if card.geometry.source == "stochastic_multilayer_particle":
                 surface = cls._node(node, "outer_surface")
                 cls._quantity(surface, "batch_mean_radius", model.outer_surface.batch_mean_radius, "[m]")

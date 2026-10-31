@@ -4,6 +4,7 @@ import numpy as np
 from trimuse.input.geometry_mesh.config import GeometryMeshCard
 from trimuse.geometry.gmsh_mesh import GmshMesh
 from trimuse.geometry.ideal_multilayer_sphere import IdealMultilayerSphereBuilder
+from trimuse.geometry.flat_multilayer_particle import FlatMultilayerParticleBuilder
 from trimuse.geometry.stochastic_multilayer_particle import StochasticMultilayerParticleBuilder
 from trimuse.geometry.topology import GeometryTopology, MeshInfo
 
@@ -37,3 +38,5 @@ class GeometryMeshBuilder:
         elif config.geometry.source == "stochastic_multilayer_particle":
             particle = config.geometry.stochastic_multilayer_particle
             return StochasticMultilayerParticleBuilder.build(particle, config.model.dimension, rng, zones, config.mesh.space_sampler)
+        elif config.geometry.source == "flat_multilayer_particle":
+            return FlatMultilayerParticleBuilder.build(config.geometry.flat_multilayer_particle, config.model.dimension, zones)

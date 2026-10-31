@@ -116,10 +116,20 @@ class GeometryMeshCard:
             center: GeometryMeshCard.Geometry.Center = field(default_factory=lambda: GeometryMeshCard.Geometry.Center())
             regions: Regions = field(default_factory=Regions)
 
-        source: str  # [ideal_multilayer_sphere,stochastic_multilayer_particle]
+        @dataclass
+        class FlatMultilayerParticle:
+            """二维/三维截平颗粒, 各层共用截平深度和圆角半径, 层定义同理想球体"""
+
+            flattening_depth: float
+            fillet_radius: float
+            center: GeometryMeshCard.Geometry.Center = field(default_factory=lambda: GeometryMeshCard.Geometry.Center())
+            regions: GeometryMeshCard.Geometry.IdealMultilayerSphere.Regions = field(default_factory=lambda: GeometryMeshCard.Geometry.IdealMultilayerSphere.Regions())
+
+        source: str  # [ideal_multilayer_sphere,stochastic_multilayer_particle,flat_multilayer_particle]
         zones: Zones
         ideal_multilayer_sphere: IdealMultilayerSphere | None = None
         stochastic_multilayer_particle: StochasticMultilayerParticle | None = None
+        flat_multilayer_particle: FlatMultilayerParticle | None = None
 
     @dataclass
     class Mesh:
@@ -212,7 +222,8 @@ class GeometryMeshCardLoader:
         source = XmlUtils.read_attribute(element, "source", required=True)
         readers = {
             "ideal_multilayer_sphere": cls.read_ideal_multilayer_sphere,
-            "stochastic_multilayer_particle": cls.read_stochastic_multilayer_particle
+            "stochastic_multilayer_particle": cls.read_stochastic_multilayer_particle,
+            "flat_multilayer_particle": cls.read_flat_multilayer_particle
         }
         geometry_model = readers[source](XmlUtils.read_child(element, source), dimension)
         zones = cls.read_zones(XmlUtils.read_child(element, "zones"), dimension)
@@ -281,6 +292,15 @@ class GeometryMeshCardLoader:
         outer_radius = XmlUtils.read_attribute(outer_radius_element, "value", float, required=True, quantity="length", context=element.tag)
         region = GeometryMeshCard.Geometry.IdealMultilayerSphere.Regions.Region(name=name, outer_boundary=outer_boundary, outer_radius=outer_radius)
         return region
+
+    @classmethod
+    def read_flat_multilayer_particle(cls, element: ET.Element, dimension: int) -> GeometryMeshCard.Geometry.FlatMultilayerParticle:
+        """复用理想颗粒的中心和层定义, 另读公共截平深度与圆角半径"""
+        sphere = cls.read_ideal_multilayer_sphere(element, dimension)
+        parameters = {}
+        for name in ("flattening_depth", "fillet_radius"):
+            parameters[name] = XmlUtils.read_attribute(XmlUtils.read_child(element, name), "value", float, required=True, quantity="length", context=name)
+        return GeometryMeshCard.Geometry.FlatMultilayerParticle(center=sphere.center, regions=sphere.regions, **parameters)
 
     @classmethod
     def read_stochastic_multilayer_particle(cls, element: ET.Element, dimension: int) -> GeometryMeshCard.Geometry.StochasticMultilayerParticle:

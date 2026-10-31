@@ -68,4 +68,4 @@ def main(chief_path: str | Path) -> None:
 
 
 if __name__ == "__main__":
-    main(project_directory / "cases/transient_heat_transient_cs137_2d_2/case.xml")
+    main(project_directory / "cases/flat_geometry_2d/case.xml")

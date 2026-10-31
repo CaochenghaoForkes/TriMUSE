@@ -98,8 +98,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300,
-    "collapsed": true
+    "width": 300
   },
   "right": {
     "id": "134f8b9b3980ec1d",
@@ -206,13 +205,21 @@
   },
   "active": "4c1f51df6c37679f",
   "lastOpenFiles": [
+    "TriMUSE 第一阶段程序指南/界面单元.eddx",
+    "TriMUSE 第一阶段程序指南/附件/Pasted image 20261030152425.png",
+    "TriMUSE 第一阶段程序指南/附件/Pasted image 20261030151903.png",
+    "TriMUSE 第一阶段程序指南/附件/Pasted image 20261030114944.png",
+    "TriMUSE 第一阶段程序指南/附件/Pasted image 20261030105859.png",
+    "TriMUSE 第一阶段程序指南/附件/Pasted image 20261030104225.png",
+    "TriMUSE 第一阶段程序指南/附件/Pasted image 20261030102230.png",
+    "TriMUSE 第一阶段程序指南/附件/Pasted image 20261030094856.png",
+    "TriMUSE 第一阶段程序指南/附件/Pasted image 20261030091805.png",
     "TriMUSE 第一阶段程序指南/image.png",
     "TriMUSE 第一阶段程序指南/基本理论.md",
     "TriMUSE 第一阶段程序指南/附件/Pasted image 20261029232213.png",
     "TriMUSE 第一阶段程序指南/附件",
     "TriMUSE 第一阶段程序指南/TriMUSE 第一阶段程序指南.md",
     "TriMUSE 第一阶段程序指南",
-    "附件/Pasted image 20261029194133.png",
     "附件"
   ]
 }

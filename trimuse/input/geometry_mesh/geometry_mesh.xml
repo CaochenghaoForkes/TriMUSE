@@ -4,7 +4,7 @@
 <geometry_mesh>
     <model dimension="[1][2][3]"/>
     <!-- 根据 source 只保留对应的几何子节点 -->
-    <geometry source="[ideal_multilayer_sphere][stochastic_multilayer_particle]">
+    <geometry source="[ideal_multilayer_sphere][stochastic_multilayer_particle][flat_multilayer_particle]">
         <ideal_multilayer_sphere>
             <!-- center 可省略, 坐标默认零, 1D 保留 x, 2D 保留 x,y, 3D 保留 x,y,z -->
             <center>
@@ -21,6 +21,27 @@
                 </region>
             </regions>
         </ideal_multilayer_sphere>
+        <flat_multilayer_particle>
+            <!-- 支持 2D 轴对称及 3D; center 可省略, 2D 保留 x,y, 3D 保留 x,y,z -->
+            <center>
+                <x value="[float]" unit="[str]"/>
+                <y value="[float]" unit="[str]"/>
+                <z value="[float]" unit="[str]"/>
+            </center>
+            <regions>
+                <!-- 按从内到外顺序重复 region; outer_radius 是截平前的原球半径 -->
+                <region name="[str]">
+                    <outer_boundary name="[str]"/>
+                    <outer_radius value="[float]" unit="[str]"/>
+                </region>
+            </regions>
+            <!-- 各层(含核心)共用; 2D 底面 y=center.y-(outer_radius-flattening_depth),
+                 3D 底面 z=center.z-(outer_radius-flattening_depth), 对称轴为 z -->
+            <!-- 0 < flattening_depth < 最内层半径 -->
+            <flattening_depth value="[float]" unit="[str]"/>
+            <!-- 0 < fillet_radius < 最内层半径-flattening_depth/2; 过渡处不保证等厚 -->
+            <fillet_radius value="[float]" unit="[str]"/>
+        </flat_multilayer_particle>
         <stochastic_multilayer_particle>
             <!-- 随机种子在总调度卡中设置, center 规则同理想几何 -->
             <center>
@@ -62,7 +83,8 @@
             <residual_zone name="[str]"/>
         </zones>
         -->
-        <!-- 2D 轴对称: theta 从上极点沿右侧截面至下极点，范围 0 到 180 度。 -->
+        <!-- 2D 轴对称: theta 从几何中心的 +y 方向沿右侧至 -y 方向，范围 0 到 180 度。
+             截平颗粒也按此极角划分, 分区可跨越球面、圆角和底部平面。 -->
         <zones outer_boundary="[str]">
             <zone name="[str]">
                 <theta_min value="[float]" unit="[degree]"/>

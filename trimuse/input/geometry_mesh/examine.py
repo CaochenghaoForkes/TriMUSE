@@ -12,7 +12,7 @@ class GeometryMeshCardExamine:
         if dimension not in (1, 2, 3):
             raise ValueError("model dimension 必须为 [1,2,3]")
         source = card.geometry.source
-        if source not in ("ideal_multilayer_sphere", "stochastic_multilayer_particle"):
+        if source not in ("ideal_multilayer_sphere", "stochastic_multilayer_particle", "flat_multilayer_particle"):
             raise ValueError(f"不支持的几何来源: {source}")
         geometry = getattr(card.geometry, source)
         if not all(math.isfinite(value) for value in (geometry.center.x, geometry.center.y, geometry.center.z)):
@@ -21,6 +21,9 @@ class GeometryMeshCardExamine:
         cls.check_layers(regions)
         if source == "ideal_multilayer_sphere":
             cls.check_ideal_layers(regions)
+        elif source == "flat_multilayer_particle":
+            cls.check_ideal_layers(regions)
+            cls.check_flat_geometry(geometry, dimension)
         else:
             cls.check_stochastic_geometry(geometry, dimension)
         cls.check_zones(card.geometry.zones, regions, dimension)
@@ -105,6 +108,21 @@ class GeometryMeshCardExamine:
             if region.outer_radius <= previous_radius:
                 raise ValueError("各层 outer_radius 必须从内到外严格递增")
             previous_radius = region.outer_radius
+
+    @classmethod
+    def check_flat_geometry(cls, geometry: GeometryMeshCard.Geometry.FlatMultilayerParticle, dimension: int) -> None:
+        """保持底面在中心下方, 且圆角与直线、原圆均有非退化的连接"""
+        if dimension not in (2, 3):
+            raise ValueError("flat_multilayer_particle 仅支持 2D 轴对称或 3D 几何")
+        cls.check_number(geometry.flattening_depth, "flattening_depth")
+        cls.check_number(geometry.fillet_radius, "fillet_radius")
+        radius = geometry.regions.region[0].outer_radius
+        if geometry.flattening_depth >= radius or math.isclose(geometry.flattening_depth, radius, rel_tol=1e-12):
+            raise ValueError("flattening_depth 必须小于最内层 outer_radius")
+        # 圆角圆心横坐标的平方为 depth * (2 * (R - rho) - depth)。
+        maximum_fillet = radius - geometry.flattening_depth / 2
+        if geometry.fillet_radius >= maximum_fillet or math.isclose(geometry.fillet_radius, maximum_fillet, rel_tol=1e-12):
+            raise ValueError("fillet_radius 必须小于最内层 outer_radius - flattening_depth / 2")
 
     @classmethod
     def check_stochastic_geometry(cls, geometry: GeometryMeshCard.Geometry.StochasticMultilayerParticle, dimension: int) -> None:
