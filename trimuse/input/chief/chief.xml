@@ -5,8 +5,11 @@
     <random seed="[int]"/>
     <!-- 相对路径以本卡所在目录为基准, 实际输出到该目录/seed_<随机种子>/；已存在时目录自动加 _2、_3 等后缀 -->
     <output directory="[str]"/>
+    <!-- 可省略, 默认 postprocess; mesh 仅生成网格, calculate 运行到模拟结束 -->
+    <workflow end_at="[mesh][calculate][postprocess]"/>
     <input_files>
-        <!-- 子卡相对路径以本卡所在目录为基准, file 留空时生成对应模板并退出 -->
+        <!-- 子卡相对路径以本卡所在目录为基准; 只需填写运行阶段所需的子卡 -->
+        <!-- 当前阶段所需的子卡 file 留空时生成对应模板并退出 -->
         <geometry_mesh file="[str]"/>
         <material file="[str]"/>
         <properties file="[str]"/>

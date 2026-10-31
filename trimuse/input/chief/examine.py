@@ -5,6 +5,8 @@ class ChiefCardExamine:
 
     @staticmethod
     def examine(card: ChiefCard) -> None:
-        """检查随机种子"""
+        """检查随机种子和结束阶段"""
         if card.random_seed < 0:
             raise ValueError("random seed 必须非负")
+        if card.workflow.end_at not in ("mesh", "calculate", "postprocess"):
+            raise ValueError("workflow.end_at 必须为 mesh、calculate 或 postprocess")

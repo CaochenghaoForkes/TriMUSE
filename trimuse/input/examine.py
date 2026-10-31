@@ -19,7 +19,7 @@ class InputCardsExamine:
             raise ValueError("热阻界面要求 temperature 的 fem_space 设置 continuity=\"region\"")
 
     @classmethod
-    def examine(cls, geometry_mesh: GeometryMeshCard, material: MaterialCard, properties: PropertiesCard, thermal: ThermalCard | None, postprocess: PostprocessCard, radioactivity: RadioactivityCard | None = None) -> None:
+    def examine(cls, geometry_mesh: GeometryMeshCard, material: MaterialCard, properties: PropertiesCard, thermal: ThermalCard | None, postprocess: PostprocessCard | None, radioactivity: RadioactivityCard | None = None) -> None:
         """检查各已启用物理卡的几何引用, 以及后处理配置与几何维数的一致性"""
         cls.check_material_assignments(geometry_mesh, material)
         cls.check_properties_references(geometry_mesh, properties)
@@ -27,7 +27,8 @@ class InputCardsExamine:
             cls.check_thermal_references(geometry_mesh, thermal)
             cls.check_thermal_boundary_properties(properties, thermal)
             cls.check_thermal_source_dependencies(properties, thermal)
-        cls.check_postprocess_geometry(geometry_mesh, postprocess)
+        if postprocess is not None:
+            cls.check_postprocess_geometry(geometry_mesh, postprocess)
         if radioactivity is not None:
             cls.check_radioactivity_references(geometry_mesh, radioactivity)
             cls.check_radioactivity_dependencies(material, properties, radioactivity, thermal)

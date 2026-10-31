@@ -164,6 +164,7 @@ class OutputManager:
             self._node(chief, "random", seed=cards.chief.random_seed)
             # Loader 会追加 seed 子目录, 此处写回用户目录, 避免重读后重复追加。
             self._node(chief, "output", directory=self.directory.parent)
+            self._node(chief, "workflow", end_at=cards.chief.workflow.end_at)
             input_files = self._node(chief, "input_files")
             writers = {
                 "geometry_mesh": self._geometry_card,
@@ -176,6 +177,8 @@ class OutputManager:
                 if getattr(cards, name) is not None:
                     writers[name] = writer
             for name, writer in writers.items():
+                if getattr(cards, name) is None:
+                    continue
                 root = ET.parse(getattr(cards.chief.input_files, name)).getroot()
                 writer(root, getattr(cards, name))
                 ET.indent(root, space="    ")

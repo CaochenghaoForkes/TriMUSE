@@ -28,9 +28,16 @@ class ChiefCard:
 
         directory: str
 
+    @dataclass
+    class Workflow:
+        """运行到指定阶段结束"""
+
+        end_at: str = "postprocess"
+
     name: str
     random_seed: int
     output: Output
+    workflow: Workflow = field(default_factory=Workflow)
     input_files: InputFiles = field(default_factory=InputFiles)
 
 class ChiefCardLoader:
@@ -48,11 +55,14 @@ class ChiefCardLoader:
         name = XmlUtils.read_attribute(root, "name", required=True)
         random_seed = cls.read_random(XmlUtils.read_child(root, "random"))
         output = cls.read_output(XmlUtils.read_child(root, "output"), chief_path.parent, random_seed)
+        workflow = ChiefCard.Workflow(end_at=XmlUtils.read_attribute(
+            XmlUtils.read_child(root, "workflow", required=False), "end_at", default="postprocess"))
         input_files = cls.read_input_files(XmlUtils.read_child(root, "input_files"), chief_path.parent)
         chief_card = ChiefCard(
             name=name,
             random_seed=random_seed,
             output=output,
+            workflow=workflow,
             input_files=input_files
         )
         return chief_card

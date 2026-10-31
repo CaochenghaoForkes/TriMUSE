@@ -10,12 +10,6 @@ sys.path.insert(0, str(project_directory / "build" / "bindings"))
 from trimuse.input import load_input_cards
 from trimuse.output import OutputManager
 from trimuse.geometry.builder import GeometryMeshBuilder
-from trimuse.fem import FemManager
-from trimuse.properties import PropertiesManager
-from trimuse.solver import SolverManager
-from trimuse.problem import Thermal, Radioactivity
-from trimuse.coupling import CouplingManager
-from trimuse.postprocess.postprocess import PostprocessManager
 
 def main(chief_path: str | Path) -> None:
     """读取总调度卡，依次执行网格生成、模拟与后处理"""
@@ -35,6 +29,14 @@ def main(chief_path: str | Path) -> None:
     # 生成网格
     mesh_info = GeometryMeshBuilder.build(input_cards.geometry_mesh, output_manager.directory, rng)
     output_manager.record_mesh(mesh_info.path)
+    if input_cards.chief.workflow.end_at == "mesh":
+        return
+
+    from trimuse.fem import FemManager
+    from trimuse.properties import PropertiesManager
+    from trimuse.solver import SolverManager
+    from trimuse.problem import Thermal, Radioactivity
+    from trimuse.coupling import CouplingManager
 
     # 创建公共有限元对象
     fem_manager = FemManager(mesh_info, input_cards.simulation.solver)
@@ -60,7 +62,10 @@ def main(chief_path: str | Path) -> None:
 
     # 标记模拟完成
     output_manager.finish_simulation(coupling_manager.time, coupling_manager.cycle)
+    if input_cards.chief.workflow.end_at == "calculate":
+        return
 
+    from trimuse.postprocess.postprocess import PostprocessManager
     print("开始后处理", flush=True)
     postprocess_manager = PostprocessManager(input_cards)
     postprocess_manager.run()

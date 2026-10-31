@@ -26,10 +26,10 @@ class InputCards:
 
     chief: ChiefCard
     geometry_mesh: GeometryMeshCard
-    material: MaterialCard
-    properties: PropertiesCard
-    simulation: SimulationCard
-    postprocess: PostprocessCard
+    material: MaterialCard | None = None
+    properties: PropertiesCard | None = None
+    simulation: SimulationCard | None = None
+    postprocess: PostprocessCard | None = None
     thermal: ThermalCard | None = None
     radioactivity: RadioactivityCard | None = None
 
@@ -42,12 +42,14 @@ class XmlLoader:
         chief = ChiefCardLoader.load(chief_path)
         ChiefCardExamine.examine(chief)
         geometry_mesh = cls._load_geometry_mesh(chief.input_files.geometry_mesh)
+        if chief.workflow.end_at == "mesh":
+            return InputCards(chief=chief, geometry_mesh=geometry_mesh)
         material = cls._load_material(chief.input_files.material)
         thermal = cls._load_thermal(chief.input_files.thermal) if chief.input_files.thermal is not None else None
         radioactivity = cls._load_radioactivity(chief.input_files.radioactivity) if chief.input_files.radioactivity is not None else None
         properties = cls._load_properties(chief.input_files.properties)
         simulation = cls._load_simulation(chief.input_files.simulation)
-        postprocess = cls._load_postprocess(chief.input_files.postprocess)
+        postprocess = cls._load_postprocess(chief.input_files.postprocess) if chief.workflow.end_at == "postprocess" else None
         InputCardsExamine.examine(geometry_mesh, material, properties, thermal, postprocess, radioactivity)
         InputCardsExamine.check_thermal_space(simulation, thermal)
         input_cards = InputCards(chief=chief, geometry_mesh=geometry_mesh, material=material, properties=properties, thermal=thermal, simulation=simulation, postprocess=postprocess, radioactivity=radioactivity)
