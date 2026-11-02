@@ -10,8 +10,8 @@ namespace trimuse
 MeshData::MeshData(const std::string& mesh_path)
     : mfem_mesh_(mesh_path, 1, 1, true) // 网格路径, 生成边, 准备细化数据, 修正反向单元
 {
-    build_region_elements();
-    build_interfaces();
+    build_region_elements(); // 建立体积区域编号与其中包含的域内单元编号列表的关系
+    build_interfaces(); // 遍历网格中的所有面，找出两侧属于不同 region 的内部面，并把它们保存到 interfaces_
     calculate_region_volumes();
 }
 
