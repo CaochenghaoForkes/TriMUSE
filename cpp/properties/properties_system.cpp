@@ -355,14 +355,14 @@ void PropertiesSystem::evaluate_and_store_points(const Manager& manager, const P
     const mfem::Mesh& mesh = fem_system_.mesh_data().mfem_mesh(); // 取得原网格
     std::vector<std::string> common_required; // 非积分点属性，如时间、区域属性
     std::vector<std::string> point_required; // 积分点属性，如积分点孔隙率
-    std::vector<std::pair<std::string, FieldView>> field_required; // 温度、浓度等求解场, 区域更新时统一选定试探场或已保存场
+    std::vector<std::pair<std::string, FieldView>> required_field_views; // 温度、浓度等求解场, 区域更新时统一选定试探场或 FemSystem 中的正式场
     for (const std::string& required_name : required)
     {
         if (solution_field_states.count(required_name) != 0)
         {
-            const auto trial = trial_fields.find(required_name); // 为当前依赖的求解场选择数据来源: 有试探场就用试探场，否则用 FemSystem 中保存的场，并把选好的视图存入列表
-            field_required.emplace_back(required_name,
-                trial != trial_fields.end() ? trial->second : fem_system_.field_view(required_name));
+            const auto trial_entry = trial_fields.find(required_name); // 为当前依赖的求解场选择数据来源: 有试探场就用试探场，否则用 FemSystem 中的正式场，并把选好的视图存入列表
+            required_field_views.emplace_back(required_name,
+                trial_entry != trial_fields.end() ? trial_entry->second : fem_system_.field_view(required_name));
             continue;
         }
         (property_info(required_name).scope == PropertyScope::IntegrationPoint ? point_required : common_required).push_back(required_name); // 积分点属性加入 point_required 其他属性加入 common_required
@@ -380,7 +380,7 @@ void PropertiesSystem::evaluate_and_store_points(const Manager& manager, const P
         const std::size_t offset = fem_system_.domain_quadrature_offset(element); // 取得该单元积分点在全域连续数组中的起始下标
         for (int point_index = 0; point_index < rule->GetNPoints(); ++point_index) // 遍历当前单元的积分点
         {
-            const mfem::IntegrationPoint& integration_point = rule->IntPoint(point_index); // 注意 integration_point 是单元中的参考坐标 而我们 field.evaluate() 用的也正是单元中的参考坐标
+            const mfem::IntegrationPoint& integration_point = rule->IntPoint(point_index); // 注意 integration_point 是单元中的参考坐标 而我们 field_view.evaluate() 用的也正是单元中的参考坐标
             const auto& position = positions[point_index]; // 读取这个积分点已经缓存的实际坐标
             const std::size_t index = offset + point_index; // 将局部积分点编号转换为全域积分点下标
 
@@ -391,9 +391,9 @@ void PropertiesSystem::evaluate_and_store_points(const Manager& manager, const P
             point.z = position[2];
             point.values = common_point.values;
             load_required_states(point, point_required, index); // 按全域积分点下标 index，读取该点需要的积分点属性
-            for (const auto& [name, field] : field_required) // 由 FEM 层统一选择区域、映射单元编号并取值
+            for (const auto& [name, field_view] : required_field_views) // 由 FEM 层统一选择区域、映射单元编号并取值
             {
-                point.values[name] = field.evaluate(region_attribute, element, integration_point);
+                point.values[name] = field_view.evaluate(region_attribute, element, integration_point);
             }
             values[index] = manager.evaluate(property.name, point); // 计算并保存当前点的属性
         }

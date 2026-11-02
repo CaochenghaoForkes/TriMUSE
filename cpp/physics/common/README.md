@@ -11,11 +11,22 @@
 4. `assembly/scalar_integrator.*`：标量 H1 场的扩散、容量、体积源与外边界积分，thermal 和 radioactivity 共用；矢量力学需要自己的积分器。
 5. `assembly/assembly_cache.hpp`、`assembly_utils.*`：按区域/边界保存只读贡献，求和生成新矩阵或向量。物理模块负责判断是否需要重新组装。
 
+## 场的命名约定
+
+- `accepted_*`：正式场，保存初始化结果或已经接受的求解结果，由 `FemSystem` 持有。这里的 accepted 不等于“上一时间步”，同一时间步的耦合迭代也可以更新正式场。
+- `trial_*`：本次求解的独立试探副本；组装器、约束和材料迭代读取它。
+- `previous_step_values`：进入时间推进时保留的场值快照。
+- `iteration_delta`：先保存本轮更新前的试探值，随后减去新的试探值，作为收敛判据。
+- `reduced_solution`：约束后的独立自由度解向量，通过 `recover()` 写入完整试探场。
+
+`TrialField::load()` 将正式场复制到试探场；`accept()` 才把试探结果写回正式场。
+`FieldData`、`RegionFieldData` 本身只是存储类型，正式/试探角色由持有者及变量名区分。
+
 ## 场与约束的调用顺序
 
 ```cpp
-TrialField trial(fem, field); // field 可以是 FieldData 或 RegionFieldData
-DofConstraints constraints(fem, trial);
+TrialField trial_field(fem, accepted_field); // accepted_field 是 FemSystem 中的正式 FieldData 或 RegionFieldData
+DofConstraints constraints(fem, trial_field);
 for (const auto& interface : fem.mesh_data().interfaces())
 {
     // 只对物理模型要求场值连续的界面调用；未连接的分域自由度保持独立。
@@ -26,8 +37,8 @@ constraints.finalize(); // 连接完成后调用一次；此后不再 connect
 // A、b 使用完整自由度编号，essential 使用独立自由度编号。
 constraints.form_system(A, b, essential, system, load, solution);
 // 由物理模块调用求解器，得到 solution。
-trial.set_values(constraints.recover(solution));
-trial.accept(); // 接受求解结果后才写回正式场
+trial_field.set_values(constraints.recover(solution));
+trial_field.accept(); // 接受求解结果后才写回正式场
 ```
 
 `finalize()` 后释放配对用的父连续空间和自由度分组，只保留 P 与试探场引用。

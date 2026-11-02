@@ -5,9 +5,9 @@
 
 namespace trimuse
 {
-RadioactivityAssembly::RadioactivityAssembly(FemSystem& fem, TrialField& field, double decay_constant, const std::vector<RadioactivityDomainConfig>& sources, const std::vector<RadioactivityBoundaryConfig>& boundaries, const std::vector<RadioactivityInterfaceConfig>& interfaces)
-    : decay_constant_(decay_constant), fem_(fem), field_(field), integrator_(fem, field), diffusion_(fem), capacity_(fem), source_(fem, sources),
-      boundary_(boundaries), interface_(fem, field, interfaces)
+RadioactivityAssembly::RadioactivityAssembly(FemSystem& fem, TrialField& trial_field, double decay_constant, const std::vector<RadioactivityDomainConfig>& sources, const std::vector<RadioactivityBoundaryConfig>& boundaries, const std::vector<RadioactivityInterfaceConfig>& interfaces)
+    : decay_constant_(decay_constant), fem_(fem), trial_field_(trial_field), integrator_(fem, trial_field), diffusion_(fem), capacity_(fem), source_(fem, sources),
+      boundary_(boundaries), interface_(fem, trial_field, interfaces)
 {
     const auto& mesh = fem.mesh_data().mfem_mesh();
     for (int zone : boundary_.zones()) { boundary_elements_[zone] = {}; }
@@ -56,7 +56,7 @@ void RadioactivityAssembly::refresh_matrix(RadioactivityDomainManager& manager, 
     }
     if (changed)
     {
-        cache.sum = sum_matrices(cache.parts, field_.size());
+        cache.sum = sum_matrices(cache.parts, trial_field_.size());
     }
 }
 
@@ -75,7 +75,7 @@ void RadioactivityAssembly::refresh_source()
     }
     if (changed)
     {
-        source_cache_.sum = sum_vectors(source_cache_.parts, field_.size());
+        source_cache_.sum = sum_vectors(source_cache_.parts, trial_field_.size());
     }
 }
 
@@ -103,11 +103,11 @@ void RadioactivityAssembly::refresh_boundary()
     }
     if (matrix_changed)
     {
-        boundary_matrix_cache_.sum = sum_matrices(boundary_matrix_cache_.parts, field_.size());
+        boundary_matrix_cache_.sum = sum_matrices(boundary_matrix_cache_.parts, trial_field_.size());
     }
     if (load_changed)
     {
-        boundary_load_cache_.sum = sum_vectors(boundary_load_cache_.parts, field_.size());
+        boundary_load_cache_.sum = sum_vectors(boundary_load_cache_.parts, trial_field_.size());
     }
 }
 
@@ -163,7 +163,7 @@ void RadioactivityAssembly::essential_values(std::map<int, double>& values) cons
             int first, second;
             const int face = mesh.GetBdrElementFaceIndex(b);
             mesh.GetFaceElements(face, &first, &second);
-            mfem::Array<int> dofs; field_.face_dofs(mesh.GetAttribute(first), face, dofs);
+            mfem::Array<int> dofs; trial_field_.face_dofs(mesh.GetAttribute(first), face, dofs);
             for (int dof : dofs)
             for (int j = p.GetI()[dof]; j < p.GetI()[dof + 1]; ++j)
             {
@@ -178,14 +178,14 @@ void RadioactivityAssembly::essential_values(std::map<int, double>& values) cons
 
 void RadioactivityAssembly::apply_initial_constraints()
 {
-    auto concentration = interface_.constraints().reduced_values();
+    auto reduced_concentration = interface_.constraints().reduced_values();
     std::map<int, double> essential;
     essential_values(essential);
     for (const auto& [dof, value] : essential)
     {
-        concentration[dof] = value;
+        reduced_concentration[dof] = value;
     }
-    recover(concentration);
+    recover(reduced_concentration);
     for (int zone : boundary_.zones())
     {
         boundary_.assembled(zone, RadioactivityBoundaryPart::Essential);
@@ -193,17 +193,17 @@ void RadioactivityAssembly::apply_initial_constraints()
 }
 
 void RadioactivityAssembly::form_system(const mfem::SparseMatrix& matrix, const mfem::Vector& rhs,
-    mfem::SparseMatrix& system, mfem::Vector& load, mfem::Vector& concentration) const
+    mfem::SparseMatrix& system, mfem::Vector& load, mfem::Vector& reduced_concentration) const
 {
     std::map<int, double> essential;
     essential_values(essential);
-    interface_.constraints().form_system(matrix, rhs, essential, system, load, concentration);
+    interface_.constraints().form_system(matrix, rhs, essential, system, load, reduced_concentration);
 }
 
-void RadioactivityAssembly::recover(const mfem::Vector& concentration)
+void RadioactivityAssembly::recover(const mfem::Vector& reduced_concentration)
 {
-    const auto full = interface_.constraints().recover(concentration);
-    field_.set_values(full);
+    const auto full = interface_.constraints().recover(reduced_concentration);
+    trial_field_.set_values(full);
 }
 
 void RadioactivityAssembly::project_initial()
@@ -211,10 +211,10 @@ void RadioactivityAssembly::project_initial()
     // 带几何权重的 L2 投影保持总盘存；逐自由度平均不具有这个性质。
     const auto& p = interface_.prolongation();
     auto guess = interface_.constraints().reduced_values();
-    mfem::Vector original = field_.values(), projected(field_.size());
+    mfem::Vector original = trial_field_.values(), projected(trial_field_.size());
     p.Mult(guess, projected); projected -= original;
     if (projected.Normlinf() <= 1e-12 * original.Normlinf()) { return; }
-    mfem::Vector full_rhs(field_.size()), rhs(p.Width());
+    mfem::Vector full_rhs(trial_field_.size()), rhs(p.Width());
     mass_->Mult(original, full_rhs); p.MultTranspose(full_rhs, rhs);
     std::unique_ptr<mfem::SparseMatrix> system(mfem::RAP(p, *mass_, p));
     mfem::GSSmoother preconditioner(*system);

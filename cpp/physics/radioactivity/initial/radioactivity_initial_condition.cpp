@@ -77,19 +77,19 @@ std::unordered_map<int, double> initial_values(const FemSystem& fem_system,
 
 }
 
-void initialize_concentration(const FemSystem& fem_system, FieldData& concentration_field, const std::vector<RadioactivityInitialConfig>& initial_configs)
+void initialize_concentration(const FemSystem& fem_system, FieldData& accepted_concentration_field, const std::vector<RadioactivityInitialConfig>& initial_configs)
 {
     const auto region_values = initial_values(fem_system, initial_configs);
     const double uniform_value = region_values.begin()->second;
     if (std::all_of(region_values.begin(), region_values.end(), [uniform_value](const auto& item) { return item.second == uniform_value; }))
     {
-        concentration_field.assign(uniform_value);
+        accepted_concentration_field.assign(uniform_value);
         return;
     }
 
     // 区域阶跃做带几何权重的 L2 投影, 不覆盖公共节点; 投影不保证逐点非负。
-    mfem::GridFunction& concentration = concentration_field.mfem_grid_function();
-    mfem::FiniteElementSpace* space = concentration.FESpace();
+    mfem::GridFunction& accepted_concentration_values = accepted_concentration_field.mfem_grid_function();
+    mfem::FiniteElementSpace* space = accepted_concentration_values.FESpace();
     InitialConcentrationCoefficient initial_concentration(region_values);
     mfem::ConstantCoefficient unit_coefficient(1.0);
     GeometricWeightedCoefficient weighted_unit_coefficient(unit_coefficient, fem_system);
@@ -104,7 +104,7 @@ void initialize_concentration(const FemSystem& fem_system, FieldData& concentrat
     mfem::Array<int> essential_true_dofs;
     mfem::SparseMatrix system_matrix;
     mfem::Vector true_concentration, true_right_hand_side;
-    mass_form.FormLinearSystem(essential_true_dofs, concentration, right_hand_side, system_matrix, true_concentration, true_right_hand_side);
+    mass_form.FormLinearSystem(essential_true_dofs, accepted_concentration_values, right_hand_side, system_matrix, true_concentration, true_right_hand_side);
     mfem::GSSmoother preconditioner(system_matrix);
     mfem::CGSolver solver;
     solver.SetOperator(system_matrix);
@@ -118,15 +118,15 @@ void initialize_concentration(const FemSystem& fem_system, FieldData& concentrat
     {
         throw std::runtime_error("初始浓度的 L2 投影未收敛");
     }
-    mass_form.RecoverFEMSolution(true_concentration, right_hand_side, concentration);
+    mass_form.RecoverFEMSolution(true_concentration, right_hand_side, accepted_concentration_values);
 }
 
-void initialize_concentration(const FemSystem& fem_system, RegionFieldData& concentration_field,
+void initialize_concentration(const FemSystem& fem_system, RegionFieldData& accepted_concentration_field,
     const std::vector<RadioactivityInitialConfig>& initial_configs)
 {
     for (const auto& [region, value] : initial_values(fem_system, initial_configs))
     {
-        concentration_field.field_data(region).assign(value);
+        accepted_concentration_field.field_data(region).assign(value);
     }
 }
 

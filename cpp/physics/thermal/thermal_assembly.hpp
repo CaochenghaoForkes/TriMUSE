@@ -2,6 +2,7 @@
 
 #include "physics/common/assembly/assembly_cache.hpp"
 #include "physics/common/assembly/scalar_integrator.hpp"
+#include "physics/common/constraint/dof_constraints.hpp"
 
 #include "physics/thermal/conduction/thermal_conduction_manager.hpp"
 #include "physics/thermal/capacity/thermal_capacity_manager.hpp"
@@ -22,7 +23,7 @@ public:
 
     using Counts = std::map<std::string, int>; // 组装次数统计 如 "conduction" -> 域内导热贡献组装次数
 
-    ThermalAssembly(FemSystem& fem, TrialField& field, const std::vector<ThermalDomainConfig>& sources, const std::vector<ThermalBoundaryConfig>& boundaries, const std::vector<ThermalInterfaceConfig>& interfaces); // 初始化各物理贡献管理器，并建立已配置外边界的单元索引表
+    ThermalAssembly(FemSystem& fem, TrialField& trial_field, const std::vector<ThermalDomainConfig>& sources, const std::vector<ThermalBoundaryConfig>& boundaries, const std::vector<ThermalInterfaceConfig>& interfaces); // 初始化各物理贡献管理器，并建立已配置外边界的单元索引表
 
     void mark_coupled(PropertiesSystem& properties, bool transient) const; // 登记热方程实际用到的属性与温度场之间的耦合关系
 
@@ -36,9 +37,9 @@ public:
 
     void project_initial(); // 把当前初温投影到满足界面连续约束的空间中
 
-    void form_system(const mfem::SparseMatrix& matrix, const mfem::Vector& rhs, mfem::SparseMatrix& system, mfem::Vector& load, mfem::Vector& temperature) const;
+    void form_system(const mfem::SparseMatrix& matrix, const mfem::Vector& rhs, mfem::SparseMatrix& system, mfem::Vector& load, mfem::Vector& reduced_temperature) const;
 
-    void recover(const mfem::Vector& temperature); // 传入独立自由度温度向量，把独立自由度温度恢复成完整温度向量，并写入试探场
+    void recover(const mfem::Vector& reduced_temperature); // 传入独立自由度温度向量，把独立自由度温度恢复成完整温度向量，并写入试探场
 
     const Counts& counts() const { return counts_; } // 返回 组装次数统计
 
@@ -53,7 +54,7 @@ private:
 
     FemSystem& fem_; // 有限元系统
 
-    TrialField& field_; // 试探场
+    TrialField& trial_field_; // 试探场
 
     ScalarIntegrator integrator_; // 公共标量单元和外边界积分器
 
@@ -65,7 +66,9 @@ private:
 
     ThermalBoundaryManager boundary_; // 外边界指定温度、矩阵系数及右端系数
 
-    ThermalInterfaceManager interface_; // 理想接触约束 P 和热阻界面矩阵 KI
+    DofConstraints constraints_; // 持有约束映射 P，统一完成自由度约化与恢复；界面组装只登记相等关系
+
+    ThermalInterfaceManager interface_; // 界面模型管理及热阻界面矩阵 KI
 
     std::map<int, std::vector<int>> boundary_elements_; // 外边界单元索引表: 边界物理属性编号 → 该分区包含的原网格边界单元编号列表
 

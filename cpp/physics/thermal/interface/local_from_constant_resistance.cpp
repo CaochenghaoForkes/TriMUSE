@@ -64,7 +64,7 @@ ThermalLocalFromConstantResistance::ThermalLocalFromConstantResistance(const Mod
     }
 }
 
-void ThermalLocalFromConstantResistance::assemble(const ThermalInterfaceContext& context, ThermalInterfaceAssembly& assembly) const // 处理当前面片
+void ThermalLocalFromConstantResistance::assemble(const InterfaceContext& context, ThermalInterfaceAssembly& assembly) const // 处理当前面片
 {
     auto& transformation = context.transformations(); // 取得当前界面片的双侧几何变换对象
     if (transformation.Elem1->GetDimension() != dimension_)

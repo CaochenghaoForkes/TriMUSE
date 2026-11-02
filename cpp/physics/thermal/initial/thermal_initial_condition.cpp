@@ -65,7 +65,7 @@ private:
 
 }
 
-void initialize_temperature(RegionFieldData& temperature_field, const std::vector<ThermalInitialConfig>& initial_configs) // 给分域温度场中的各个区域分别设置均匀初温
+void initialize_temperature(RegionFieldData& accepted_temperature_field, const std::vector<ThermalInitialConfig>& initial_configs) // 给分域温度场中的各个区域分别设置均匀初温
 {
     for (const auto& config : initial_configs)
     {
@@ -74,11 +74,11 @@ void initialize_temperature(RegionFieldData& temperature_field, const std::vecto
             throw std::invalid_argument("尚未支持的初始温度模型: " + config.model_name); 
         }
         // 分域场两侧的自由度独立，所以这里可以直接逐域赋值。 若界面采用理想接触，后续再由约束下的初值投影处理两侧初温的一致性
-        temperature_field.field_data(config.region_attribute).assign(std::get<double>(config.parameters.at("uniform_value"))); // field_data(config.region_attribute): 取得指定区域的 FieldData parameters.at("uniform_value")：从参数字典取出初温参数 std::get<double>(...)：从 variant 中取出 double 数值 .assign(...)：把该区域场向量的全部自由度设为这个温度
+        accepted_temperature_field.field_data(config.region_attribute).assign(std::get<double>(config.parameters.at("uniform_value"))); // field_data(config.region_attribute): 取得指定区域的 FieldData parameters.at("uniform_value")：从参数字典取出初温参数 std::get<double>(...)：从 variant 中取出 double 数值 .assign(...)：把该区域场向量的全部自由度设为这个温度
     }
 }
 
-void initialize_temperature(const FemSystem& fem_system, FieldData& temperature_field, const std::vector<ThermalInitialConfig>& initial_configs) // 把各区域指定的初温，转换为整个连续 H1 温度场。如果不同区域初温不同，就通过 L2 投影确定共享节点上的温度
+void initialize_temperature(const FemSystem& fem_system, FieldData& accepted_temperature_field, const std::vector<ThermalInitialConfig>& initial_configs) // 把各区域指定的初温，转换为整个连续 H1 温度场。如果不同区域初温不同，就通过 L2 投影确定共享节点上的温度
 {
     std::unordered_map<int, double> region_values; // 建立区域 -> 初温表
     for (const ThermalInitialConfig& config : initial_configs)
@@ -92,7 +92,7 @@ void initialize_temperature(const FemSystem& fem_system, FieldData& temperature_
     const double uniform_value = region_values.begin()->second; // 先取任意一项的温度作为比较基准
     if (std::all_of(region_values.begin(), region_values.end(), [uniform_value](const auto& item) { return item.second == uniform_value; })) // 检查每一项的温度是否都等于基准值 若全部相同
     {
-        temperature_field.assign(uniform_value); // 直接给全部自由度赋相同温度，初始化完成
+        accepted_temperature_field.assign(uniform_value); // 直接给全部自由度赋相同温度，初始化完成
         return;
     }
 
@@ -102,8 +102,8 @@ void initialize_temperature(const FemSystem& fem_system, FieldData& temperature_
     // 我们要确定的未知数是各个自由度的初始值也就是 T_j 这些值和未知 x 无关, 因此上面积分的最小值就是对各个 T_j 求导令其为零
     // 得到 sum_j int_Omega g N_i N_j dOmega T_j = int_Omega g N_i T_0 dOmega
     // 令左侧积分为 M_ij 右侧为 bi 即为解出 sum_j M_ij Tj = bi 即为 MT = b
-    mfem::GridFunction& temperature = temperature_field.mfem_grid_function(); // 取得现有温度场的引用，最后的结果直接写到这里
-    mfem::FiniteElementSpace* space = temperature.FESpace(); // 取得它所属的有限元空间，决定使用哪些形函数、有哪些自由度、如何组装
+    mfem::GridFunction& accepted_temperature_values = accepted_temperature_field.mfem_grid_function(); // 取得现有温度场的引用，最后的结果直接写到这里
+    mfem::FiniteElementSpace* space = accepted_temperature_values.FESpace(); // 取得它所属的有限元空间，决定使用哪些形函数、有哪些自由度、如何组装
     InitialTemperatureCoefficient initial_temperature(region_values); // 系数对象根据当前单元的区域编号，返回对应初温
     mfem::ConstantCoefficient unit_coefficient(1.0);
     GeometricWeightedCoefficient weighted_unit_coefficient(unit_coefficient, fem_system); // g
@@ -118,7 +118,7 @@ void initialize_temperature(const FemSystem& fem_system, FieldData& temperature_
     mfem::Array<int> essential_true_dofs; // 投影没有要固定的边界自由度
     mfem::SparseMatrix system_matrix; // 最终系数矩阵
     mfem::Vector true_temperature, true_right_hand_side; // 真实自由度上的温度未知量 真实自由度上的右端向量
-    mass_form.FormLinearSystem(essential_true_dofs, temperature, right_hand_side, system_matrix, true_temperature, true_right_hand_side); // 组装 MT=b
+    mass_form.FormLinearSystem(essential_true_dofs, accepted_temperature_values, right_hand_side, system_matrix, true_temperature, true_right_hand_side); // 组装 MT=b
     mfem::GSSmoother preconditioner(system_matrix); // 构造 Gauss–Seidel 类预条件器，辅助迭代求解更快收敛
     mfem::CGSolver solver; //使用共轭梯度法
     solver.SetOperator(system_matrix); // 指定矩阵
@@ -132,7 +132,7 @@ void initialize_temperature(const FemSystem& fem_system, FieldData& temperature_
     {
         throw std::runtime_error("初始温度的 L2 投影未收敛");
     }
-    mass_form.RecoverFEMSolution(true_temperature, right_hand_side, temperature); // 把真实自由度上的解恢复成 GridFunction 的表示，写回最开始取得的 temperature
+    mass_form.RecoverFEMSolution(true_temperature, right_hand_side, accepted_temperature_values); // 把真实自由度上的解恢复成 GridFunction 的表示，写回最开始取得的 accepted_temperature_values
 }
 
 }

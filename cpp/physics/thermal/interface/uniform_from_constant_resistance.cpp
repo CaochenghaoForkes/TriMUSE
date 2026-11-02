@@ -16,7 +16,7 @@ ThermalUniformFromConstantResistance::ThermalUniformFromConstantResistance(const
     }
 }
 
-void ThermalUniformFromConstantResistance::assemble(const ThermalInterfaceContext& context, ThermalInterfaceAssembly& assembly) const
+void ThermalUniformFromConstantResistance::assemble(const InterfaceContext& context, ThermalInterfaceAssembly& assembly) const
 {
     mfem::ConstantCoefficient conductance(1.0 / resistance_);
     assembly.add_transfer(context, conductance);

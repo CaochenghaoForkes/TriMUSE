@@ -10,7 +10,7 @@ namespace trimuse
 class ScalarIntegrator
 {
 public:
-    ScalarIntegrator(FemSystem& fem, const TrialField& field) : fem_(fem), field_(field) {}
+    ScalarIntegrator(FemSystem& fem, const TrialField& trial_field) : fem_(fem), trial_field_(trial_field) {}
 
     std::shared_ptr<mfem::SparseMatrix> domain_matrix(int region, const std::vector<double>& values, bool diffusion);
 
@@ -23,7 +23,7 @@ public:
 private:
     FemSystem& fem_;
     
-    const TrialField& field_;
+    const TrialField& trial_field_;
 };
 
 }

@@ -5,10 +5,11 @@
 
 namespace trimuse
 {
-ThermalAssembly::ThermalAssembly(FemSystem& fem, TrialField& field, const std::vector<ThermalDomainConfig>& sources, const std::vector<ThermalBoundaryConfig>& boundaries, const std::vector<ThermalInterfaceConfig>& interfaces) // 初始化各物理贡献管理器，并建立已配置外边界的单元索引表
-    : fem_(fem), field_(field), integrator_(fem, field), conduction_(fem), capacity_(fem), source_(fem, sources),
-      boundary_(boundaries), interface_(fem, field, interfaces) // 分别传入有限元系统、试探场，以及热源、外边界和内部界面的模型配置
+ThermalAssembly::ThermalAssembly(FemSystem& fem, TrialField& trial_field, const std::vector<ThermalDomainConfig>& sources, const std::vector<ThermalBoundaryConfig>& boundaries, const std::vector<ThermalInterfaceConfig>& interfaces) // 初始化各物理贡献管理器，并建立已配置外边界的单元索引表
+    : fem_(fem), trial_field_(trial_field), integrator_(fem, trial_field), conduction_(fem), capacity_(fem), source_(fem, sources),
+      boundary_(boundaries), constraints_(fem, trial_field), interface_(fem, trial_field, constraints_, interfaces) // 分别传入有限元系统、试探场，以及热源、外边界和内部界面的模型配置
 {
+    constraints_.finalize(); // 全部界面相等关系已登记，构建 P，供后续初值投影、约化求解及恢复共用
     const auto& mesh = fem.mesh_data().mfem_mesh(); // 取得原始网格
     for (int zone : boundary_.zones()) { boundary_elements_[zone] = {}; }
     for (int zone : boundary_.zones()) // 遍历已配置的边界分区 (不仅包含外边界 还有可能包含显式标记的内部材料界面)
@@ -55,7 +56,7 @@ void ThermalAssembly::refresh_matrix(ThermalDomainManager& manager, AssemblyCach
     }
     if (changed) 
     { 
-        cache.sum = sum_matrices(cache.parts, field_.size()); // 只要首次建立总矩阵，或者至少一个区域重新组装，就把各区域缓存贡献重新相加 让 cache.sum 持有新矩阵的共享指针，改为指向新的矩阵对象
+        cache.sum = sum_matrices(cache.parts, trial_field_.size()); // 只要首次建立总矩阵，或者至少一个区域重新组装，就把各区域缓存贡献重新相加 让 cache.sum 持有新矩阵的共享指针，改为指向新的矩阵对象
     }
 }
 
@@ -74,7 +75,7 @@ void ThermalAssembly::refresh_source() // 按需组装体积热源向量缓存
     }
     if (changed) 
     { 
-        source_cache_.sum = sum_vectors(source_cache_.parts, field_.size()); // 首次建立或有区域重组时，将各区域贡献相加 让 source_cache_.sum 持有新向量的共享指针，改为指向新的向量对象
+        source_cache_.sum = sum_vectors(source_cache_.parts, trial_field_.size()); // 首次建立或有区域重组时，将各区域贡献相加 让 source_cache_.sum 持有新向量的共享指针，改为指向新的向量对象
     }
 }
 
@@ -102,11 +103,11 @@ void ThermalAssembly::refresh_boundary() // 分别更新外边界矩阵和右端
     }
     if (matrix_changed) 
     { 
-        boundary_matrix_cache_.sum = sum_matrices(boundary_matrix_cache_.parts, field_.size()); 
+        boundary_matrix_cache_.sum = sum_matrices(boundary_matrix_cache_.parts, trial_field_.size());
     }
     if (load_changed) 
     { 
-        boundary_load_cache_.sum = sum_vectors(boundary_load_cache_.parts, field_.size()); 
+        boundary_load_cache_.sum = sum_vectors(boundary_load_cache_.parts, trial_field_.size());
     }
 }
 
@@ -154,7 +155,7 @@ void ThermalAssembly::update_boundary(const PropertiesFieldData& properties) // 
 
 void ThermalAssembly::essential_values(std::map<int, double>& values) const // 收集 Dirichlet 边界的指定温度，并把边界自由度编号转换为约束后独立空间中的编号
 {
-    const auto& p = interface_.prolongation(); // 取得完整空间到独立空间的映射关系
+    const auto& p = constraints_.prolongation(); // 取得完整空间到独立空间的映射关系
     for (int zone : boundary_.zones())
     {
         if (!boundary_.essential(zone)) // 只处理本质边界
@@ -167,7 +168,7 @@ void ThermalAssembly::essential_values(std::map<int, double>& values) const // �
             int first, second;
             const int face = mesh.GetBdrElementFaceIndex(b); // 边界单元 b 对应的面编号
             mesh.GetFaceElements(face, &first, &second); // 这个面两侧的域单元编号
-            mfem::Array<int> dofs; field_.face_dofs(mesh.GetAttribute(first), face, dofs); // 取得边界面上的完整自由度编号
+            mfem::Array<int> dofs; trial_field_.face_dofs(mesh.GetAttribute(first), face, dofs); // 取得边界面上的完整自由度编号
             for (int dof : dofs) // 遍历边界面的完整自由度编号，也就是 P 的行号
             for (int j = p.GetI()[dof]; j < p.GetI()[dof + 1]; ++j) // 遍历该行已存储条目的数组下标 j
             {
@@ -182,39 +183,39 @@ void ThermalAssembly::essential_values(std::map<int, double>& values) const // �
 
 void ThermalAssembly::apply_initial_constraints() // 在正式求解前，让试探温度满足自由度连续约束和当前 Dirichlet 指定温度
 {
-    auto temperature = interface_.constraints().reduced_values(); // 将当前完整试探温度转换为独立自由度向量
+    auto reduced_temperature = constraints_.reduced_values(); // 将当前完整试探温度转换为独立自由度向量
     std::map<int, double> essential; 
     essential_values(essential); // 收集指定温度条件 独立自由度编号 -> 指定温度
     for (const auto& [dof, value] : essential) 
     { 
-        temperature[dof] = value; 
+        reduced_temperature[dof] = value;
     }
-    recover(temperature); // 传入独立自由度温度向量 把独立自由度温度恢复成完整温度向量，并写入试探场 
+    recover(reduced_temperature); // 传入独立自由度温度向量 把独立自由度温度恢复成完整温度向量，并写入试探场
     for (int zone : boundary_.zones()) 
     { 
         boundary_.assembled(zone, BoundaryPart::Essential); // 清除各 zone 的指定温度变化标记，表示这一部分已处理
     }
 }
 
-void ThermalAssembly::form_system(const mfem::SparseMatrix& matrix, const mfem::Vector& rhs, mfem::SparseMatrix& system, mfem::Vector& load, mfem::Vector& temperature) const
+void ThermalAssembly::form_system(const mfem::SparseMatrix& matrix, const mfem::Vector& rhs, mfem::SparseMatrix& system, mfem::Vector& load, mfem::Vector& reduced_temperature) const
 {
     std::map<int, double> essential;
     essential_values(essential); // 收集指定温度条件：独立自由度编号 → 指定温度
-    interface_.constraints().form_system(matrix, rhs, essential, system, load, temperature);
+    constraints_.form_system(matrix, rhs, essential, system, load, reduced_temperature);
 }
 
-void ThermalAssembly::recover(const mfem::Vector& temperature) // 传入独立自由度温度向量，把独立自由度温度恢复成完整温度向量，并写入试探场
+void ThermalAssembly::recover(const mfem::Vector& reduced_temperature) // 传入独立自由度温度向量，把独立自由度温度恢复成完整温度向量，并写入试探场
 {
-    const auto full = interface_.constraints().recover(temperature);
-    field_.set_values(full); // 将完整向量写入试探场 连续场：直接复制到试探 GridFunction 分域场：按各区域偏移拆分，写入各区域试探 GridFunction
+    const auto full = constraints_.recover(reduced_temperature);
+    trial_field_.set_values(full); // 将完整向量写入试探场 连续场：直接复制到试探 GridFunction 分域场：按各区域偏移拆分，写入各区域试探 GridFunction
 }
 
 void ThermalAssembly::project_initial() // 把当前初温投影到满足界面连续约束的空间中
 {   
     // (P^T_original M P)u = P^T_original M T_original (M 是带几何权重的单位质量矩阵 M_ij = int_Omega g N_i N_j dOmega)
-    const auto& p = interface_.prolongation(); // Pu=T_original 
-    auto guess = interface_.constraints().reduced_values(); // 根据当前完整温度生成独立自由度上的初始猜测
-    mfem::Vector original = field_.values(), projected(field_.size());
+    const auto& p = constraints_.prolongation(); // Pu=T_original
+    auto guess = constraints_.reduced_values(); // 根据当前完整温度生成独立自由度上的初始猜测
+    mfem::Vector original = trial_field_.values(), projected(trial_field_.size());
     p.Mult(guess, projected); projected -= original; // projected = P guess - T_original (projected 保存的是恢复温度与原始温度的差)
     if (projected.Normlinf() <= 1e-12 * std::max(1.0, original.Normlinf())) 
     { 
@@ -226,8 +227,8 @@ void ThermalAssembly::project_initial() // 把当前初温投影到满足界面�
     { 
         parts[region] = integrator_.domain_matrix(region, unit, false); // false 表示采用质量矩阵积分，逐区域组装后相加 M_ij = int_Omega g N_i N_j dOmega
     }
-    auto mass = sum_matrices(parts, field_.size()); // 得到 M
-    mfem::Vector full_rhs(field_.size()), rhs(p.Width());
+    auto mass = sum_matrices(parts, trial_field_.size()); // 得到 M
+    mfem::Vector full_rhs(trial_field_.size()), rhs(p.Width());
     mass->Mult(original, full_rhs); p.MultTranspose(full_rhs, rhs); // full_rhs = M T_original rhs = P^T M T_original
     std::unique_ptr<mfem::SparseMatrix> system(mfem::RAP(p, *mass, p)); // system = P^T M P
     mfem::GSSmoother preconditioner(*system); 

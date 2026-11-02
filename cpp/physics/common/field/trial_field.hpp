@@ -5,16 +5,18 @@
 namespace trimuse
 {
 
+// accepted_*：FemSystem 持有的正式场（初值或已接受的求解结果）；trial_*：本次求解的独立试探副本。
+// load(): accepted -> trial；accept(): trial -> accepted。其余场值访问默认针对 trial。
 class TrialField // 物理求解使用的独立试探场; 全部矩阵索引采用这里的完整自由度编号
 {
 public:
-    TrialField(FemSystem& fem, FieldData& field); // 使用连续场时的构造函数，负责保存正式场引用，并建立独立的试探场
+    TrialField(FemSystem& fem, FieldData& accepted_field); // 使用连续场时的构造函数，负责保存正式场引用，并建立独立的试探场
 
-    TrialField(FemSystem& fem, RegionFieldData& field); // 使用分域场时的构造函数：保存正式场，创建同样布局的试探场，记录各区域的自由度偏移，最后复制场值
+    TrialField(FemSystem& fem, RegionFieldData& accepted_field); // 使用分域场时的构造函数：保存正式场，创建同样布局的试探场，记录各区域的自由度偏移，最后复制场值
 
     TrialField(TrialField&&) = default; // TrialField 的移动构造函数，让编译器生成默认实现
 
-    bool regional() const { return region_target_ != nullptr; } // 判断该场用的是连续场还是分域场
+    bool regional() const { return accepted_region_field_ != nullptr; } // 判断该场用的是连续场还是分域场
 
     int size() const; // 返回当前试探场的全部自由度数量，也就是整体场向量的长度
 
@@ -36,18 +38,19 @@ public:
 
     FieldView view() const; // 用于把当前试探场包装成统一的只读访问接口 FieldView，供 properties 等模块在积分点上读取场值
 
-    FieldData* continuous_target() const { return continuous_target_; }
+    // 以下两个接口返回正式场，仅用于初始化等明确需要修改正式场的操作。
+    FieldData* accepted_continuous_field() const { return accepted_continuous_field_; }
 
-    RegionFieldData* region_target() const { return region_target_; }
+    RegionFieldData* accepted_region_field() const { return accepted_region_field_; }
 
 private:
-    FieldData* continuous_target_ = nullptr; // 指向外部已有的连续正式场 包含有限元空间和场数据
+    FieldData* accepted_continuous_field_ = nullptr; // 指向外部已有的连续正式场 包含有限元空间和场数据
 
-    RegionFieldData* region_target_ = nullptr; // 指向外部已有的分域正式场，其中包含各区域独立的有限元空间和场数据
+    RegionFieldData* accepted_region_field_ = nullptr; // 指向外部已有的分域正式场，其中包含各区域独立的有限元空间和场数据
 
-    std::unique_ptr<mfem::GridFunction> continuous_trial_; // 独占拥有连续场的试探场向量，用于保存当前迭代中的场值
+    std::unique_ptr<mfem::GridFunction> trial_continuous_field_; // 独占拥有连续场的试探场向量，用于保存当前迭代中的场值
 
-    std::unique_ptr<RegionFieldData> region_trial_; // 独占拥有分域场的试探场对象，其中各区域分别保存自己的试探场值
+    std::unique_ptr<RegionFieldData> trial_region_field_; // 独占拥有分域场的试探场对象，其中各区域分别保存自己的试探场值
 
     std::map<int, int> offsets_; // 保存分域场的区域编号 -> 该区域自由度在整体拼接向量中的起始偏移
 };

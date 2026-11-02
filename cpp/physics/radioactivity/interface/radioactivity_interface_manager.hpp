@@ -9,7 +9,7 @@ namespace trimuse
 class RadioactivityInterfaceManager
 {
 public:
-    RadioactivityInterfaceManager(FemSystem& fem, const TrialField& field,
+    RadioactivityInterfaceManager(FemSystem& fem, const TrialField& trial_field,
         const std::vector<RadioactivityInterfaceConfig>& configs);
 
     const DofConstraints& constraints() const { return constraints_; }

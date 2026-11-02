@@ -21,15 +21,15 @@ public:
     };
     using Counts = std::map<std::string, int>;
 
-    RadioactivityAssembly(FemSystem& fem, TrialField& field, double decay_constant, const std::vector<RadioactivityDomainConfig>& sources, const std::vector<RadioactivityBoundaryConfig>& boundaries, const std::vector<RadioactivityInterfaceConfig>& interfaces);
+    RadioactivityAssembly(FemSystem& fem, TrialField& trial_field, double decay_constant, const std::vector<RadioactivityDomainConfig>& sources, const std::vector<RadioactivityBoundaryConfig>& boundaries, const std::vector<RadioactivityInterfaceConfig>& interfaces);
     void mark_coupled(PropertiesSystem& properties) const;
     bool coupled(const PropertiesSystem& properties) const;
     State update(const PropertiesFieldData& properties);
     void update_boundary(const PropertiesFieldData& properties);
     void apply_initial_constraints();
     void project_initial();
-    void form_system(const mfem::SparseMatrix& matrix, const mfem::Vector& rhs, mfem::SparseMatrix& system, mfem::Vector& load, mfem::Vector& concentration) const;
-    void recover(const mfem::Vector& concentration);
+    void form_system(const mfem::SparseMatrix& matrix, const mfem::Vector& rhs, mfem::SparseMatrix& system, mfem::Vector& load, mfem::Vector& reduced_concentration) const;
+    void recover(const mfem::Vector& reduced_concentration);
     const Counts& counts() const { return counts_; }
 
 private:
@@ -40,7 +40,7 @@ private:
 
     double decay_constant_; // s^-1；衰变矩阵为 lambda M，不重复积分。
     FemSystem& fem_;
-    TrialField& field_;
+    TrialField& trial_field_;
     ScalarIntegrator integrator_;
     RadioactivityDiffusionManager diffusion_;
     RadioactivityCapacityManager capacity_;

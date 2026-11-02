@@ -9,7 +9,7 @@ class ThermalUniformFromConstantResistance final : public ThermalInterfaceModel
 {
 public:
     explicit ThermalUniformFromConstantResistance(const ModelParameterMap& parameters);
-    void assemble(const ThermalInterfaceContext& context, ThermalInterfaceAssembly& assembly) const override;
+    void assemble(const InterfaceContext& context, ThermalInterfaceAssembly& assembly) const override;
 
 private:
     double resistance_; // 单位面积热阻, m²·K/W

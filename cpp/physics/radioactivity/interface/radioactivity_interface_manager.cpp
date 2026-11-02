@@ -4,9 +4,9 @@
 namespace trimuse
 {
 
-RadioactivityInterfaceManager::RadioactivityInterfaceManager(FemSystem& fem, const TrialField& field,
+RadioactivityInterfaceManager::RadioactivityInterfaceManager(FemSystem& fem, const TrialField& trial_field,
     const std::vector<RadioactivityInterfaceConfig>& configs)
-    : constraints_(fem, field)
+    : constraints_(fem, trial_field)
 {
     registry_.register_model<RadioactivityPerfectContact>("perfect_contact");
     for (const auto& config : configs)

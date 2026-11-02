@@ -11,7 +11,7 @@ class ThermalLocalFromConstantResistance final : public ThermalInterfaceModel //
 public:
     explicit ThermalLocalFromConstantResistance(const ModelParameterMap& parameters);
 
-    void assemble(const ThermalInterfaceContext& context, ThermalInterfaceAssembly& assembly) const override;
+    void assemble(const InterfaceContext& context, ThermalInterfaceAssembly& assembly) const override;
 
 private:
     struct Zone // 当前界面上，各个局部热阻区域的判定规则和传热系数

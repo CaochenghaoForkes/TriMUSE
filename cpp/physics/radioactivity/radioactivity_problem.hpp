@@ -10,13 +10,13 @@ namespace trimuse
 class RadioactivityProblem
 {
 public:
-    RadioactivityProblem(FemSystem& fem, FieldData& concentration, PropertiesSystem& properties,
+    RadioactivityProblem(FemSystem& fem, FieldData& accepted_concentration, PropertiesSystem& properties,
                    SolverSystem& solver, OutputManager& output, const std::string& problem_type, double decay_constant,
                    const std::vector<RadioactivityInitialConfig>& initial,
                    const std::vector<RadioactivityDomainConfig>& sources,
                    const std::vector<RadioactivityBoundaryConfig>& boundaries,
                    const std::vector<RadioactivityInterfaceConfig>& interfaces = {});
-    RadioactivityProblem(FemSystem& fem, RegionFieldData& concentration, PropertiesSystem& properties,
+    RadioactivityProblem(FemSystem& fem, RegionFieldData& accepted_concentration, PropertiesSystem& properties,
                    SolverSystem& solver, OutputManager& output, const std::string& problem_type, double decay_constant,
                    const std::vector<RadioactivityInitialConfig>& initial,
                    const std::vector<RadioactivityDomainConfig>& sources,
@@ -27,7 +27,7 @@ public:
     const RadioactivityAssembly::Counts& assembly_counts() const { return assembly_.counts(); }
 
 private:
-    RadioactivityProblem(FemSystem& fem, TrialField concentration, PropertiesSystem& properties,
+    RadioactivityProblem(FemSystem& fem, TrialField trial_concentration, PropertiesSystem& properties,
                    SolverSystem& solver, OutputManager& output, const std::string& problem_type, double decay_constant,
                    const std::vector<RadioactivityInitialConfig>& initial,
                    const std::vector<RadioactivityDomainConfig>& sources,
@@ -36,7 +36,7 @@ private:
     void iterate(double time_step, double theta);
     void accept_concentration();
 
-    TrialField concentration_;
+    TrialField trial_concentration_; // 本次求解的试探浓度场，accept() 后才写回正式场
     PropertiesSystem& properties_;
     SolverSystem& solver_;
     OutputManager& output_;

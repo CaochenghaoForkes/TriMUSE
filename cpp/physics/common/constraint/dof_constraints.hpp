@@ -11,7 +11,7 @@ namespace trimuse
 class DofConstraints
 {
 public:
-    DofConstraints(FemSystem& fem, const TrialField& field);
+    DofConstraints(FemSystem& fem, const TrialField& trial_field);
 
     void connect(const MeshData::Interface& interface); // 找出当前界面两侧对应的自由度，登记为同一组，后续由同一个场未知量表示
 
@@ -30,7 +30,7 @@ private:
 
     std::unique_ptr<mfem::SparseMatrix> make_prolongation(); // 根据已经建立的自由度分组生成映射矩阵 P，使 x完整 = P x独立
 
-    const TrialField& field_; // 试探场
+    const TrialField& trial_field_; // 试探场
     
     std::unique_ptr<mfem::SparseMatrix> prolongation_; // 最终约束映射，行对应完整自由度，列对应独立自由度
 

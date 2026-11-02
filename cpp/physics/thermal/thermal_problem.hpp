@@ -11,13 +11,13 @@ namespace trimuse
 class ThermalProblem
 {
 public:
-    ThermalProblem(FemSystem& fem, FieldData& temperature, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output, const std::string& problem_type,
+    ThermalProblem(FemSystem& fem, FieldData& accepted_temperature, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output, const std::string& problem_type,
                    const std::vector<ThermalInitialConfig>& initial,
                    const std::vector<ThermalDomainConfig>& sources,
                    const std::vector<ThermalBoundaryConfig>& boundaries,
                    const std::vector<ThermalInterfaceConfig>& interfaces = {});
     
-    ThermalProblem(FemSystem& fem, RegionFieldData& temperature, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output, const std::string& problem_type,
+    ThermalProblem(FemSystem& fem, RegionFieldData& accepted_temperature, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output, const std::string& problem_type,
                     const std::vector<ThermalInitialConfig>& initial,
                     const std::vector<ThermalDomainConfig>& sources,
                     const std::vector<ThermalBoundaryConfig>& boundaries,
@@ -28,7 +28,7 @@ public:
     const ThermalAssembly::Counts& assembly_counts() const { return assembly_.counts(); }
 
 private:
-    ThermalProblem(FemSystem& fem, TrialField temperature, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output, const std::string& problem_type,
+    ThermalProblem(FemSystem& fem, TrialField trial_temperature, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output, const std::string& problem_type,
                    const std::vector<ThermalInitialConfig>& initial,
                    const std::vector<ThermalDomainConfig>& sources,
                    const std::vector<ThermalBoundaryConfig>& boundaries,
@@ -38,7 +38,7 @@ private:
 
     void accept_temperature(); // // 收敛后的属性与最终温度同步; 上一时间步快照仍由外部调度统一提交
 
-    TrialField temperature_; // 试探场
+    TrialField trial_temperature_; // 试探场
 
     PropertiesSystem& properties_;
 

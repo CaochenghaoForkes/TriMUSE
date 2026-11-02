@@ -17,8 +17,8 @@ struct RadioactivityInitialConfig
 };
 
 // 初始盘存 atom 除以区域体积得到 atom/m³, 投影时不施加后续边界约束。
-void initialize_concentration(const FemSystem& fem_system, FieldData& concentration_field, const std::vector<RadioactivityInitialConfig>& initial_configs);
+void initialize_concentration(const FemSystem& fem_system, FieldData& accepted_concentration_field, const std::vector<RadioactivityInitialConfig>& initial_configs);
 
-void initialize_concentration(const FemSystem& fem_system, RegionFieldData& concentration_field, const std::vector<RadioactivityInitialConfig>& initial_configs);
+void initialize_concentration(const FemSystem& fem_system, RegionFieldData& accepted_concentration_field, const std::vector<RadioactivityInitialConfig>& initial_configs);
 
 }
