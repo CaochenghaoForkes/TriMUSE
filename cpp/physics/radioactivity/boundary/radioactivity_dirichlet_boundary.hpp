@@ -3,12 +3,12 @@
 namespace trimuse
 {
 
-class RadioactivityDirichletBoundary final : public RadioactivityBoundaryModel
+class RadioactivityDirichletBoundary final : public RadioactivityBoundaryModel // 指定外表面浓度，不直接生成矩阵或右端项
 {
 public:
     explicit RadioactivityDirichletBoundary(const ModelParameterMap&) {}
 
-    bool essential() const override { return true; }
+    bool essential() const override { return true; } // 标记为本质边界，求解系统中将固定对应自由度
 
     RadioactivityBoundaryValues evaluate(const PropertiesFieldData& properties, int zone) const override
     {

@@ -8,9 +8,9 @@ namespace trimuse
 
 struct RadioactivityDomainConfig // 指定区域采用的域内模型及参数
 {
-    int region_attribute;
-    std::string model_name;
-    ModelParameterMap parameters;
+    int region_attribute; // 原网格材料区域编号
+    std::string model_name; // 该区域采用的域内模型名
+    ModelParameterMap parameters; // 模型构造参数
 };
 
 class RadioactivityDomainModel // 模型返回弱式系数；管理器规定如何更新，积分器规定如何积分
@@ -22,7 +22,7 @@ public:
     virtual double evaluate(const PropertiesFieldData& properties, std::size_t point) const = 0;
 
 protected:
-    static double scalar(const PropertiesFieldData& properties, const std::string& name, std::size_t point)
+    static double scalar(const PropertiesFieldData& properties, const std::string& name, std::size_t point) // 读取指定属性在全域积分点编号 point 处的标量值
     {
         return std::get<double>(properties.integration_point_values.at(name)[point].value());
     }

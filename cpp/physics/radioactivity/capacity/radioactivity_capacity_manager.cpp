@@ -4,7 +4,7 @@
 namespace trimuse
 {
 
-RadioactivityCapacityManager::RadioactivityCapacityManager(const FemSystem& fem, const std::vector<RadioactivityDomainConfig>& configs)
+RadioactivityCapacityManager::RadioactivityCapacityManager(const FemSystem& fem, const std::vector<RadioactivityDomainConfig>& configs) // 默认对全部区域使用单位容量模型
     : RadioactivityDomainManager(fem)
 {
     registry_.register_model<UnitCapacity>("unit", {});

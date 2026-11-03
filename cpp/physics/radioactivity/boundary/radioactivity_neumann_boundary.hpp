@@ -3,7 +3,7 @@
 namespace trimuse
 {
 
-class RadioactivityNeumannBoundary final : public RadioactivityBoundaryModel
+class RadioactivityNeumannBoundary final : public RadioactivityBoundaryModel // 指定外向核素通量，只向右端向量贡献载荷
 {
 public:
     explicit RadioactivityNeumannBoundary(const ModelParameterMap&) {}

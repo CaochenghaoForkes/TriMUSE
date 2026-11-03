@@ -4,7 +4,7 @@
 namespace trimuse
 {
 
-class VolumetricNuclideBirthRateSource final : public RadioactivityDomainModel
+class VolumetricNuclideBirthRateSource final : public RadioactivityDomainModel // 读取体积核素产生率作为弱式右端系数
 {
 public:
     explicit VolumetricNuclideBirthRateSource(const ModelParameterMap&) {}

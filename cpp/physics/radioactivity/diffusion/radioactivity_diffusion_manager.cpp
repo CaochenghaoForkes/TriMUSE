@@ -4,7 +4,7 @@
 namespace trimuse
 {
 
-RadioactivityDiffusionManager::RadioactivityDiffusionManager(const FemSystem& fem, const std::vector<RadioactivityDomainConfig>& configs)
+RadioactivityDiffusionManager::RadioactivityDiffusionManager(const FemSystem& fem, const std::vector<RadioactivityDomainConfig>& configs) // 未显式配置时，每个区域默认使用 Fick 模型
     : RadioactivityDomainManager(fem)
 {
     registry_.register_model<FickDiffusion>("fick", {"material.radioactivity.nuclide_diffusion_coef"});
