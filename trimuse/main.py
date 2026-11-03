@@ -73,6 +73,5 @@ def main(chief_path: str | Path) -> None:
 
 
 if __name__ == "__main__":
-    main(project_directory / "cases/geo/case_1d.xml")
-    main(project_directory / "cases/geo/case_2d.xml")
-    main(project_directory / "cases/geo/case_3d.xml")
+    main(project_directory / "cases/test/case.xml")
+

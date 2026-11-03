@@ -109,6 +109,17 @@
         </zone>
         -->
     </derived_property>
+    <external_property name="fast_neutron_flux">
+        <global model="common.constant">
+            <parameter name="constant_value" value="[float]" unit="[1]/[m]^2[s]" si_unit="[1]/[m]^2[s]"/>
+        </global>
+        <!-- 如需时间表，替换上面的 global 节点；times/values 等长且至少两个点，times 严格递增。
+        <global model="common.time_series">
+            <parameter name="times" value="[float] [float]" unit="[s]" si_unit="[s]"/>
+            <parameter name="values" value="[float] [float]" unit="[1]/[m]^2[s]" si_unit="[1]/[m]^2[s]"/>
+        </global>
+        -->
+    </external_property>
     <external_property name="nuclide_birth_rate">
         <global model="common.constant">
             <parameter name="constant_value" value="[float]" unit="[atom]/[s]" si_unit="[atom]/[s]"/>

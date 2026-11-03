@@ -9,6 +9,7 @@ class PropertiesCardExamine:
         "external.burnup_fima_fraction": COMMON_MODELS,
         "external.uranium_fraction": COMMON_MODELS,
         "external.nuclide_birth_rate": COMMON_MODELS,
+        "external.fast_neutron_flux": COMMON_MODELS,
         "external.environment_temperature": COMMON_MODELS,
         "external.surface_temperature": COMMON_MODELS,
         "external.heat_flux": COMMON_MODELS,
@@ -23,6 +24,7 @@ class PropertiesCardExamine:
 
     RADIOACTIVITY_PROPERTIES = {
         "external.nuclide_birth_rate": ("external_property", "global"),
+        "external.fast_neutron_flux": ("external_property", "global"),
         "external.uranium_fraction": ("external_property", "region"),
         "external.environment_nuclide_concentration": ("external_property", "zone"),
         "external.surface_nuclide_concentration": ("external_property", "zone"),
