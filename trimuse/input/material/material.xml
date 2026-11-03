@@ -78,7 +78,16 @@
         </general>
         <!-- 放射性物性分类可选；不求解核素时可删除 -->
         <radioactivity>
-            <!-- 可选 common.constant、common.time_series、common.arrhenius；仅 arrhenius 依赖 temperature -->
+            <!-- 可选 common.constant、common.time_series、common.arrhenius，或下列 TECDOC-978 模型；
+                 Arrhenius 和 TECDOC-978 模型依赖 temperature。
+                 kernel.tecdoc978_frg：Cs、Sr、Ag、I、Kr、Xe；kernel.tecdoc978_japan：Cs。
+                 pyc.tecdoc978_frg / pyc.tecdoc978_usa：Cs、Sr、Ag、Kr、Xe；
+                 pyc.tecdoc978_japan：Cs；pyc.tecdoc978_russian：Ag、Kr。
+                 sic.tecdoc978_frg：Cs、Sr、Ag；sic.tecdoc978_usa：Sr、Ag；
+                 sic.tecdoc978_usa_lower / sic.tecdoc978_usa_upper：Cs；
+                 sic.tecdoc978_japan：Cs、Sr、Ag、Xe；sic.tecdoc978_russian：Cs、Ag。
+                 日本 PyC 的 Cs 在 1600°C 切换；日本 SiC 的 Xe 在 1400°C、1650°C 切换，Cs 在 1500°C 切换。
+                 FRG SiC 的快中子注量 Γ 暂取 10^25 m^-2；日本 SiC 的 Cs 低温段取表中 D0 上限。 -->
             <nuclide_diffusion_coef model="common.arrhenius">
                 <parameter name="D0" value="[float]" unit="[m]^2/[s]" si_unit="[m]^2/[s]"/>
                 <parameter name="Q" value="[float]" unit="[J]/[mol]" si_unit="[J]/[mol]"/>
@@ -91,6 +100,19 @@
                 <parameter name="times" value="[float] [float]" unit="[s]" si_unit="[s]"/>
                 <parameter name="values" value="[float] [float]" unit="[m]^2/[s]" si_unit="[m]^2/[s]"/>
             </nuclide_diffusion_coef>
+            <nuclide_diffusion_coef model="kernel.tecdoc978_frg"/>
+            <nuclide_diffusion_coef model="kernel.tecdoc978_japan"/>
+            <nuclide_diffusion_coef model="pyc.tecdoc978_frg"/>
+            <nuclide_diffusion_coef model="pyc.tecdoc978_usa"/>
+            <nuclide_diffusion_coef model="pyc.tecdoc978_japan"/>
+            <nuclide_diffusion_coef model="pyc.tecdoc978_russian"/>
+            <nuclide_diffusion_coef model="sic.tecdoc978_frg"/>
+            <nuclide_diffusion_coef model="sic.tecdoc978_usa"/>
+            <nuclide_diffusion_coef model="sic.tecdoc978_usa_lower"/>
+            <nuclide_diffusion_coef model="sic.tecdoc978_usa_upper"/>
+            <nuclide_diffusion_coef model="sic.tecdoc978_japan"/>
+            <nuclide_diffusion_coef model="sic.tecdoc978_russian"/>
+            核素名称从 radioactivity 卡读取；以上仅为不同材料和核素的替代示例。
             -->
         </radioactivity>
     </mat>

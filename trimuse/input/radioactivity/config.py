@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from xml.etree import ElementTree as ET
 import math
+import re
 import sys
 
 from ..xml_utils import XmlUtils
@@ -21,6 +22,12 @@ class RadioactivityCard:
         def decay_constant(self) -> float:
             """衰变常数, s⁻¹"""
             return math.log(2.0) / self.half_life
+
+        @property
+        def element_symbol(self) -> str:
+            """从 Cs137、Cs-137 等核素名取得元素符号"""
+            match = re.match(r"^[A-Z][a-z]?", self.name)
+            return match.group() if match else ""
 
     @dataclass
     class Initial:

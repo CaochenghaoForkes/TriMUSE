@@ -6,6 +6,20 @@ class MaterialCardExamine:
     """检查材料卡自身, 几何区域是否存在由卡间检查负责"""
 
     COMMON_MODELS = {"common.constant", "common.time_series"}
+    TECDOC978_SYMBOLS = {
+        "kernel.tecdoc978_frg": {"Cs", "Sr", "Ag", "I", "Kr", "Xe"},
+        "kernel.tecdoc978_japan": {"Cs"},
+        "pyc.tecdoc978_frg": {"Cs", "Sr", "Ag", "Kr", "Xe"},
+        "pyc.tecdoc978_usa": {"Cs", "Sr", "Ag", "Kr", "Xe"},
+        "pyc.tecdoc978_japan": {"Cs"},
+        "pyc.tecdoc978_russian": {"Ag", "Kr"},
+        "sic.tecdoc978_frg": {"Cs", "Sr", "Ag"},
+        "sic.tecdoc978_usa": {"Sr", "Ag"},
+        "sic.tecdoc978_usa_lower": {"Cs"},
+        "sic.tecdoc978_usa_upper": {"Cs"},
+        "sic.tecdoc978_japan": {"Cs", "Sr", "Ag", "Xe"},
+        "sic.tecdoc978_russian": {"Cs", "Ag"},
+    }
     MODELS = {
         "material.general.porosity": COMMON_MODELS,
         "material.general.mass_density": COMMON_MODELS,
@@ -14,7 +28,7 @@ class MaterialCardExamine:
             "buffer.bison_2021", "buffer.uk_2004", "sic.miller", "sic.cea_2004",
         },
         "material.thermal.specific_heat": COMMON_MODELS | {"kernel.fink_2000_uo2", "sic.bison_2021"},
-        "material.radioactivity.nuclide_diffusion_coef": COMMON_MODELS | {"common.arrhenius"},
+        "material.radioactivity.nuclide_diffusion_coef": COMMON_MODELS | {"common.arrhenius"} | set(TECDOC978_SYMBOLS),
     }
 
     @classmethod
@@ -56,7 +70,10 @@ class MaterialCardExamine:
             if not all(math.isfinite(number) for number in numbers):
                 raise ValueError(f"{location}: 参数值必须有限")
         if property_config.property_name == "material.radioactivity.nuclide_diffusion_coef":
-            if property_config.model == "common.arrhenius":
+            if property_config.model in MaterialCardExamine.TECDOC978_SYMBOLS:
+                if property_config.parameters:
+                    raise ValueError(f"{location}: {property_config.model} 不需要构造参数")
+            elif property_config.model == "common.arrhenius":
                 D0 = property_config.parameters.get("D0")
                 Q = property_config.parameters.get("Q")
                 if not isinstance(D0, float) or D0 <= 0 or not isinstance(Q, float) or Q < 0:

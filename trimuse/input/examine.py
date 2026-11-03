@@ -1,5 +1,6 @@
 from .geometry_mesh.config import GeometryMeshCard
 from .material.config import MaterialCard
+from .material.examine import MaterialCardExamine
 from .properties.config import PropertiesCard
 from .thermal.config import ThermalCard
 from .radioactivity.config import RadioactivityCard
@@ -29,6 +30,11 @@ class InputCardsExamine:
             cls.check_thermal_source_dependencies(properties, thermal)
         if postprocess is not None:
             cls.check_postprocess_geometry(geometry_mesh, postprocess)
+        if radioactivity is None and any(
+            item.property_name == "material.radioactivity.nuclide_diffusion_coef" and item.model in MaterialCardExamine.TECDOC978_SYMBOLS
+            for mat in material.mat for item in mat.properties
+        ):
+            raise ValueError("TECDOC-978 扩散系数模型需要 radioactivity 输入卡中的核素名称")
         if radioactivity is not None:
             cls.check_radioactivity_references(geometry_mesh, radioactivity)
             cls.check_radioactivity_dependencies(material, properties, radioactivity, thermal)
@@ -56,8 +62,11 @@ class InputCardsExamine:
             diffusion = next((item for item in materials[assignment.mat].properties if item.property_name == "material.radioactivity.nuclide_diffusion_coef"), None)
             if diffusion is None:
                 raise ValueError(f"区域 {assignment.name} 的材料缺少核素扩散系数")
-            if diffusion.model == "common.arrhenius" and thermal is None:
-                raise ValueError(f"区域 {assignment.name}: common.arrhenius 依赖温度场, 必须提供 thermal 输入卡")
+            if thermal is None and (diffusion.model == "common.arrhenius" or diffusion.model in MaterialCardExamine.TECDOC978_SYMBOLS):
+                raise ValueError(f"区域 {assignment.name}: {diffusion.model} 依赖温度场, 必须提供 thermal 输入卡")
+            supported = MaterialCardExamine.TECDOC978_SYMBOLS.get(diffusion.model)
+            if supported is not None and radioactivity.nuclide.element_symbol not in supported:
+                raise ValueError(f"{diffusion.model} 不支持核素 {radioactivity.nuclide.name}")
 
     @staticmethod
     def check_radioactivity_references(geometry_mesh: GeometryMeshCard, radioactivity: RadioactivityCard) -> None:

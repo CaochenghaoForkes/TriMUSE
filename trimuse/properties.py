@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from _core import PropertiesSystem # type: ignore
+from .input.material.examine import MaterialCardExamine
 
 if TYPE_CHECKING:
     from _core import FemSystem # pyright: ignore[reportMissingImports]
@@ -30,7 +31,10 @@ class PropertiesManager:
         materials = {material.name: material for material in input_cards.material.mat}
         for assignment in input_cards.material.assign.region:
             for property_config in materials[assignment.mat].properties:
-                self.properties_system.assign(region_attributes[assignment.name], f"{property_config.property_name}.{property_config.model}", property_config.parameters)
+                parameters = property_config.parameters
+                if property_config.model in MaterialCardExamine.TECDOC978_SYMBOLS and property_config.property_name == "material.radioactivity.nuclide_diffusion_coef":
+                    parameters = {**parameters, "nuclide_symbol": input_cards.radioactivity.nuclide.element_symbol}
+                self.properties_system.assign(region_attributes[assignment.name], f"{property_config.property_name}.{property_config.model}", parameters)
 
         self.properties_system.prepare_dependencies()
 

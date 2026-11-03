@@ -1,6 +1,5 @@
 #include "properties/material/radioactivity/nuclide_diffusion_coef/common/arrhenius_nuclide_diffusion_coef.hpp"
-
-#include <cmath>
+#include "properties/material/radioactivity/nuclide_diffusion_coef/common/arrhenius_terms.hpp"
 
 namespace trimuse
 {
@@ -13,9 +12,8 @@ ArrheniusNuclideDiffusionCoef::ArrheniusNuclideDiffusionCoef(const ModelParamete
 
 double ArrheniusNuclideDiffusionCoef::evaluate(const PropertiesStatePoint& state_point) const
 {
-    constexpr double gas_constant = 8.31446261815324; // J/(mol·K)
     const double temperature = state_point.scalar("temperature"); // K
-    return D0_ * std::exp(-Q_ / (gas_constant * temperature));
+    return evaluate_arrhenius_term(D0_, Q_, temperature);
 }
 
 }
