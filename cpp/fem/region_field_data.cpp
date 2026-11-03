@@ -115,7 +115,7 @@ void RegionFieldData::get_values(mfem::Vector& values) const // 把各区域分�
     }
 }
 
-void RegionFieldData::set_values(const mfem::Vector& values) // 将整体分块向量里的场值，分别写回各区域的场数据
+void RegionFieldData::set_values(const mfem::Vector& values) // 将分域场的整体分块向量里的场值，分别写回 regions_ 管理的各区域的 RegionObjects 管理的场数据中
 {
     for (auto& [attribute, region] : regions_)
     {

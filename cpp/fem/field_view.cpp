@@ -11,7 +11,7 @@ FieldView::FieldView(const RegionFieldData* field) : field_(field)
 {
 }
 
-StateValue FieldView::evaluate(int region_attribute, int parent_element, const mfem::IntegrationPoint& point) const // 给定原网格的区域编号、单元编号和参考积分点，统一取得连续场或分域场在该点的值
+StateValue FieldView::evaluate(int region_attribute, int parent_element, const mfem::IntegrationPoint& point) const // 给定原网格的区域编号、单元编号和参考积分点，统一取得连续场或分域场在该点的值 注意这个 point 是单元中的参考坐标
 {
     const mfem::GridFunction* field; // 稍后指向实际需要读取的 GridFunction
     int element = parent_element; // 该 GridFunction 所在网格中的单元编号

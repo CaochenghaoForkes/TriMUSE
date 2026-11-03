@@ -47,7 +47,7 @@ ThermalProblem::ThermalProblem(FemSystem& fem, TrialField trial_temperature, Pro
 
 void ThermalProblem::accept_temperature() // 收敛后的属性与最终温度同步; 上一时间步快照仍由外部调度统一提交
 {
-    trial_temperature_.accept();
+    trial_temperature_.accept(); // 把当前试探场的场值复制回正式场，接受本次求解结果
     properties_.update_field_dependent_materials("temperature", {{"temperature", trial_temperature_.view()}}, true);
 }
 
@@ -57,11 +57,11 @@ void ThermalProblem::solve(double time_step, double theta) // 热问题的统一
     const auto started = std::chrono::steady_clock::now(); // 记录开始时间
     const auto before = assembly_.counts(); // 复制求解前的累计组装次数
     trial_temperature_.load(); // 把正式温度场复制到试探场，作为本次求解的初始状态
-    if (transient_ && time_step == 0.0) // 瞬态问题的零时间步用于处理初始状态
+    if (transient_ && time_step == 0.0) // 对于瞬态问题：把初始温度调整到满足当前的 Dirichlet 边界和完美接触约束，然后写回正式温度场
     {
         assembly_.update_boundary(properties_.field_data()); // 更新当前边界值，让试探温度满足约束，再提交到正式场
-        assembly_.apply_initial_constraints();
-        accept_temperature();
+        assembly_.apply_initial_constraints(); // 在正式求解前，让试探温度满足自由度连续约束和当前 Dirichlet 指定温度
+        accept_temperature(); // 把当前试探场的场值复制回正式场，接受本次求解结果，并初始化依赖温度的属性
         return;
     }
     iterate(time_step, theta); // 执行稳态求解或瞬态推进，包括必要的 Picard 迭代
@@ -80,10 +80,10 @@ void ThermalProblem::iterate(double time_step, double theta) // 准备旧时刻�
     mfem::Vector old_rhs(trial_temperature_.size()); old_rhs = 0.0; // 准备旧时刻的右端贡献
     if (transient_ && theta < 1.0) // 只有是瞬态且 theta < 1 时才会需要旧时刻的 Kn Fn
     {
-        old = assembly_.update(properties_.previous_field_data(), true); // 根据旧属性取得 M_n,K_n,F_n 这里 true 表示需要容量矩阵；内部仍按缓存判断是否重新组装
-        old.conduction->Mult(previous_step_values, old_rhs);
-        old_rhs *= -1.0;
-        old_rhs += *old.load;
+        old = assembly_.update(properties_.previous_field_data(), true); // properties_.previous_field_data()是上一时刻 tn 已按当时的最终温度 Tn 更新接收的属性快照，根据这些旧属性取得 M_n,K_n,F_n 这里 true 表示需要容量矩阵；内部仍按缓存判断是否重新组装 温度不依赖材料的情况下，这里相当于把上一时间步末的材料属性放进去再次取得上一时间步末的矩阵与向量，但如果温度依赖属性，则上一时间步最后一次迭代用的是“求解前的试探温度组装的”，求得最终 Tn 后，accept_temperature 会按照 Tn 更新属性，却不会随即重新组装，因此下一步读取旧属性快照时，若系数与缓存中的值不同，就会重组对应区域
+        old.conduction->Mult(previous_step_values, old_rhs); // KnTn
+        old_rhs *= -1.0; // -KnTn
+        old_rhs += *old.load; // Fn-KnTn
         old_rhs *= 1.0 - theta; // old_rhs = (1-\theta)(Fn-KnTn)
     }
     assembly_.update_boundary(properties_.field_data()); // 更新新时刻的边界值
@@ -93,17 +93,17 @@ void ThermalProblem::iterate(double time_step, double theta) // 准备旧时刻�
     for (int iteration = 0; iteration < (nonlinear ? picard.max_iterations : 1); ++iteration) // 线性问题只求解一次，非线性问题最多执行配置的迭代次数
     {
         mfem::Vector iteration_delta = trial_temperature_.values(), rhs(trial_temperature_.size()); // 保存本轮更新前的试探温度，用于之后判断收敛
-        ThermalAssembly::State current;
+        ThermalAssembly::State current; // 新状态(稳态或theta>0)
         if (!transient_ || theta > 0.0) // 如果需要当前属性(稳态或瞬态theta>0)
         {
-            properties_.update_field_dependent_materials("temperature", {{"temperature", trial_temperature_.view()}}, true); // 用当前试探温度更新相关材料属性
+            properties_.update_field_dependent_materials("temperature", {{"temperature", trial_temperature_.view()}}, true); // 用当前试探温度更新与温度相互耦合的材料属性
             current = assembly_.update(properties_.field_data(), transient_); // 取得本轮的 M,K,F，仅重组发生变化的贡献 稳态不需要容量项
         }
         std::unique_ptr<mfem::SparseMatrix> matrix;
         if (!transient_) // 稳态直接使用 KT = F
         {
-            matrix = std::make_unique<mfem::SparseMatrix>(*current.conduction);
-            rhs = *current.load;
+            matrix = std::make_unique<mfem::SparseMatrix>(*current.conduction); // A = Kn+1
+            rhs = *current.load; // b = Fn+1
         }
         else // 瞬态
         {
@@ -112,12 +112,12 @@ void ThermalProblem::iterate(double time_step, double theta) // 准备旧时刻�
             const mfem::SparseMatrix* mass = theta == 0.0 ? old.mass.get() : current.mass.get(); // 对于热容矩阵 theta=0 使用 Mn theta=1 使用 Mn+1
             if (theta > 0.0 && theta < 1.0) // 0 < theta < 1
             {
-                mixed_mass.reset(mfem::Add(1.0 - theta, *old.mass, theta, *current.mass)); // 构造混合矩阵
+                mixed_mass.reset(mfem::Add(1.0 - theta, *old.mass, theta, *current.mass)); // 构造混合矩阵M_theta=(1-theta)M_n+theta M_{n+1}
                 mass = mixed_mass.get();
             }
-            mass->Mult(previous_step_values, rhs);
-            rhs /= time_step;
-            rhs += old_rhs; // b = MTn/delta_t + (1-theta)(Fn-KnTn)
+            mass->Mult(previous_step_values, rhs); // b = MTn
+            rhs /= time_step; // b = MTn/delta_t
+            rhs += old_rhs; // b = MTn/delta_t + (1-theta)(Fn-KnTn) [theta<1.0]  b = MTn/delta_t [theta=1.0]
             if (theta > 0.0) // 若 theta>0
             {
                 rhs.Add(theta, *current.load); // b = MTn/delta_t + (1-theta)(Fn-KnTn) + thetaFn+1
@@ -126,7 +126,7 @@ void ThermalProblem::iterate(double time_step, double theta) // 准备旧时刻�
             else // 若 theta=0
             {
                 matrix = std::make_unique<mfem::SparseMatrix>(*mass);
-                *matrix *= 1.0 / time_step; // A = M/delta_t
+                *matrix *= 1.0 / time_step; // A = M/delta_t b = MTn/delta_t + (Fn-KnTn)
             }
         }
         mfem::SparseMatrix system;

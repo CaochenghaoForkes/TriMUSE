@@ -31,13 +31,13 @@ public:
     bool essential(int zone) const; // 判断指定区域是否是一类边界条件需要约束
 
 private:
-    struct Assignment // 保存某个边界分区的模型、依赖属性、最新求值结果，以及组装变化标记
+    struct Assignment // 保存 model 某个边界分区的模型、required 依赖属性、values 最新求值结果（默认都是0），dirty 以及组装变化标记（默认都是true）
     {
         std::unique_ptr<ThermalBoundaryModel> model; // 独占拥有该分区的具体边界模型对象，例如 ThermalRobinBoundary
 
         std::vector<std::string> required; // 保存模型依赖的属性名称
 
-        ThermalBoundaryValues values; // values.matrix: 边界矩阵系数 values.load 边界右端系数 values.temperature 指定表面温度
+        ThermalBoundaryValues values; // values.matrix: 边界矩阵系数 values.load 边界右端系数 values.temperature 指定表面温度 默认都是 0
 
         std::array<bool, 3> dirty{true, true, true}; // 分别记录这三部分是否需要处理重组
     };

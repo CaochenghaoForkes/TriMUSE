@@ -16,7 +16,7 @@ public:
 
     TrialField(TrialField&&) = default; // TrialField 的移动构造函数，让编译器生成默认实现
 
-    bool regional() const { return accepted_region_field_ != nullptr; } // 判断该场用的是连续场还是分域场
+    bool regional() const { return accepted_region_field_ != nullptr; } // 根据持有的 accepted_region_field_ 是否非空判断该场用的是连续场还是分域场
 
     int size() const; // 返回当前试探场的全部自由度数量，也就是整体场向量的长度
 

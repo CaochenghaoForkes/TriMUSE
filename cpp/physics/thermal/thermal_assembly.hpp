@@ -15,7 +15,7 @@ namespace trimuse
 class ThermalAssembly
 {
 public:
-    struct State // 当前汇总后的组装状态 
+    struct State // 组装状态包含 mass: 容量矩阵 conduction: Kdomain+KR+KI load: FQ+Fgamma
     {
         std::shared_ptr<const mfem::SparseMatrix> mass, conduction; // M 以及 K=Kdomain+KR+KI
         std::shared_ptr<const mfem::Vector> load; // F=FQ+Fgamma
@@ -58,17 +58,17 @@ private:
 
     ScalarIntegrator integrator_; // 公共标量单元和外边界积分器
 
-    ThermalConductionManager conduction_; // 域内导热模型
+    ThermalConductionManager conduction_manager_; // 域内导热模型
 
-    ThermalCapacityManager capacity_; // 热容模型
+    ThermalCapacityManager capacity_manager_; // 热容模型
 
-    ThermalSourceManager source_; // 体积热源模型
+    ThermalSourceManager source_manager_; // 体积热源模型
 
-    ThermalBoundaryManager boundary_; // 外边界指定温度、矩阵系数及右端系数
+    ThermalBoundaryManager boundary_manager_; // 外边界指定温度、矩阵系数及右端系数
 
     DofConstraints constraints_; // 持有约束映射 P，统一完成自由度约化与恢复；界面组装只登记相等关系
 
-    ThermalInterfaceManager interface_; // 界面模型管理及热阻界面矩阵 KI
+    ThermalInterfaceManager interface_manager_; // 界面模型管理及热阻界面矩阵 KI
 
     std::map<int, std::vector<int>> boundary_elements_; // 外边界单元索引表: 边界物理属性编号 → 该分区包含的原网格边界单元编号列表
 
@@ -79,10 +79,10 @@ private:
     State state_; // 当前汇总后的组装状态 
 
     // std::shared_ptr<T> 是 C++ 的共享所有权智能指针：多个指针可以共同拥有同一个对象，最后一个拥有者释放它时，对象会自动销毁
-    std::shared_ptr<const mfem::SparseMatrix> last_domain_, last_boundary_; // 上次汇总时使用的缓存指针 用于比较指针是否被替换 last_domain_ -> conduction_cache_.sum last_boundary_ -> boundary_matrix_cache_.sum
+    std::shared_ptr<const mfem::SparseMatrix> last_conduction_cache_sum_, last_boundary_matrix_cache_sum_; // 上次汇总时使用的缓存指针 用于比较指针是否被替换 last_conduction_cache_sum_ -> conduction_cache_.sum last_boundary_matrix_cache_sum_ -> boundary_matrix_cache_.sum
 
-    std::shared_ptr<const mfem::Vector> last_source_, last_boundary_load_; // 记录上次形成总右端向量时使用的 用于比较指针是否被替换 last_source_ -> source_cache_.sum last_boundary_load_ -> boundary_load_cache_.sum
+    std::shared_ptr<const mfem::Vector> last_source_cache_sum_, last_boundary_load_cache_sum_; // 记录上次形成总右端向量时使用的 用于比较指针是否被替换 last_source_cache_sum_ -> source_cache_.sum last_boundary_load_cache_sum_ -> boundary_load_cache_.sum
 
-    Counts counts_; // 组装次数统计
+    Counts counts_; // 组装次数统计 某矩阵/右端名称 -> 该项组装次数
 };
 }

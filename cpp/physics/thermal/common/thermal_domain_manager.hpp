@@ -19,7 +19,7 @@ public:
 
     void mark_coupled(PropertiesSystem& properties, const std::string& field) const; // 把当前管理器所依赖的属性，交给属性系统登记与指定场的耦合关系
 
-    bool required_no_change(int region) const; // 判断: 指定区域的系数是否与最近一次组装时一致，因而可以复用已有矩阵或向量
+    bool required_no_change(int region) const; // // 根据 dirty 判断指定区域的系数是否与最近一次组装时一致(dirty是否为False)，因而可以复用已有矩阵或向量
 
     void assembled(int region); // 装配后将 region 处的 dirty 记为 false
 
@@ -37,10 +37,10 @@ protected:
     ModelRegistry<ThermalDomainModel> registry_; // 注册表
 
 private:
-    struct Assignment // 某个区域已经分配好的模型，以及该模型的依赖和组装状态
+    struct Assignment // 某个区域已经分配好的模型，以及该模型的依赖属性和组装状态{具体模型对象，依赖的属性参数，dirty默认为 true}
     {
         std::unique_ptr<ThermalDomainModel> model; // 独占拥有一个具体模型对象 如 FourierConduction 通过基类指针统一管理不同模型，并调用它们的 evaluate()
-        std::vector<std::string> required; // 该模型依赖的属性名称 如 {"material.thermal.conductivity"}
+        std::vector<std::string> required; // 该模型依赖的属性名称集合 如 {"material.thermal.conductivity"}
         bool dirty = true; // 表示该区域的系数是否需要重新组装到矩阵或向量中 初始为: true 尚未组装，需要首次组装 update() 发现系数变化: 设为 true 组装完后调用 assembled(): 设为 false 系数未变且已组装: 保存 false 复用缓存
     };
 

@@ -3,7 +3,7 @@
 namespace trimuse
 {
 
-TrialField::TrialField(FemSystem&, FieldData& accepted_field) // 使用连续场时的构造函数，负责保存正式场引用，并建立独立的试探场
+TrialField::TrialField(FemSystem&, FieldData& accepted_field) // 使用连续场时的构造函数，负责保存正式场引用，并建立独立的试探场，将正式场的场向量传入试验场中
     : accepted_continuous_field_(&accepted_field), // 将正式场 accepted_field 的地址保存到 accepted_continuous_field_
       trial_continuous_field_(std::make_unique<mfem::GridFunction>(accepted_field.mfem_grid_function().FESpace())) // accepted_field.mfem_grid_function().FESpace() 取得正式场所使用的有限元空间指针 std::make_unique<mfem::GridFunction>(该空间指针) 在同一个有限元空间上创建新的试探 GridFunction
 {
@@ -14,7 +14,7 @@ TrialField::TrialField(FemSystem& fem, RegionFieldData& accepted_field) // 使�
     : accepted_region_field_(&accepted_field)
 {
     const auto attributes = fem.mesh_data().region_attributes(); // 取得网格中所有区域的属性编号
-    const auto& first_space = accepted_field.finite_element_space(attributes.front()); // attributes.front() 取得第一个区域的编号 再取得该区域的有限元空间
+    const auto& first_space = accepted_field.finite_element_space(attributes.front()); // attributes.front() 取得第一个区域的编号 再取得该区域的有限元空间 这个空间可以代表所有分域的空间
     trial_region_field_ = std::make_unique<RegionFieldData>(fem.mesh_data(), first_space.order(), first_space.vector_dimension()); // 根据同一个网格和相同插值阶次、分量数，创建新的分域试探场
     for (std::size_t i = 0; i < attributes.size(); ++i) // 建立“区域编号 → 整体自由度偏移”的映射
     { 
@@ -50,7 +50,7 @@ void TrialField::element_dofs(int element, mfem::Array<int>& dofs) const // 根�
     }
 }
 
-void TrialField::face_dofs(int region, int face, mfem::Array<int>& dofs) const // 取得指定区域一侧、某个网格面上的自由度编号，并填入 dofs region 是区域属性编号用于指定面的哪一侧 face 是原网格中的面编号不是边界单元编号 dofs 输出的自由度编号数组
+void TrialField::face_dofs(int region, int face, mfem::Array<int>& dofs) const // 取得指定区域一侧、某个网格面上的自由度编号，并填入 dofs region 是区域属性编号用于指定面的哪一侧 face 是原网格中的面编号不是边界单元编号 dofs 输出的完整向量中的自由度编号数组
 {
     space(region).GetFaceVDofs(regional() ? trial_region_field_->local_face(region, face) : face, dofs); // space(region): 取得当前区域的试探场空间;连续场则取得整个网格的空间 GetFaceVDofs(...) 取得该面上的自由度 分域场需要先把原网格面编号转换成对应子网格的局部面编号 连续场直接使用 face
     if (regional()) 
@@ -62,7 +62,7 @@ void TrialField::face_dofs(int region, int face, mfem::Array<int>& dofs) const /
     }
 }
 
-mfem::Vector TrialField::values() const // 将当前试探场的全部自由度值，作为一个整体向量返回
+mfem::Vector TrialField::values() const // 将当前试探场的整体向量自由度值，作为一个整体向量返回
 {
     mfem::Vector result;
     if (regional()) 

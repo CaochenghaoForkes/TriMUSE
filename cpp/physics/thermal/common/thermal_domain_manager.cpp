@@ -10,12 +10,15 @@ ThermalDomainManager::ThermalDomainManager(const FemSystem& fem) // 初始化 va
 std::vector<ThermalDomainConfig> ThermalDomainManager::defaults(const FemSystem& fem, const std::string& model) // 用于给网格中的每个区域生成相同的默认模型配置 返回能被 assign 方法传入的 configs
 {
     std::vector<ThermalDomainConfig> configs; // 创建一个空列表，用于保存各区域的模型配置
-    for (int region : fem.mesh_data().region_attributes()) { configs.push_back({region, model, {}}); } // 取得网格中所有区域的属性编号 并逐个遍历 为每个区域创建一个 ThermalDomainConfig 并追加到列表中 这里只是安排配置还没生成具体模型 
+    for (int region : fem.mesh_data().region_attributes()) 
+    { 
+        configs.push_back({region, model, {}}); 
+    } // 取得网格中所有区域的属性编号 并逐个遍历 为每个区域创建一个 ThermalDomainConfig 并追加到列表中 这里只是安排配置还没生成具体模型 
     // 例如调用 defaults(fem, "fourier"); 得到 configs = {{3,  "fourier", {}},{17,  "fourier", {}}}
     return configs;
 }
 
-void ThermalDomainManager::assign(const std::vector<ThermalDomainConfig>& configs) // 根据配置列表 为每个区域创建具体模型 并保存到 models_ 中
+void ThermalDomainManager::assign(const std::vector<ThermalDomainConfig>& configs) // 根据配置列表{区域编号，每个区域的模型名，模型构造参数} 为每个区域创建具体模型 并保存到 models_ 中
 {
     for (const auto& config : configs) // 逐条遍历区域的配置
     {
@@ -24,7 +27,7 @@ void ThermalDomainManager::assign(const std::vector<ThermalDomainConfig>& config
     }
 }
 
-void ThermalDomainManager::update(const PropertiesFieldData& properties) // 重新计算各区域积分点上的系数，并判断它们是否发生变化，需要重新组装
+void ThermalDomainManager::update(const PropertiesFieldData& properties) // 更新各区域积分点上的系数 values_，并判断它们是否发生变化更新 dirty
 {
     for (auto& [region, assignment] : models_) // 遍历已配置模型的区域
     for (int element : fem_.mesh_data().region_elements(region)) // 遍历该区域中的单元
@@ -58,12 +61,12 @@ void ThermalDomainManager::mark_coupled(PropertiesSystem& properties, const std:
     }
 }
 
-bool ThermalDomainManager::required_no_change(int region) const // 判断: 指定区域的系数是否与最近一次组装时一致，因而可以复用已有矩阵或向量
+bool ThermalDomainManager::required_no_change(int region) const // 根据 dirty 判断指定区域的系数是否与最近一次组装时一致(dirty是否为False)，因而可以复用已有矩阵或向量
 { 
     return !models_.at(region).dirty; // .dirty 是需要重新组装的标记 !.dirty 即不需要重新组装
 }
 
-void ThermalDomainManager::assembled(int region) // 装配后将 region 处的 dirty 记为 false
+void ThermalDomainManager::assembled(int region) // 将 region 处的 dirty 记为 false
 { 
     models_.at(region).dirty = false; 
 }

@@ -18,7 +18,7 @@ ThermalBoundaryManager::ThermalBoundaryManager(const std::vector<ThermalBoundary
     }
 }
 
-void ThermalBoundaryManager::update(const PropertiesFieldData& properties) // 更新各边界模型的返回值，并分别标记矩阵项、右端项和指定温度是否需要更新
+void ThermalBoundaryManager::update(const PropertiesFieldData& properties) // 更新各边界模型的返回值 models_.assignment.values，并更新三个 dirty 分别标记矩阵项、右端项和指定温度是否需要更新
 {
     for (auto& [zone, assignment] : models_) // 遍历各个边界区域的编号与对应模型信息
     {
@@ -51,12 +51,12 @@ bool ThermalBoundaryManager::coupled(const PropertiesSystem& properties, const s
     return false;
 }
 
-bool ThermalBoundaryManager::required_no_change(int zone, BoundaryPart part) const // 判断指定边界分区的某一部分是否可以复用
+bool ThermalBoundaryManager::required_no_change(int zone, BoundaryPart part) const // 通过 dirty 判断指定边界分区的某一部分是否可以复用； part 必须是 Matrix, Load, Essential
 {
     return !models_.at(zone).dirty[static_cast<int>(part)]; // 找到编号为 zone 的边界模型记录 -> static_cast<int>(part) 将枚举 BoundaryPart 转为数组下标 -> 查看该部分是否发生变化
 }
 
-void ThermalBoundaryManager::assembled(int zone, BoundaryPart part) // 标记指定边界分区的指定部分已被组装更新
+void ThermalBoundaryManager::assembled(int zone, BoundaryPart part) // models_ 在 zone 的 assignment 的 part 的 dirty 记为 false
 {
     models_.at(zone).dirty[static_cast<int>(part)] = false;
 }

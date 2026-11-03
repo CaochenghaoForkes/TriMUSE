@@ -1,0 +1,8 @@
+建议先以热问题为主线，按一次求解的调用顺序看；核素模块结构相近，放在最后对照。
+1. 先看[热问题弱形式](/Users/caochenghao/课题内容/TriMUSE/cpp/physics/thermal/weak_form.md)，明确代码要组装的 \(M\)、\(K\)、\(F\) 和界面项各是什么。
+2. 看[ThermalProblem](/Users/caochenghao/课题内容/TriMUSE/cpp/physics/thermal/thermal_problem.cpp)：从构造函数开始，再看 solve() → iterate()。先抓住“初始化、更新属性、组装、求解、接受结果”这条主线，不必立刻钻进每个调用。
+3. 看[TrialField](/Users/caochenghao/课题内容/TriMUSE/cpp/physics/common/field/trial_field.cpp)和[初始温度](/Users/caochenghao/课题内容/TriMUSE/cpp/physics/thermal/initial/thermal_initial_condition.cpp)：弄清正式场与试探场，以及 load() 和 accept() 的数据方向。
+4. 看[ThermalAssembly](/Users/caochenghao/课题内容/TriMUSE/cpp/physics/thermal/thermal_assembly.cpp)：重点跟 update()、form_system()、recover()；第一次读时把各个 refresh_*() 当作“按需取得各部分矩阵或向量”即可。
+5. 再展开各贡献的来源：先看[域内模型管理器](/Users/caochenghao/课题内容/TriMUSE/cpp/physics/thermal/common/thermal_domain_manager.cpp)，然后看导热、热容、热源各一个具体模型；接着看[外边界管理器](/Users/caochenghao/课题内容/TriMUSE/cpp/physics/thermal/boundary/thermal_boundary_manager.cpp)及 Dirichlet、Neumann、Robin 模型。最后用[公共积分器](/Users/caochenghao/课题内容/TriMUSE/cpp/physics/common/assembly/scalar_integrator.cpp)理解局部贡献如何进入完整自由度矩阵。
+6. 单独看界面这条支线：[界面管理器](/Users/caochenghao/课题内容/TriMUSE/cpp/physics/thermal/interface/thermal_interface_manager.cpp)选择模型，[界面组装](/Users/caochenghao/课题内容/TriMUSE/cpp/physics/thermal/interface/thermal_interface_assembly.cpp)处理理想接触或热阻贡献，[DofConstraints](/Users/caochenghao/课题内容/TriMUSE/cpp/physics/common/constraint/dof_constraints.cpp)生成约束矩阵 \(P\)。这样就能把“合并自由度”和“增加传热矩阵”两种处理分开理解。
+7. 热问题看通后，再对照[RadioactivityProblem](/Users/caochenghao/课题内容/TriMUSE/cpp/physics/radioactivity/radioactivity_problem.cpp)和[RadioactivityAssembly](/Users/caochenghao/课题内容/TriMUSE/cpp/physics/radioactivity/radioactivity_assembly.cpp)，重点找与热问题共用的流程，以及扩散、衰变各自增加了什么。
