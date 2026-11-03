@@ -36,7 +36,7 @@ private:
 
     void iterate(double time_step, double theta); // // 准备旧时刻贡献，更新当前温度相关属性，形成方程并求解，直到 Picard 迭代收敛 处理 M\dot{T} + KT =F
 
-    void accept_temperature(); // // 收敛后的属性与最终温度同步; 上一时间步快照仍由外部调度统一提交
+    void accept_temperature(); // 收敛后的属性与最终温度同步; 上一时间步快照仍由外部调度统一提交
 
     TrialField trial_temperature_; // 试探场
 

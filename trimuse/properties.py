@@ -38,9 +38,9 @@ class PropertiesManager:
 
         self.properties_system.prepare_dependencies()
 
-    def update_external(self, time: float) -> None:
+    def update_external(self, time: float, time_step: float) -> None:
         """更新给定时刻的外部属性"""
-        self.properties_system.update_external(time)
+        self.properties_system.update_external(time, time_step)
 
     def update_derived(self) -> None:
         """根据已存储的依赖值更新派生属性"""

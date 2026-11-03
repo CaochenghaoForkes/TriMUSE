@@ -7,6 +7,7 @@
 #include "properties/derived/mass_transfer_coef/mass_transfer_coef_model_manager.hpp"
 #include "properties/derived/volumetric_power/volumetric_power_model_manager.hpp"
 #include "properties/derived/volumetric_nuclide_birth_rate/volumetric_nuclide_birth_rate_model_manager.hpp"
+#include "properties/derived/fast_neutron_fluence/fast_neutron_fluence_model_manager.hpp"
 
 namespace trimuse
 {
@@ -29,6 +30,7 @@ private:
     HeatTransferCoefModelManager heat_transfer_coef_model_manager_;
     MassTransferCoefModelManager mass_transfer_coef_model_manager_;
     VolumetricNuclideBirthRateModelManager volumetric_nuclide_birth_rate_model_manager_;
+    FastNeutronFluenceModelManager fast_neutron_fluence_model_manager_;
 
 };
 

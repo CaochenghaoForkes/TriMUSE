@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <string>
 #include <unordered_map>
 
@@ -17,6 +18,7 @@ struct PropertiesStatePoint
     double x = 0.0;
     double y = 0.0;
     double z = 0.0;
+    std::optional<StateValue> previous_value; // 本属性上一个已接受时刻的值，首次计算时为空
     std::unordered_map<std::string, StateValue> values; // 属性名或场名 -> 单时空点上的 <double/vector/2d_tensor/3d_tensor>
 
     double scalar(const std::string& name) const; // 先根据 name 找到对应的 variant 型的 StateValue 再从这个 variant 中期望取出其中存储的 double

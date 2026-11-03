@@ -60,7 +60,7 @@ class CouplingManager:
 
     def update_and_solve(self) -> None:
         """更新属性, 按步骤求解场, 然后接受当前时刻"""
-        self.properties_manager.update_external(self.time)
+        self.properties_manager.update_external(self.time, self.time_step)
         self.properties_manager.update_derived()
         self.properties_manager.update_material()
         for step in self.steps:

@@ -124,6 +124,7 @@ class InputCardsExamine:
         zone_names = InputCardsExamine.outer_boundary_names(geometry_mesh)
         power_regions = {region.name for property_config in properties.external_property if property_config.name == "external.power" for region in property_config.region}
         birth_rate = next((item for item in properties.external_property if item.name == "external.nuclide_birth_rate"), None)
+        fast_neutron_flux = next((item for item in properties.external_property if item.name == "external.fast_neutron_flux"), None)
         fraction_regions = {region.name for item in properties.external_property if item.name == "external.uranium_fraction" for region in item.region}
         for property_config in properties.external_property + properties.derived_property:
             configured_regions = {region.name for region in property_config.region}
@@ -145,6 +146,10 @@ class InputCardsExamine:
                 missing = uniform_regions - fraction_regions
                 if missing:
                     raise ValueError(f"体积核素产生率区域缺少 uranium_fraction: {', '.join(sorted(missing))}")
+            if (property_config.name == "derived.fast_neutron_fluence"
+                    and property_config.global_.model == "common.accumulate_from_fast_neutron_flux"
+                    and (fast_neutron_flux is None or fast_neutron_flux.global_ is None)):
+                raise ValueError("accumulate_from_fast_neutron_flux 缺少全局 fast_neutron_flux")
 
     @staticmethod
     def check_thermal_boundary_properties(properties: PropertiesCard, thermal: ThermalCard) -> None:

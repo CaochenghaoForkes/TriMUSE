@@ -16,6 +16,7 @@ void DerivedModelManager::register_models()
     heat_transfer_coef_model_manager_.register_models();
     mass_transfer_coef_model_manager_.register_models();
     volumetric_nuclide_birth_rate_model_manager_.register_models();
+    fast_neutron_fluence_model_manager_.register_models();
 }
 
 void DerivedModelManager::assign(const std::string& name, int attribute, const std::string& model_name, const ModelParameterMap& parameters)
@@ -40,6 +41,11 @@ void DerivedModelManager::assign(const std::string& name, int attribute, const s
         mass_transfer_coef_model_manager_.assign(attribute, model_name, parameters);
         return;
     }
+    if (name == "derived.fast_neutron_fluence")
+    {
+        fast_neutron_fluence_model_manager_.assign(model_name, parameters);
+        return;
+    }
     throw std::out_of_range("尚未支持的派生量: " + name);
 }
 
@@ -61,6 +67,10 @@ StateValue DerivedModelManager::evaluate(const std::string& name, const Properti
     {
         return mass_transfer_coef_model_manager_.evaluate(point);
     }
+    if (name == "derived.fast_neutron_fluence")
+    {
+        return fast_neutron_fluence_model_manager_.evaluate(point);
+    }
     throw std::out_of_range("尚未支持的派生量: " + name);
 }
 
@@ -81,6 +91,10 @@ const std::vector<std::string>& DerivedModelManager::required_states(const std::
     if (name == "derived.mass_transfer_coef")
     {
         return mass_transfer_coef_model_manager_.required_states(model_name);
+    }
+    if (name == "derived.fast_neutron_fluence")
+    {
+        return fast_neutron_fluence_model_manager_.required_states(model_name);
     }
     throw std::out_of_range("尚未支持的派生量: " + name);
 }

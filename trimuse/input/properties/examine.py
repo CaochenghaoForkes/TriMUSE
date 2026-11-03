@@ -20,6 +20,7 @@ class PropertiesCardExamine:
         "derived.mass_transfer_coef": COMMON_MODELS,
         "derived.volumetric_power": COMMON_MODELS | {"common.uniform_from_power"},
         "derived.volumetric_nuclide_birth_rate": COMMON_MODELS | {"common.uniform_from_birth_rate"},
+        "derived.fast_neutron_fluence": COMMON_MODELS | {"common.accumulate_from_fast_neutron_flux"},
     }
 
     RADIOACTIVITY_PROPERTIES = {
@@ -31,6 +32,7 @@ class PropertiesCardExamine:
         "external.nuclide_flux": ("external_property", "zone"),
         "derived.mass_transfer_coef": ("derived_property", "zone"),
         "derived.volumetric_nuclide_birth_rate": ("derived_property", "region"),
+        "derived.fast_neutron_fluence": ("derived_property", "global"),
     }
 
     @classmethod
@@ -114,6 +116,10 @@ class PropertiesCardExamine:
             if name == "derived.volumetric_nuclide_birth_rate" and config.model == "common.uniform_from_birth_rate":
                 if config.parameters:
                     raise ValueError(f"{item_location}: uniform_from_birth_rate 不需要模型参数")
+                continue
+            if name == "derived.fast_neutron_fluence" and config.model == "common.accumulate_from_fast_neutron_flux":
+                if config.parameters:
+                    raise ValueError(f"{item_location}: accumulate_from_fast_neutron_flux 不需要模型参数")
                 continue
             PropertiesCardExamine.check_time_model(config, item_location)
             values = [config.parameters["constant_value"]] if config.model == "common.constant" else config.parameters["values"]

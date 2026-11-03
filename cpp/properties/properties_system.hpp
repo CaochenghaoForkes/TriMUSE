@@ -29,9 +29,9 @@ public:
 
     void mark_coupled(const std::string& field_name, const std::vector<std::string>& property_names); // 把指定属性中依赖某个求解场的位置标记为“参与耦合更新”，并沿依赖关系向上游传递这个标记
 
-    void update_external(double time); // 更新当前时间，然后检查各个外部属性，只在“尚未计算”或“依赖发生变化”时重新计算它们
+    void update_external(double time, double time_step); // 更新当前时间，然后检查各个外部属性，只在“尚未计算”或“依赖发生变化”时重新计算它们
  
-    void update_derived(); // 检查各个派生属性，只在“尚未计算”或“依赖发生变化”时重新计算它们
+    void update_derived(); // 更新派生属性；累积模型使用上一个已接受值和 external.time_step
 
     void update_material(); // 检查各个不依赖场的材料属性，只在“尚未计算”或“依赖发生变化”时重新计算它们
 
@@ -80,11 +80,16 @@ private:
 
     void load_required_states(PropertiesStatePoint& point, const std::vector<std::string>& names, std::optional<std::size_t> point_index = std::nullopt) const; // 给 point 装配需要的属性
 
+    void load_model_states(PropertiesStatePoint& point, const PropertyInfo& property, int attribute, const std::vector<std::string>& required) const; // 加载当前依赖；若模型声明依赖自身，则改为加载已接受的旧值
+
+    void load_previous_value(PropertiesStatePoint& point, const PropertyInfo& property, int attribute, std::optional<std::size_t> point_index = std::nullopt) const; // 读取同一位置上一个已接受时刻的属性值
+
     bool required_states_changed(int attribute, const std::vector<std::string>& required_states) const; // 判断: 某个区域或边界分区所依赖的属性，相比之前保存的快照，是否发生变化
 
     std::vector<PropertyInfo> properties_ = {
         {"precomputed.region_volume", PropertyType::Precomputed, PropertyScope::Region},
         {"external.time", PropertyType::External, PropertyScope::Global},
+        {"external.time_step", PropertyType::External, PropertyScope::Global}, // s, 本次推进的时间增量
         {"external.environment_temperature", PropertyType::External, PropertyScope::Zone},
         {"external.environment_nuclide_concentration", PropertyType::External, PropertyScope::Zone}, // atom/m³
         {"external.surface_nuclide_concentration", PropertyType::External, PropertyScope::Zone}, // atom/m³, 指定表面浓度
@@ -100,6 +105,7 @@ private:
         {"derived.mass_transfer_coef", PropertyType::Derived, PropertyScope::Zone}, // m/s
         {"derived.volumetric_power", PropertyType::Derived, PropertyScope::IntegrationPoint},
         {"derived.volumetric_nuclide_birth_rate", PropertyType::Derived, PropertyScope::IntegrationPoint}, // atom/(m³·s)
+        {"derived.fast_neutron_fluence", PropertyType::Derived, PropertyScope::Global}, // 1/m², 累积快中子注量
         {"material.general.porosity", PropertyType::Material, PropertyScope::IntegrationPoint},
         {"material.general.mass_density", PropertyType::Material, PropertyScope::IntegrationPoint},
         {"material.thermal.conductivity", PropertyType::Material, PropertyScope::IntegrationPoint},

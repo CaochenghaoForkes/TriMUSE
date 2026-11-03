@@ -120,6 +120,19 @@
         </global>
         -->
     </external_property>
+    <derived_property name="fast_neutron_fluence">
+        <!-- 从零开始按时间步累加当前时刻的快中子通量，单位 1/m² -->
+        <global model="common.accumulate_from_fast_neutron_flux"/>
+        <!-- 也可用常数或时间表直接指定注量，替换上面的 global 节点。
+        <global model="common.constant">
+            <parameter name="constant_value" value="[float]" unit="[1]/[m]^2" si_unit="[1]/[m]^2"/>
+        </global>
+        <global model="common.time_series">
+            <parameter name="times" value="[float] [float]" unit="[s]" si_unit="[s]"/>
+            <parameter name="values" value="[float] [float]" unit="[1]/[m]^2" si_unit="[1]/[m]^2"/>
+        </global>
+        -->
+    </derived_property>
     <external_property name="nuclide_birth_rate">
         <global model="common.constant">
             <parameter name="constant_value" value="[float]" unit="[atom]/[s]" si_unit="[atom]/[s]"/>
