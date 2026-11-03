@@ -131,7 +131,7 @@ void ThermalProblem::iterate(double time_step, double theta) // 准备旧时刻�
         }
         mfem::SparseMatrix system;
         mfem::Vector load, reduced_solution;
-        assembly_.form_system(*matrix, rhs, system, load, reduced_solution); // 处理界面连续约束和 Dirichlet 条件，形成实际待求解系统
+        assembly_.form_system(*matrix, rhs, system, load, reduced_solution); // 收集一类条件，通过映射 P 整理成独立自由度下的一类条件，然后把完整自由度上的方程，通过 P^TAPu=P^Tb 约化成独立自由度系统，再对独立自由度系统上的 Dirichlet 条件执行消元
         solver_.solve_linear("temperature", system, load, reduced_solution, output_);
         assembly_.recover(reduced_solution); // 求出独立自由度温度，再通过 T=Pu 恢复到完整试探场
         const auto trial_values = trial_temperature_.values();

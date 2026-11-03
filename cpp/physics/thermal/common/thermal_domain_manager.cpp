@@ -40,7 +40,7 @@ void ThermalDomainManager::update(const PropertiesFieldData& properties) // 更�
     }
 }
 
-bool ThermalDomainManager::coupled(const PropertiesSystem& properties, const std::string& field) const // 判断: 当前管理器负责的模型中，是否有任何一个与指定求解场耦合
+bool ThermalDomainManager::coupled(const PropertiesSystem& properties, const std::string& field) const // 判断: 当前管理器负责的模型中，是否有任何一个模型的依赖属性与指定求解场耦合
 {
     for (const auto& [region, assignment] : models_) // 遍历各区域及其模型分配记录
     for (const auto& name : assignment.required) // 遍历该模型依赖的属性名称

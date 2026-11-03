@@ -23,7 +23,7 @@ public:
 
     mfem::Vector recover(const mfem::Vector& solution) const; // x完整 = P x独立，返回完整向量
 
-    void form_system(const mfem::SparseMatrix& matrix, const mfem::Vector& rhs, const std::map<int, double>& essential, mfem::SparseMatrix& system, mfem::Vector& load, mfem::Vector& solution) const; // essential 已使用独立自由度编号
+    void form_system(const mfem::SparseMatrix& matrix, const mfem::Vector& rhs, const std::map<int, double>& essential, mfem::SparseMatrix& system, mfem::Vector& load, mfem::Vector& solution) const; // 把完整自由度上的方程，转换成独立自由度系统，并施加 Dirichlet 场值约束 输入 Ax=b 输出 system(最终系统矩阵)、load(最终右端)、solution(独立自由度空间中的场值初始猜测); matrix 与 rhs: 已经组合好的完整矩阵与右端 
 
 private:
     int root(int dof); // 找到某个自由度所属分组的最终代表编号

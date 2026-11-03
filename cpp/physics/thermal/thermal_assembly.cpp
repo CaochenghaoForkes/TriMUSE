@@ -151,7 +151,7 @@ ThermalAssembly::State ThermalAssembly::update(const PropertiesFieldData& proper
     return state_; // 只共享不可变的组装结果, 后续更新替换指针, 不改写旧时刻的矩阵。
 }
 
-void ThermalAssembly::update_boundary(const PropertiesFieldData& properties) // 更新边界值: 单独提供此接口出要适用于三个场景 1.初始时刻(只需要施加初始时刻的表面温度，不需要执行时间推进、组装整套矩阵) 2.新时间步开始(如果 theta 法先用旧属性计算旧时刻贡献，边界管理器也会被更新成旧值 随后需要单独恢复新时刻的边界值，并先施加新表面温度) 3.显式格式theta=0(域内和自然边界贡献使用旧时刻数据，但指定温度仍施加新时刻的值 因此需要更新边界，却不需要组装新时刻的导热矩阵和热源向量)
+void ThermalAssembly::update_boundary(const PropertiesFieldData& properties) // 更新边界管理器的值: 单独提供此接口出要适用于三个场景 1.初始时刻(只需要施加初始时刻的表面温度，不需要执行时间推进、组装整套矩阵) 2.新时间步开始(如果 theta 法先用旧属性计算旧时刻贡献，边界管理器也会被更新成旧值 随后需要单独恢复新时刻的边界值，并先施加新表面温度) 3.显式格式theta=0(域内和自然边界贡献使用旧时刻数据，但指定温度仍施加新时刻的值 因此需要更新边界，却不需要组装新时刻的导热矩阵和热源向量)
 { 
     boundary_manager_.update(properties); 
 }
@@ -171,7 +171,8 @@ void ThermalAssembly::essential_values(std::map<int, double>& values) const // �
             int first, second;
             const int face = mesh.GetBdrElementFaceIndex(b); // 边界单元 b 对应的面编号
             mesh.GetFaceElements(face, &first, &second); // 这个面两侧的域单元编号
-            mfem::Array<int> dofs; trial_field_.face_dofs(mesh.GetAttribute(first), face, dofs); // 取得边界面上的完整自由度编号
+            mfem::Array<int> dofs; 
+            trial_field_.face_dofs(mesh.GetAttribute(first), face, dofs); // 取得边界面上的完整自由度编号
             for (int dof : dofs) // 遍历边界面的完整自由度编号，也就是 P 的行号
             for (int j = p.GetI()[dof]; j < p.GetI()[dof + 1]; ++j) // 遍历该行已存储条目的数组下标 j
             {
@@ -189,7 +190,7 @@ void ThermalAssembly::apply_initial_constraints() // 在正式求解前，让试
     auto reduced_temperature = constraints_.reduced_values(); // 将当前完整试探温度转换为独立自由度向量
     std::map<int, double> essential; 
     essential_values(essential); // 收集指定温度条件 独立自由度编号 -> 指定温度
-    for (const auto& [dof, value] : essential) 
+    for (const auto& [dof, value] : essential) // 把指定温度写入当前的独立自由度温度向量
     { 
         reduced_temperature[dof] = value;
     }
@@ -200,7 +201,7 @@ void ThermalAssembly::apply_initial_constraints() // 在正式求解前，让试
     }
 }
 
-void ThermalAssembly::form_system(const mfem::SparseMatrix& matrix, const mfem::Vector& rhs, mfem::SparseMatrix& system, mfem::Vector& load, mfem::Vector& reduced_temperature) const
+void ThermalAssembly::form_system(const mfem::SparseMatrix& matrix, const mfem::Vector& rhs, mfem::SparseMatrix& system, mfem::Vector& load, mfem::Vector& reduced_temperature) const // 收集一类条件，通过映射 P 整理成独立自由度下的一类条件，然后把完整自由度上的方程，通过 P^TAPu=P^Tb 约化成独立自由度系统，再对独立自由度系统上的 Dirichlet 条件执行消元
 {
     std::map<int, double> essential;
     essential_values(essential); // 收集指定温度条件：独立自由度编号 → 指定温度

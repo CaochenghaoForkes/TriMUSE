@@ -6,10 +6,13 @@
 namespace trimuse
 {
 
-DofConstraints::DofConstraints(FemSystem& fem, const TrialField& trial_field)
-    : trial_field_(trial_field) // 传入试探场；只管理其自由度连接关系，不执行物理积分
+DofConstraints::DofConstraints(FemSystem& fem, const TrialField& trial_field) // 传入试探场；只管理其自由度连接关系，不执行物理积分 如果是连续场直接结束构造 如果是分域场则初始化 representative_ 让完整自由度中每个自由度指向其自己的编号
+    : trial_field_(trial_field) 
 {
-    if (!trial_field.regional()) { return; } // 连续场已经共享界面自由度，不需要后面的辅助配对空间和分组数组，直接结束构造函数体
+    if (!trial_field.regional()) // 连续场已经共享界面自由度，不需要后面的辅助配对空间和分组数组，直接结束构造函数体
+    { 
+        return; 
+    } 
     const auto& space = trial_field.space(fem.mesh_data().region_attributes().front()); // 第一个区域编号 → 该区域的场空间
     const int order = space.GetMaxElementOrder(); // 最高单元插值阶次
     collection_ = std::make_unique<mfem::H1_FECollection>(order, fem.mesh_data().dimension()); // 建立同阶次、对应问题维数的 H1 有限元集合
@@ -18,7 +21,7 @@ DofConstraints::DofConstraints(FemSystem& fem, const TrialField& trial_field)
     std::iota(representative_.begin(), representative_.end(), 0); // 依次填入 {0, 1, 2, 3, ...}
 }
 
-int DofConstraints::root(int dof) // 找到某个自由度所属分组的最终代表编号
+int DofConstraints::root(int dof) // 找到完整自由度中某个自由度所属分组的最终代表编号
 {
     // 例如:
     // representative_[20] = 12;
@@ -61,16 +64,15 @@ void DofConstraints::connect(const MeshData::Interface& interface) // 找出理�
     }
 }
 
-void DofConstraints::finalize()
+void DofConstraints::finalize() // 取得映射 P x_full = P * x_independent 中的 P 保存为 prolongation_ 并释放构造它所需要的内存 
 {
-    prolongation_ = make_prolongation();
-    // 固定约束构建完毕，只需保留 P；辅助空间和分组数组不再参与求解。
+    prolongation_ = make_prolongation(); // 固定约束构建完毕，只需保留 P；辅助空间和分组数组不再参与求解
     parent_space_.reset();
     collection_.reset();
     representative_ = std::vector<int>{};
 }
 
-std::unique_ptr<mfem::SparseMatrix> DofConstraints::make_prolongation() // 根据已经建立的自由度分组 生成映射矩阵 P 使 x完整 = Px独立
+std::unique_ptr<mfem::SparseMatrix> DofConstraints::make_prolongation() // 根据已经建立的自由度分组 生成映射矩阵 P 使 x完整 = Px独立 返回 P
 {
     if (!trial_field_.regional()) // 先处理连续场
     {
