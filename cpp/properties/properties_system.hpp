@@ -114,6 +114,8 @@ private:
         {"material.general.mass_density", PropertyType::Material, PropertyScope::IntegrationPoint},
         {"material.thermal.conductivity", PropertyType::Material, PropertyScope::IntegrationPoint},
         {"material.thermal.specific_heat", PropertyType::Material, PropertyScope::IntegrationPoint},
+        {"material.mechanics.young_modulus", PropertyType::Material, PropertyScope::IntegrationPoint}, // Pa, 杨氏模量
+        {"material.mechanics.poisson_ratio", PropertyType::Material, PropertyScope::IntegrationPoint}, // 无量纲, 泊松比
         {"material.radioactivity.nuclide_diffusion_coef", PropertyType::Material, PropertyScope::IntegrationPoint} // m²/s
     };
 

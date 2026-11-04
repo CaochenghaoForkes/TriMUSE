@@ -55,6 +55,26 @@
             <specific_heat model="sic.bison_2021"/>
             -->
         </thermal>
+        <!-- 力学物性分类可选；不需要时可删除 mechanics 节点 -->
+        <mechanics>
+            <!-- 两项均支持 common.constant、common.time_series；杨氏模量为正，泊松比在 (-1,0.5) 内 -->
+            <young_modulus model="common.constant">
+                <parameter name="constant_value" value="[float]" unit="[Pa]" si_unit="[Pa]"/>
+            </young_modulus>
+            <poisson_ratio model="common.constant">
+                <parameter name="constant_value" value="[float]" unit="[1]" si_unit="[1]"/>
+            </poisson_ratio>
+            <!-- 如需随时间变化，用下方节点分别替换上面的同名节点；时间至少两项且严格递增，样本数量与时间一致。
+            <young_modulus model="common.time_series">
+                <parameter name="times" value="[float] [float]" unit="[s]" si_unit="[s]"/>
+                <parameter name="values" value="[float] [float]" unit="[Pa]" si_unit="[Pa]"/>
+            </young_modulus>
+            <poisson_ratio model="common.time_series">
+                <parameter name="times" value="[float] [float]" unit="[s]" si_unit="[s]"/>
+                <parameter name="values" value="[float] [float]" unit="[1]" si_unit="[1]"/>
+            </poisson_ratio>
+            -->
+        </mechanics>
         <!-- 不需要通用物性时可删除 general 节点 -->
         <general>
             <porosity model="common.constant">

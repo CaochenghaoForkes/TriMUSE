@@ -28,6 +28,8 @@ class MaterialCardExamine:
             "buffer.bison_2021", "buffer.uk_2004", "sic.miller", "sic.cea_2004",
         },
         "material.thermal.specific_heat": COMMON_MODELS | {"kernel.fink_2000_uo2", "sic.bison_2021"},
+        "material.mechanics.young_modulus": COMMON_MODELS,
+        "material.mechanics.poisson_ratio": COMMON_MODELS,
         "material.radioactivity.nuclide_diffusion_coef": COMMON_MODELS | {"common.arrhenius"} | set(TECDOC978_SYMBOLS),
     }
 
@@ -107,6 +109,22 @@ class MaterialCardExamine:
                 density = property_config.parameters.get("initial_mass_density")
                 if density is None or isinstance(density, list) or not 0 < density < 2250:
                     raise ValueError(f"{location}: initial_mass_density 必须在 (0,2250) kg/m³ 内")
+        elif property_config.property_name in ("material.mechanics.young_modulus", "material.mechanics.poisson_ratio"):
+            if property_config.model == "common.constant":
+                value = property_config.parameters.get("constant_value")
+                if not isinstance(value, float):
+                    raise ValueError(f"{location}: constant_value 必须为标量")
+                samples = [value]
+            else:
+                times = property_config.parameters.get("times")
+                samples = property_config.parameters.get("values")
+                if not isinstance(times, list) or not isinstance(samples, list) or len(times) < 2 or len(times) != len(samples) or any(right <= left for left, right in zip(times, times[1:])):
+                    raise ValueError(f"{location}: times 和 values 必须为等长列表, times 至少有两个严格递增的值")
+            if property_config.property_name == "material.mechanics.young_modulus":
+                if any(value <= 0 for value in samples):
+                    raise ValueError(f"{location}: 杨氏模量必须为正数")
+            elif any(not -1 < value < 0.5 for value in samples):
+                raise ValueError(f"{location}: 泊松比必须在 (-1,0.5) 内")
         elif property_config.property_name == "material.general.porosity":
             if property_config.model == "common.constant":
                 value = property_config.parameters.get("constant_value")

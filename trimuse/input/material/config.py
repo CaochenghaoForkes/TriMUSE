@@ -59,7 +59,7 @@ class MaterialCardLoader:
 
     @classmethod
     def read_mat(cls, element: ET.Element) -> MaterialCard.Mat:
-        """按物理分类读取物性, 包括 material.thermal.conductivity 和 material.thermal.specific_heat"""
+        """按 general、thermal、mechanics、radioactivity 等分类读取物性"""
         name = XmlUtils.read_attribute(element, "name", required=True)
         properties = []
         for physics_element in element:
