@@ -117,20 +117,19 @@ private:
         {"material.general.mass_density", PropertyType::Material, PropertyScope::IntegrationPoint},
         {"material.thermal.conductivity", PropertyType::Material, PropertyScope::IntegrationPoint},
         {"material.thermal.specific_heat", PropertyType::Material, PropertyScope::IntegrationPoint},
-        {"material.mechanics.young_modulus", PropertyType::Material, PropertyScope::IntegrationPoint}, // Pa, 杨氏模量
-        {"material.mechanics.poisson_ratio", PropertyType::Material, PropertyScope::IntegrationPoint}, // 无量纲, 泊松比
-        {"material.mechanics.lame_lambda", PropertyType::Material, PropertyScope::IntegrationPoint, "common.fixed_relation"}, // Pa, 第一拉梅常数, 依赖 E、nu
-        {"material.mechanics.shear_modulus", PropertyType::Material, PropertyScope::IntegrationPoint, "common.fixed_relation"}, // Pa, 第二拉梅常数 mu（剪切模量）, 依赖 E、nu
+        {"material.mechanics.young_modulus", PropertyType::Material, PropertyScope::IntegrationPoint}, // Pa, [Er, Et]，径向、切向杨氏模量
+        {"material.mechanics.poisson_ratio", PropertyType::Material, PropertyScope::IntegrationPoint}, // 无量纲, [nu_rt, nu_tt]，径向受力的切向泊松比、切向之间的泊松比
+        {"material.mechanics.shear_modulus", PropertyType::Material, PropertyScope::IntegrationPoint}, // Pa, 标量 Grt；由用户在材料卡中指定模型
         {"material.radioactivity.nuclide_diffusion_coef", PropertyType::Material, PropertyScope::IntegrationPoint} // m²/s
     };
 
     inline static const std::unordered_set<std::string> solution_field_states = {"temperature", "concentration", "displacement", "stress", "strain"}; // 求解场的状态名集合 inline: 静态成员变量直接在类定义中初始化，放在头文件里被多个 .cpp 包含，也不会产生重复定义错误；整个程序共享同一个实体
 
-    // 场名 -> 程序内置的固定关系属性；温度和浓度场当前没有这类属性。
+    // 场名 -> 程序内置且无需用户选择模型的固定关系属性；当前各场均为空。
     inline static const std::unordered_map<std::string, std::vector<std::string>> field_required_properties_ = {
         {"temperature", {}},
         {"concentration", {}},
-        {"displacement", {"material.mechanics.lame_lambda", "material.mechanics.shear_modulus"}}
+        {"displacement", {}}
     };
 
     const FemSystem& fem_system_;

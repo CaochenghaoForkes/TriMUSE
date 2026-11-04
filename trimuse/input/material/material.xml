@@ -57,22 +57,58 @@
         </thermal>
         <!-- 力学物性分类可选；不需要时可删除 mechanics 节点 -->
         <mechanics>
-            <!-- 两项均支持 common.constant、common.time_series；杨氏模量为正，泊松比在 (-1,0.5) 内 -->
-            <young_modulus model="common.constant">
-                <parameter name="constant_value" value="[float]" unit="[Pa]" si_unit="[Pa]"/>
+            <!-- E 始终返回 [Er,Et]，nu 始终返回 [nu_rt,nu_tt]；各向同性时两个分量相同。 -->
+            <!-- E、nu 可选 common.isotropy_constant、common.anisotropy_constant、common.isotropy_time_series、common.anisotropy_time_series。 -->
+            <young_modulus model="common.isotropy_constant">
+                <parameter name="isotropy_constant_value" value="[float]" unit="[Pa]" si_unit="[Pa]"/>
             </young_modulus>
-            <poisson_ratio model="common.constant">
-                <parameter name="constant_value" value="[float]" unit="[1]" si_unit="[1]"/>
+            <poisson_ratio model="common.isotropy_constant">
+                <parameter name="isotropy_constant_value" value="[float]" unit="[1]" si_unit="[1]"/>
             </poisson_ratio>
-            <!-- 如需随时间变化，用下方节点分别替换上面的同名节点；时间至少两项且严格递增，样本数量与时间一致。
-            <young_modulus model="common.time_series">
+            <!-- Grt 返回标量；各向同性时由 E/(2*(1+nu)) 计算，无需参数。 -->
+            <!-- 剪切模量可选 common.isotropy、common.constant、common.time_series。 -->
+            <shear_modulus model="common.isotropy"/>
+            <!-- 横观各向同性时，用下方三个节点替换上面的同名节点，必须独立指定 Grt。
+            <young_modulus model="common.anisotropy_constant">
+                <parameter name="r_constant_value" value="[float]" unit="[Pa]" si_unit="[Pa]"/>
+                <parameter name="t_constant_value" value="[float]" unit="[Pa]" si_unit="[Pa]"/>
+            </young_modulus>
+            <poisson_ratio model="common.anisotropy_constant">
+                <parameter name="rt_constant_value" value="[float]" unit="[1]" si_unit="[1]"/>
+                <parameter name="tt_constant_value" value="[float]" unit="[1]" si_unit="[1]"/>
+            </poisson_ratio>
+            <shear_modulus model="common.constant">
+                <parameter name="constant_value" value="[float]" unit="[Pa]" si_unit="[Pa]"/>
+            </shear_modulus>
+            -->
+            <!-- 各向同性时间序列：替换对应节点，每个时刻的 values 返回为两个相同分量。
+                 times 至少两项且严格递增；所有样本列表与 times 等长；区间外保持端点值。
+            <young_modulus model="common.isotropy_time_series">
                 <parameter name="times" value="[float] [float]" unit="[s]" si_unit="[s]"/>
                 <parameter name="values" value="[float] [float]" unit="[Pa]" si_unit="[Pa]"/>
             </young_modulus>
-            <poisson_ratio model="common.time_series">
+            <poisson_ratio model="common.isotropy_time_series">
                 <parameter name="times" value="[float] [float]" unit="[s]" si_unit="[s]"/>
                 <parameter name="values" value="[float] [float]" unit="[1]" si_unit="[1]"/>
             </poisson_ratio>
+            -->
+            <!-- 横观各向同性时间序列：两个分量共用 times，分别插值；Grt 必须独立指定。
+            <young_modulus model="common.anisotropy_time_series">
+                <parameter name="times" value="[float] [float]" unit="[s]" si_unit="[s]"/>
+                <parameter name="r_values" value="[float] [float]" unit="[Pa]" si_unit="[Pa]"/>
+                <parameter name="t_values" value="[float] [float]" unit="[Pa]" si_unit="[Pa]"/>
+            </young_modulus>
+            <poisson_ratio model="common.anisotropy_time_series">
+                <parameter name="times" value="[float] [float]" unit="[s]" si_unit="[s]"/>
+                <parameter name="rt_values" value="[float] [float]" unit="[1]" si_unit="[1]"/>
+                <parameter name="tt_values" value="[float] [float]" unit="[1]" si_unit="[1]"/>
+            </poisson_ratio>
+            -->
+            <!-- Grt 的时间序列写法保持不变。
+            <shear_modulus model="common.time_series">
+                <parameter name="times" value="[float] [float]" unit="[s]" si_unit="[s]"/>
+                <parameter name="values" value="[float] [float]" unit="[Pa]" si_unit="[Pa]"/>
+            </shear_modulus>
             -->
         </mechanics>
         <!-- 不需要通用物性时可删除 general 节点 -->

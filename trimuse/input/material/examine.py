@@ -6,6 +6,10 @@ class MaterialCardExamine:
     """检查材料卡自身, 几何区域是否存在由卡间检查负责"""
 
     COMMON_MODELS = {"common.constant", "common.time_series"}
+    DIRECTIONAL_MODELS = {
+        "common.isotropy_constant", "common.anisotropy_constant",
+        "common.isotropy_time_series", "common.anisotropy_time_series",
+    }
     TECDOC978_SYMBOLS = {
         "kernel.tecdoc978_frg": {"Cs", "Sr", "Ag", "I", "Kr", "Xe"},
         "kernel.tecdoc978_japan": {"Cs"},
@@ -28,8 +32,9 @@ class MaterialCardExamine:
             "buffer.bison_2021", "buffer.uk_2004", "sic.miller", "sic.cea_2004",
         },
         "material.thermal.specific_heat": COMMON_MODELS | {"kernel.fink_2000_uo2", "sic.bison_2021"},
-        "material.mechanics.young_modulus": COMMON_MODELS,
-        "material.mechanics.poisson_ratio": COMMON_MODELS,
+        "material.mechanics.young_modulus": DIRECTIONAL_MODELS,
+        "material.mechanics.poisson_ratio": DIRECTIONAL_MODELS,
+        "material.mechanics.shear_modulus": COMMON_MODELS | {"common.isotropy"},
         "material.radioactivity.nuclide_diffusion_coef": COMMON_MODELS | {"common.arrhenius"} | set(TECDOC978_SYMBOLS),
     }
 
@@ -58,6 +63,12 @@ class MaterialCardExamine:
             raise ValueError(f"材料 {mat.name} 重复配置物性")
         for property_config in mat.properties:
             cls.check_property(property_config, mat.name)
+        mechanics = {item.property_name.rsplit(".", 1)[-1]: item for item in mat.properties
+                     if item.property_name.startswith("material.mechanics.")}
+        directional = any(item.model.startswith("common.anisotropy_") for item in mechanics.values())
+        shear = mechanics.get("shear_modulus")
+        if directional and (shear is None or shear.model == "common.isotropy"):
+            raise ValueError(f"{mat.name}: 横观各向同性材料必须显式指定 Grt，不能使用 common.isotropy")
 
     @staticmethod
     def check_property(property_config: MaterialCard.Property, material_name: str) -> None:
@@ -109,22 +120,8 @@ class MaterialCardExamine:
                 density = property_config.parameters.get("initial_mass_density")
                 if density is None or isinstance(density, list) or not 0 < density < 2250:
                     raise ValueError(f"{location}: initial_mass_density 必须在 (0,2250) kg/m³ 内")
-        elif property_config.property_name in ("material.mechanics.young_modulus", "material.mechanics.poisson_ratio"):
-            if property_config.model == "common.constant":
-                value = property_config.parameters.get("constant_value")
-                if not isinstance(value, float):
-                    raise ValueError(f"{location}: constant_value 必须为标量")
-                samples = [value]
-            else:
-                times = property_config.parameters.get("times")
-                samples = property_config.parameters.get("values")
-                if not isinstance(times, list) or not isinstance(samples, list) or len(times) < 2 or len(times) != len(samples) or any(right <= left for left, right in zip(times, times[1:])):
-                    raise ValueError(f"{location}: times 和 values 必须为等长列表, times 至少有两个严格递增的值")
-            if property_config.property_name == "material.mechanics.young_modulus":
-                if any(value <= 0 for value in samples):
-                    raise ValueError(f"{location}: 杨氏模量必须为正数")
-            elif any(not -1 < value < 0.5 for value in samples):
-                raise ValueError(f"{location}: 泊松比必须在 (-1,0.5) 内")
+        elif property_config.property_name.startswith("material.mechanics."):
+            MaterialCardExamine.check_mechanics_property(property_config, location)
         elif property_config.property_name == "material.general.porosity":
             if property_config.model == "common.constant":
                 value = property_config.parameters.get("constant_value")
@@ -160,3 +157,40 @@ class MaterialCardExamine:
                     raise ValueError(f"{location}: sic.bison_2021 不需要构造参数")
             else:
                 raise ValueError(f"{location}: 不支持的物性模型 {property_config.model}")
+
+    @staticmethod
+    def check_mechanics_property(property_config: MaterialCard.Property, location: str) -> None:
+        """E 返回 [Er,Et]，nu 返回 [nu_rt,nu_tt]，G 返回标量 Grt。"""
+        name = property_config.property_name.rsplit(".", 1)[-1]
+        model, parameters = property_config.model, property_config.parameters
+        if model == "common.isotropy":
+            if parameters:
+                raise ValueError(f"{location}: common.isotropy 不需要构造参数")
+            return
+        anisotropic = model.startswith("common.anisotropy_")
+        components = ("r", "t") if name == "young_modulus" else ("rt", "tt")
+        if model.endswith("time_series"):
+            times = parameters.get("times")
+            keys = tuple(f"{component}_values" for component in components) if anisotropic else ("values",)
+            series = [parameters.get(key) for key in keys]
+            if not isinstance(times, list) or len(times) < 2 or any(right <= left for left, right in zip(times, times[1:])):
+                raise ValueError(f"{location}: times 必须为至少两个严格递增的时间值")
+            if any(not isinstance(samples, list) or len(samples) != len(times) for samples in series):
+                raise ValueError(f"{location}: {', '.join(keys)} 必须为与 times 等长的列表")
+        else:
+            keys = tuple(f"{component}_constant_value" for component in components) if anisotropic else (
+                "isotropy_constant_value" if model == "common.isotropy_constant" else "constant_value",
+            )
+            samples = [parameters.get(key) for key in keys]
+            if not all(isinstance(value, float) for value in samples):
+                raise ValueError(f"{location}: {', '.join(keys)} 必须为标量")
+            series = [[value] for value in samples]
+        if name in ("young_modulus", "shear_modulus"):
+            if any(value <= 0 for samples in series for value in samples):
+                raise ValueError(f"{location}: 模量必须为正数")
+        elif anisotropic:
+            # nu_rt 的范围还取决于 Er/Et，不能套用各向同性的 (-1,0.5)。
+            if any(not -1 < value < 1 for value in series[1]):
+                raise ValueError(f"{location}: nu_tt 必须在 (-1,1) 内")
+        elif any(not -1 < value < 0.5 for value in series[0]):
+            raise ValueError(f"{location}: 各向同性泊松比必须在 (-1,0.5) 内")

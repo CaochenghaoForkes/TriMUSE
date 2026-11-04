@@ -11,12 +11,13 @@
 namespace trimuse
 {
 
+// 所有模型统一返回 [nu_rt, nu_tt]，径向受力的切向泊松比、切向之间的泊松比。
 class PoissonRatioModel
 {
 public:
     virtual ~PoissonRatioModel() = default;
 
-    virtual double evaluate(const PropertiesStatePoint& state_point) const = 0;
+    virtual VectorValue evaluate(const PropertiesStatePoint& state_point) const = 0;
 };
 
 class PoissonRatioModelManager
@@ -26,7 +27,7 @@ public:
 
     void assign(int region_attribute, const std::string& model_name, const ModelParameterMap& parameters);
 
-    double evaluate(const PropertiesStatePoint& state_point) const;
+    VectorValue evaluate(const PropertiesStatePoint& state_point) const;
 
     const std::vector<std::string>& required_states(const std::string& model_name) const;
 

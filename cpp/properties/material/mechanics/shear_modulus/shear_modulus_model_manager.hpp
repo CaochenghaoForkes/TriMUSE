@@ -11,6 +11,7 @@
 namespace trimuse
 {
 
+// 所有模型统一返回标量 Grt，径向—切向剪切模量，单位 Pa。
 class ShearModulusModel
 {
 public:
