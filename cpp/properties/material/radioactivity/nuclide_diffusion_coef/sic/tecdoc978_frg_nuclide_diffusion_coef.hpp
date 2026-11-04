@@ -14,6 +14,7 @@ public:
     double evaluate(const PropertiesStatePoint& state_point) const override;
 
 private:
+    bool cesium_;
     ArrheniusTerms terms_;
 };
 

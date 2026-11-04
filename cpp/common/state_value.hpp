@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include <variant>
 #include <vector>
 
@@ -61,6 +62,6 @@ struct Tensor3DValue
 };
 
 // variant: 一个有明确候选清单、并记得当前内容类型的容器
-using StateValue = std::variant<double, VectorValue, Tensor2DValue, Tensor3DValue>; // 单个时空点的值: 标量、向量、二维二阶张量或三维二阶张量
+using StateValue = std::variant<double, VectorValue, Tensor2DValue, Tensor3DValue, std::string>; // 单个时空点的值: 数值或预计算的文本信息
 
 }

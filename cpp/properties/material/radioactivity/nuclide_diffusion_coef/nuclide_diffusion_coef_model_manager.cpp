@@ -27,7 +27,7 @@ void NuclideDiffusionCoefModelManager::register_models()
     registry_.register_model<TecDoc978USAPyCNuclideDiffusionCoef>("pyc.tecdoc978_usa", {"temperature"});
     registry_.register_model<TecDoc978JapanPyCNuclideDiffusionCoef>("pyc.tecdoc978_japan", {"temperature"});
     registry_.register_model<TecDoc978RussianPyCNuclideDiffusionCoef>("pyc.tecdoc978_russian", {"temperature"});
-    registry_.register_model<TecDoc978FRGSiCNuclideDiffusionCoef>("sic.tecdoc978_frg", {"temperature"});
+    registry_.register_model<TecDoc978FRGSiCNuclideDiffusionCoef>("sic.tecdoc978_frg", {"temperature", "derived.fast_neutron_fluence"});
     registry_.register_model<TecDoc978USASiCNuclideDiffusionCoef>("sic.tecdoc978_usa", {"temperature"});
     registry_.register_model<TecDoc978USALowerSiCNuclideDiffusionCoef>("sic.tecdoc978_usa_lower", {"temperature"});
     registry_.register_model<TecDoc978USAUpperSiCNuclideDiffusionCoef>("sic.tecdoc978_usa_upper", {"temperature"});

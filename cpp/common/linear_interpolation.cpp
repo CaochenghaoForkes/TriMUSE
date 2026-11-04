@@ -1,6 +1,7 @@
 #include "common/linear_interpolation.hpp"
 
 #include <algorithm>
+#include <stdexcept>
 #include <type_traits>
 
 namespace trimuse
@@ -62,6 +63,10 @@ StateValue LinearInterpolator::interpolate(const StateValue& left, const StateVa
                 result[index] = left_value[index] + fraction * (right_value[index] - left_value[index]);
             }
             return result;
+        }
+        else if constexpr (std::is_same_v<ValueType, std::string>)
+        {
+            throw std::invalid_argument("文本属性不能线性插值");
         }
         else
         {

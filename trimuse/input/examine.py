@@ -64,6 +64,11 @@ class InputCardsExamine:
                 raise ValueError(f"区域 {assignment.name} 的材料缺少核素扩散系数")
             if thermal is None and (diffusion.model == "common.arrhenius" or diffusion.model in MaterialCardExamine.TECDOC978_SYMBOLS):
                 raise ValueError(f"区域 {assignment.name}: {diffusion.model} 依赖温度场, 必须提供 thermal 输入卡")
+            if diffusion.model == "sic.tecdoc978_frg" and not any(
+                item.name == "derived.fast_neutron_fluence" and item.global_ is not None
+                for item in properties.derived_property
+            ):
+                raise ValueError(f"区域 {assignment.name}: sic.tecdoc978_frg 缺少全局 fast_neutron_fluence")
             supported = MaterialCardExamine.TECDOC978_SYMBOLS.get(diffusion.model)
             if supported is not None and radioactivity.nuclide.element_symbol not in supported:
                 raise ValueError(f"{diffusion.model} 不支持核素 {radioactivity.nuclide.name}")

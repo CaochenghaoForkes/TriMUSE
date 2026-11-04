@@ -23,6 +23,8 @@ public:
 
     explicit PropertiesSystem(const FemSystem& fem_system); // Global、Region、Zone 初始化为 std::nullopt IntegrationPoint 创建空数组 并预存储各个区域的体积
 
+    void set_precomputed(const std::string& name, const ModelParameterValue& value); // assign 前填写已声明的全局预计算属性 precomputed.name, 并以 name 作为公共构造参数键
+
     void assign(int attribute, const std::string& model_name, const ModelParameterMap& parameters); // 为某个属性在指定 体积域/边界域 上配置一个计算模型 并把该位置已有的“计算完成”标记清掉
 
     void prepare_dependencies(); // 标记各个属性在各个区域依赖的场有哪些
@@ -88,6 +90,8 @@ private:
 
     std::vector<PropertyInfo> properties_ = {
         {"precomputed.region_volume", PropertyType::Precomputed, PropertyScope::Region},
+        {"precomputed.nuclide_name", PropertyType::Precomputed, PropertyScope::Global}, // 核素名称, 如 Cs137
+        {"precomputed.nuclide_symbol", PropertyType::Precomputed, PropertyScope::Global}, // 元素符号, 如 Cs
         {"external.time", PropertyType::External, PropertyScope::Global},
         {"external.time_step", PropertyType::External, PropertyScope::Global}, // s, 本次推进的时间增量
         {"external.environment_temperature", PropertyType::External, PropertyScope::Zone},
@@ -117,6 +121,7 @@ private:
 
     const FemSystem& fem_system_;
 
+    ModelParameterMap build_parameters_; // 初始化阶段设置的公共构造参数, 在最上层 assign 中合并给所有模型
     MaterialModelManager material_model_manager_; // 材料属性模型管理器
     ExternalModelManager external_model_manager_; // 外部强制属性模型管理器
     DerivedModelManager derived_model_manager_; // 外部强制属性的派生属性模型管理器

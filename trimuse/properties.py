@@ -2,12 +2,14 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from _core import PropertiesSystem # type: ignore
-from .input.material.examine import MaterialCardExamine
 
 if TYPE_CHECKING:
     from _core import FemSystem # pyright: ignore[reportMissingImports]
     from .geometry.topology import MeshInfo
     from .input.xml_loader import InputCards
+    from .input.material.config import MaterialCard
+    from .input.properties.config import PropertiesCard
+    from .input.radioactivity.config import RadioactivityCard
 
 class PropertiesManager:
     """管理 C++ 属性系统的模型配置与更新"""
@@ -15,10 +17,16 @@ class PropertiesManager:
     def __init__(self, input_cards: InputCards, mesh_info: MeshInfo, fem: FemSystem) -> None:
         """创建属性系统, 按材料区域或边界分区编号安排模型"""
         self.properties_system = PropertiesSystem(fem)
+        self.assign_radioactivity_card(input_cards.radioactivity)
+        self.assign_properties_card(input_cards.properties, mesh_info)
+        self.assign_material_card(input_cards.material, mesh_info)
+        self.properties_system.prepare_dependencies()
+
+    def assign_properties_card(self, properties: PropertiesCard, mesh_info: MeshInfo) -> None:
+        """分配属性卡中的外部量和派生量"""
         region_attributes = mesh_info.region_attributes
         zone_attributes = mesh_info.boundary_attributes
-
-        for configs in (input_cards.properties.external_property, input_cards.properties.derived_property):
+        for configs in (properties.external_property, properties.derived_property):
             for property_config in configs:
                 for region in property_config.region:
                     self.properties_system.assign(region_attributes[region.name], f"{property_config.name}.{region.model}", region.parameters)
@@ -28,15 +36,18 @@ class PropertiesManager:
                     global_config = property_config.global_
                     self.properties_system.assign(0, f"{property_config.name}.{global_config.model}", global_config.parameters)
 
-        materials = {material.name: material for material in input_cards.material.mat}
-        for assignment in input_cards.material.assign.region:
+    def assign_material_card(self, material: MaterialCard, mesh_info: MeshInfo) -> None:
+        """按区域分配材料卡中的全部物性"""
+        materials = {item.name: item for item in material.mat}
+        for assignment in material.assign.region:
             for property_config in materials[assignment.mat].properties:
-                parameters = property_config.parameters
-                if property_config.model in MaterialCardExamine.TECDOC978_SYMBOLS and property_config.property_name == "material.radioactivity.nuclide_diffusion_coef":
-                    parameters = {**parameters, "nuclide_symbol": input_cards.radioactivity.nuclide.element_symbol}
-                self.properties_system.assign(region_attributes[assignment.name], f"{property_config.property_name}.{property_config.model}", parameters)
+                self.properties_system.assign(mesh_info.region_attributes[assignment.name], f"{property_config.property_name}.{property_config.model}", property_config.parameters)
 
-        self.properties_system.prepare_dependencies()
+    def assign_radioactivity_card(self, radioactivity: RadioactivityCard | None) -> None:
+        """在分配模型前，把核素信息存为全局预计算属性和公共构造参数"""
+        if radioactivity is not None:
+            self.properties_system.set_precomputed("nuclide_name", radioactivity.nuclide.name)
+            self.properties_system.set_precomputed("nuclide_symbol", radioactivity.nuclide.element_symbol)
 
     def update_external(self, time: float, time_step: float) -> None:
         """更新给定时刻的外部属性"""

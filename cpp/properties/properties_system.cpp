@@ -37,6 +37,18 @@ PropertiesSystem::PropertiesSystem(const FemSystem& fem_system) // Global、Regi
     }
 }
 
+void PropertiesSystem::set_precomputed(const std::string& name, const ModelParameterValue& value) // 为已声明的全局预计算属性填写值，并把它保存为所有模型共用的构造参数
+{
+    const std::string property_name = "precomputed." + name;
+    const PropertyInfo& property = property_info(property_name);
+    if (property.type != PropertyType::Precomputed || property.scope != PropertyScope::Global)
+    {
+        throw std::invalid_argument("set_precomputed 仅接受全局预计算属性: " + property_name);
+    }
+    build_parameters_[name] = value;
+    properties_field_data_.global_values.at(property_name) = std::visit([](const auto& item) -> StateValue { return item; }, value); // properties_field_data_.global_values.at(property_name) 取得该 Global Precomputed 对应的 std::optional<StateValue> std::visit(函数体, value) 把上面的 value 交给函数体 [](const auto& item) -> StateValue { return item; } 一个匿名函数负责把 value 的类型转化为 StateValue
+}
+
 PropertiesSystem::PropertyInfo& PropertiesSystem::property_info(const std::string& name) // 返回该 name 对应属性的 PropertyInfo
 {
     return properties_[property_index(name)];
@@ -88,17 +100,22 @@ void PropertiesSystem::assign(int attribute, const std::string& model_name, cons
     const std::string property_name = model_name.substr(0, property_end); // 截取倒数第二个点之前的内容 如 material.thermal.conductivity
     const std::string specific_model_name = model_name.substr(property_end + 1); // 截取倒数第二个点之后点全部内容 如 common.time_series
     const PropertyInfo& property = property_info(property_name); // 查询该属性的分类信息
+    ModelParameterMap model_parameters = parameters;
+    for (const auto& [name, value] : build_parameters_) // 公共构造参数统一传给各类模型; 同名时以预计算值为准
+    {
+        model_parameters[name] = value;
+    }
     if (property.type == PropertyType::External)
     {
-        external_model_manager_.assign(property_name, attribute, specific_model_name, parameters);
+        external_model_manager_.assign(property_name, attribute, specific_model_name, model_parameters);
     }
     else if (property.type == PropertyType::Derived)
     {
-        derived_model_manager_.assign(property_name, attribute, specific_model_name, parameters);
+        derived_model_manager_.assign(property_name, attribute, specific_model_name, model_parameters);
     }
     else if (property.type == PropertyType::Material)
     {
-        material_model_manager_.assign(attribute, property_name, specific_model_name, parameters);
+        material_model_manager_.assign(attribute, property_name, specific_model_name, model_parameters);
     }
     else
     {

@@ -67,6 +67,7 @@ PYBIND11_MODULE(_core, module)
 
     py::class_<trimuse::PropertiesSystem>(module, "PropertiesSystem")
         .def(py::init<const trimuse::FemSystem&>(), py::arg("fem_system"), py::keep_alive<1, 2>())
+        .def("set_precomputed", &trimuse::PropertiesSystem::set_precomputed, py::arg("name"), py::arg("value"))
         .def(
             "assign",
             &trimuse::PropertiesSystem::assign,
