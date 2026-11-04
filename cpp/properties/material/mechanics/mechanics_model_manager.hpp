@@ -5,6 +5,8 @@
 
 #include "properties/material/mechanics/young_modulus/young_modulus_model_manager.hpp"
 #include "properties/material/mechanics/poisson_ratio/poisson_ratio_model_manager.hpp"
+#include "properties/material/mechanics/lame_lambda/lame_lambda_model_manager.hpp"
+#include "properties/material/mechanics/shear_modulus/shear_modulus_model_manager.hpp"
 
 namespace trimuse
 {
@@ -23,6 +25,8 @@ public:
 private:
     YoungModulusModelManager young_modulus_model_manager_;
     PoissonRatioModelManager poisson_ratio_model_manager_;
+    LameLambdaModelManager lame_lambda_model_manager_;
+    ShearModulusModelManager shear_modulus_model_manager_;
 };
 
 }

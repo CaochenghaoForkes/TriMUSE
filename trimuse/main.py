@@ -38,11 +38,14 @@ def main(chief_path: str | Path) -> None:
     from trimuse.problem import Thermal, Radioactivity
     from trimuse.coupling import CouplingManager
 
+    # 收集场名
+    field_names = {field.name for field in input_cards.simulation.problem.field}
+
     # 创建公共有限元对象
     fem_manager = FemManager(mesh_info, input_cards.simulation.solver)
 
     # 创建配置属性对象
-    properties_manager = PropertiesManager(input_cards, mesh_info, fem_manager.fem_system)
+    properties_manager = PropertiesManager(input_cards, mesh_info, fem_manager.fem_system, field_names)
 
     # 求解器对象
     solver_manager = SolverManager(input_cards.simulation.solver)

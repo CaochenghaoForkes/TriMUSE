@@ -14,13 +14,13 @@ if TYPE_CHECKING:
 class PropertiesManager:
     """管理 C++ 属性系统的模型配置与更新"""
 
-    def __init__(self, input_cards: InputCards, mesh_info: MeshInfo, fem: FemSystem) -> None:
+    def __init__(self, input_cards: InputCards, mesh_info: MeshInfo, fem: FemSystem, field_names: set[str]) -> None:
         """创建属性系统, 按材料区域或边界分区编号安排模型"""
-        self.properties_system = PropertiesSystem(fem)
+        self.properties_system = PropertiesSystem(fem, sorted(field_names))
         self.assign_radioactivity_card(input_cards.radioactivity)
         self.assign_properties_card(input_cards.properties, mesh_info)
         self.assign_material_card(input_cards.material, mesh_info)
-        self.properties_system.prepare_dependencies()
+        self.properties_system.prepare_dependencies() # 补齐启用场所需的固定关系属性，并准备依赖
 
     def assign_properties_card(self, properties: PropertiesCard, mesh_info: MeshInfo) -> None:
         """分配属性卡中的外部量和派生量"""

@@ -21,13 +21,13 @@ class PropertiesSystem
 public:
     using FieldMap = std::unordered_map<std::string, FieldView>; // 场名 -> 连续场或分域场的只读视图, 用于传入试探场
 
-    explicit PropertiesSystem(const FemSystem& fem_system); // Global、Region、Zone 初始化为 std::nullopt IntegrationPoint 创建空数组 并预存储各个区域的体积
+    explicit PropertiesSystem(const FemSystem& fem_system, const std::vector<std::string>& field_names = {}); // Global、Region、Zone 初始化为 std::nullopt IntegrationPoint 创建空数组 并预存储各个区域的体积
 
     void set_precomputed(const std::string& name, const ModelParameterValue& value); // assign 前填写已声明的全局预计算属性 precomputed.name, 并以 name 作为公共构造参数键
 
     void assign(int attribute, const std::string& model_name, const ModelParameterMap& parameters); // 为某个属性在指定 体积域/边界域 上配置一个计算模型 并把该位置已有的“计算完成”标记清掉
 
-    void prepare_dependencies(); // 标记各个属性在各个区域依赖的场有哪些
+    void prepare_dependencies(); // 按启用场补齐固定关系属性，再标记各个属性在各个区域依赖的场有哪些
 
     void mark_coupled(const std::string& field_name, const std::vector<std::string>& property_names); // 把指定属性中依赖某个求解场的位置标记为“参与耦合更新”，并沿依赖关系向上游传递这个标记
 
@@ -58,9 +58,12 @@ private:
         std::string name; // 属性名
         PropertyType type; 
         PropertyScope scope; 
+        std::string fixed_model; // 非空时可由程序自动配置；为空时使用用户配置或程序预置值
         std::unordered_map<std::string, std::unordered_set<int>> field_regions; // 哪些区域的属性依赖某个场(简洁依赖也算依赖) 求解场名称 -> 一组区域编号
         std::unordered_map<std::string, std::unordered_set<int>> coupled_regions; // 哪些区域的属性参与某个场的耦合更新 求解场名称 -> 一组区域编号
     };
+
+    void assign_field_properties(); // 按开发时声明的对应关系，为启用场配置各区域的固定关系属性
 
     PropertyInfo& property_info(const std::string& name); // 返回该 name 对应属性的 PropertyInfo
 
@@ -116,13 +119,23 @@ private:
         {"material.thermal.specific_heat", PropertyType::Material, PropertyScope::IntegrationPoint},
         {"material.mechanics.young_modulus", PropertyType::Material, PropertyScope::IntegrationPoint}, // Pa, 杨氏模量
         {"material.mechanics.poisson_ratio", PropertyType::Material, PropertyScope::IntegrationPoint}, // 无量纲, 泊松比
+        {"material.mechanics.lame_lambda", PropertyType::Material, PropertyScope::IntegrationPoint, "common.fixed_relation"}, // Pa, 第一拉梅常数, 依赖 E、nu
+        {"material.mechanics.shear_modulus", PropertyType::Material, PropertyScope::IntegrationPoint, "common.fixed_relation"}, // Pa, 第二拉梅常数 mu（剪切模量）, 依赖 E、nu
         {"material.radioactivity.nuclide_diffusion_coef", PropertyType::Material, PropertyScope::IntegrationPoint} // m²/s
     };
 
     inline static const std::unordered_set<std::string> solution_field_states = {"temperature", "concentration", "displacement", "stress", "strain"}; // 求解场的状态名集合 inline: 静态成员变量直接在类定义中初始化，放在头文件里被多个 .cpp 包含，也不会产生重复定义错误；整个程序共享同一个实体
 
+    // 场名 -> 程序内置的固定关系属性；温度和浓度场当前没有这类属性。
+    inline static const std::unordered_map<std::string, std::vector<std::string>> field_required_properties_ = {
+        {"temperature", {}},
+        {"concentration", {}},
+        {"displacement", {"material.mechanics.lame_lambda", "material.mechanics.shear_modulus"}}
+    };
+
     const FemSystem& fem_system_;
 
+    std::vector<std::string> field_names_; // 本次启用的求解场，由外部传入
     ModelParameterMap build_parameters_; // 初始化阶段设置的公共构造参数, 在最上层 assign 中合并给所有模型
     MaterialModelManager material_model_manager_; // 材料属性模型管理器
     ExternalModelManager external_model_manager_; // 外部强制属性模型管理器

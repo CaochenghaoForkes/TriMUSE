@@ -7,8 +7,8 @@
 namespace trimuse
 {
 
-PropertiesSystem::PropertiesSystem(const FemSystem& fem_system) // Global、Region、Zone 初始化为 std::nullopt IntegrationPoint 创建空数组 并预存储各个区域的体积
-    : fem_system_(fem_system)
+PropertiesSystem::PropertiesSystem(const FemSystem& fem_system, const std::vector<std::string>& field_names) // Global、Region、Zone 初始化为 std::nullopt IntegrationPoint 创建空数组 并预存储各个区域的体积
+    : fem_system_(fem_system), field_names_(field_names)
 {
     for (const PropertyInfo& property : properties_)
     { 
@@ -126,8 +126,24 @@ void PropertiesSystem::assign(int attribute, const std::string& model_name, cons
     computed_locations_[property_name].erase(location); // 这里配置了新模型 之前的计算结果不能再当作已经更新好的结果使用 需要重新计算
 }
 
+void PropertiesSystem::assign_field_properties()
+{
+    for (const std::string& field : field_names_)
+    for (const std::string& name : field_required_properties_.at(field))
+    {
+        const PropertyInfo& property = property_info(name);
+        const std::string model = name + "." + property.fixed_model;
+        const auto regions = property.scope == PropertyScope::Global ? std::vector<int>{0} : fem_system_.mesh_data().region_attributes();
+        for (int region : regions)
+        {
+            assign(region, model, {});
+        }
+    }
+}
+
 void PropertiesSystem::prepare_dependencies() // 标记各个属性在各个区域依赖的场有哪些
 {
+    assign_field_properties(); // 依赖分析前，按启用场统一配置固定关系属性。
     for (PropertyInfo& property : properties_)
     {
         property.field_regions.clear(); // 清空旧依赖标记
