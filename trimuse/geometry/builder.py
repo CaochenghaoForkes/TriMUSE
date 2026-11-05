@@ -1,5 +1,6 @@
 from pathlib import Path
 import gmsh
+import json
 import numpy as np
 from trimuse.input.geometry_mesh.config import GeometryMeshCard
 from trimuse.geometry.gmsh_mesh import GmshMesh
@@ -18,12 +19,26 @@ class GeometryMeshBuilder:
         gmsh.initialize()
         try:
             if mesh_path.is_file():
+                geometry_path = mesh_path.with_suffix(".geometry.json")
+                if not geometry_path.is_file():
+                    raise FileNotFoundError(f"已有网格缺少实际几何参数，请重新生成网格: {geometry_path}")
+                geometry_data = json.loads(geometry_path.read_text(encoding="utf-8"))
                 mesh_info = GmshMesh.read(mesh_path, config.mesh.output.formats)
+                mesh_info.geometry_method = geometry_data["geometry_method"]
+                mesh_info.center = tuple(geometry_data["center"])
+                mesh_info.region_layers = {int(attribute): layers for attribute, layers in geometry_data["region_layers"].items()}
                 print(f"复用已有网格: {mesh_path}", flush=True)
                 return mesh_info
             gmsh.model.add("trimuse_geometry")
             topology = cls._build_geometry(config, rng)
             mesh_info = GmshMesh.generate(topology, config.mesh, mesh_path)
+            geometry = getattr(config.geometry, config.geometry.source)
+            mesh_info.geometry_method = config.geometry.source
+            mesh_info.center = (geometry.center.x, geometry.center.y, geometry.center.z)
+            mesh_info.region_layers = {mesh_info.region_attributes[name]: layers for name, layers in topology.region_layers.items()} # 把物理组名换成区域编号
+            # 与网格一起保存实际轮廓，复用网格时不重新抽样随机几何。
+            geometry_data = {"geometry_method": mesh_info.geometry_method, "center": mesh_info.center, "region_layers": mesh_info.region_layers}
+            mesh_path.with_suffix(".geometry.json").write_text(json.dumps(geometry_data, ensure_ascii=False, indent=2), encoding="utf-8")
             return mesh_info
         finally:
             gmsh.finalize()

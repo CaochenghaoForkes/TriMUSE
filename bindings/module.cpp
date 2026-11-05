@@ -41,10 +41,13 @@ PYBIND11_MODULE(_core, module)
 
     py::class_<trimuse::FemSystem>(module, "FemSystem")
         .def(
-            py::init<const std::string&, int, int>(),
+            py::init<const std::string&, int, int, const std::string&, const std::array<double, 3>&, const trimuse::RegionLayerGeometryMap&>(),
             py::arg("mesh_path"),
             py::arg("domain_quadrature_order"),
-            py::arg("boundary_quadrature_order")
+            py::arg("boundary_quadrature_order"),
+            py::arg("geometry_method"),
+            py::arg("center"),
+            py::arg("region_layers")
         )
         .def(
             "add_field",
@@ -54,7 +57,18 @@ PYBIND11_MODULE(_core, module)
             py::arg("vector_dimension") = 1
         )
         .def("add_region_field", &trimuse::FemSystem::add_region_field,
-             py::arg("name"), py::arg("order"), py::arg("vector_dimension") = 1);
+             py::arg("name"), py::arg("order"), py::arg("vector_dimension") = 1)
+        .def("domain_quadrature_positions", &trimuse::FemSystem::domain_quadrature_positions, py::arg("element"))
+        .def("domain_quadrature_offset", &trimuse::FemSystem::domain_quadrature_offset, py::arg("element"))
+        .def("domain_quadrature_point_count", &trimuse::FemSystem::domain_quadrature_point_count)
+        .def("material_basis", [](const trimuse::FemSystem& fem, std::size_t point_index)
+        {
+            const auto& basis = fem.material_basis(point_index);
+            std::array<std::array<double, 3>, 3> values;
+            for (int row = 0; row < 3; ++row)
+            for (int column = 0; column < 3; ++column) { values[row][column] = basis.data[row][column]; }
+            return values;
+        }, py::arg("point_index"));
     
     py::class_<trimuse::OutputManager>(module, "OutputManager")
         .def(py::init<trimuse::FemSystem&, const std::string&>(),

@@ -2,7 +2,7 @@ from trimuse.input.geometry_mesh.config import GeometryMeshCard
 StochasticMultilayerParticleConfig = GeometryMeshCard.Geometry.StochasticMultilayerParticle
 ZonesConfig = GeometryMeshCard.Geometry.Zones
 SpaceSamplerConfig = GeometryMeshCard.Mesh.SpaceSampler
-from trimuse.geometry.topology import GeometryTopology
+from trimuse.geometry.topology import GeometryTopology, make_region_layers
 from trimuse.geometry.zones import partition_surface_3d
 import gmsh
 import numpy as np
@@ -347,7 +347,9 @@ class StochasticMultilayerParticleBuilder:
             boundary_name = zones.residual_zone if l == len(config.regions.region) - 1 else region_config.outer_boundary.name
             boundaries[boundary_name] = [points[l + 1]]
         gmsh.model.occ.synchronize()
-        return GeometryTopology(dimension=1, regions=regions, boundaries=boundaries)
+        profiles = [{"radius": float(radius)} for radius in r_bar]
+        region_layers = make_region_layers([region.name for region in config.regions.region], profiles)
+        return GeometryTopology(dimension=1, regions=regions, boundaries=boundaries, region_layers=region_layers)
 
     @classmethod
     def _build_2d(cls, config: StochasticMultilayerParticleConfig, rng: np.random.Generator, zones: ZonesConfig, space_sampler: SpaceSamplerConfig | None = None) -> GeometryTopology:
@@ -399,7 +401,9 @@ class StochasticMultilayerParticleBuilder:
             name = next((zone.name for zone in zones.zone if zone.theta_min <= angle <= zone.theta_max), zones.residual_zone)
             boundaries[name].append(tag)
         boundaries["symmetry_axis"] = axis_tags
-        return GeometryTopology(dimension=2, regions=regions, boundaries=boundaries)
+        profiles = [{"coefficients": coefficients.tolist()} for coefficients in a_layers]
+        region_layers = make_region_layers([region.name for region in config.regions.region], profiles)
+        return GeometryTopology(dimension=2, regions=regions, boundaries=boundaries, region_layers=region_layers)
 
     @classmethod
     def _build_3d(cls, config: StochasticMultilayerParticleConfig, rng: np.random.Generator, zones: ZonesConfig, space_sampler: SpaceSamplerConfig | None = None) -> GeometryTopology:
@@ -472,6 +476,8 @@ class StochasticMultilayerParticleBuilder:
         regions = {region_config.name: [volume_tags[l]] for l, region_config in enumerate(config.regions.region)}
         boundaries = {region_config.outer_boundary.name: interface_surfaces[l] for l, region_config in enumerate(config.regions.region[:-1])}
         boundaries.update(outer_boundaries)
-        return GeometryTopology(dimension=3, regions=regions, boundaries=boundaries)
+        profiles = [{"degree": float(N), "coefficients": coefficients.ravel().tolist()} for coefficients in a_nm_layers] # a_nm_layers[材料层数][N+1][2*N+1] .revel() 会把二维数组展平
+        region_layers = make_region_layers([region.name for region in config.regions.region], profiles)
+        return GeometryTopology(dimension=3, regions=regions, boundaries=boundaries, region_layers=region_layers)
 
     

@@ -6,7 +6,7 @@
 namespace trimuse
 {
 
-FemSystem::FemSystem(const std::string& mesh_path, int domain_quadrature_order, int boundary_quadrature_order)
+FemSystem::FemSystem(const std::string& mesh_path, int domain_quadrature_order, int boundary_quadrature_order, const std::string& geometry_method, const std::array<double, 3>& center, const RegionLayerGeometryMap& region_layers)
     : mesh_data_(mesh_path),
       domain_quadrature_rules_(make_quadrature_rules(mesh_data_, mesh_data_.dimension(), domain_quadrature_order)), // 建立域中单元类型的求积规则表
       boundary_quadrature_rules_(make_quadrature_rules(mesh_data_, mesh_data_.dimension() - 1, boundary_quadrature_order)) // 建立边界中单元类型的求积规则表
@@ -21,6 +21,23 @@ FemSystem::FemSystem(const std::string& mesh_path, int domain_quadrature_order, 
         }
     }
     cache_domain_quadrature_positions(); // 缓存每个域单元上所有积分点的实际空间坐标，同时建立积分点的全域连续编号。 对固定网格，后续更新材料属性时就可以直接读取，不必重复计算坐标映射
+    const MaterialCoordinateSystem coordinates(geometry_method, mesh_data_.dimension(), center, region_layers);
+    material_bases_.resize(domain_quadrature_point_count());
+    for (int element = 0; element < mesh_data_.element_count(); ++element)
+    {
+        const int region = mesh_data_.mfem_mesh().GetAttribute(element);
+        const auto& positions = domain_quadrature_positions(element);
+        const auto offset = domain_quadrature_offset(element);
+        for (std::size_t point = 0; point < positions.size(); ++point)
+        {
+            material_bases_[offset + point] = coordinates.basis(region, positions[point]);
+        }
+    }
+}
+
+const Tensor3DValue& FemSystem::material_basis(std::size_t point_index) const
+{
+    return material_bases_.at(point_index);
 }
 
 FemSystem::FieldObjects::FieldObjects(MeshData& mesh_data, int order, int vector_dimension) // 创建一个场所需的对象组合，包含有限元空间(该场的有限元空间，确定插值阶次、分量数及自由度组织)，以及场数据(依附于上述空间，存储该场的全部自由度值)

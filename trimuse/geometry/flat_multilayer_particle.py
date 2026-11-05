@@ -1,7 +1,7 @@
 from trimuse.input.geometry_mesh.config import GeometryMeshCard
 FlatMultilayerParticleConfig = GeometryMeshCard.Geometry.FlatMultilayerParticle
 ZonesConfig = GeometryMeshCard.Geometry.Zones
-from trimuse.geometry.topology import GeometryTopology
+from trimuse.geometry.topology import GeometryTopology, make_region_layers
 from trimuse.geometry.zones import partition_surface_3d
 from dataclasses import replace
 import gmsh
@@ -15,9 +15,12 @@ class FlatMultilayerParticleBuilder:
     def build(cls, config: FlatMultilayerParticleConfig, dimension: int, zones: ZonesConfig) -> GeometryTopology:
         """按维数生成轴对称截面或三维旋转体, Gmsh 生命周期由外部管理"""
         if dimension == 2:
-            return cls._build_2d(config, zones)
-        if dimension == 3:
-            return cls._build_3d(config, zones)
+            topology = cls._build_2d(config, zones)
+        else:
+            topology = cls._build_3d(config, zones)
+        profiles = [{"radius": region.outer_radius, "flattening_depth": config.flattening_depth, "fillet_radius": config.fillet_radius} for region in config.regions.region]
+        topology.region_layers = make_region_layers([region.name for region in config.regions.region], profiles)
+        return topology
 
     @classmethod
     def _build_2d(cls, config: FlatMultilayerParticleConfig, zones: ZonesConfig) -> GeometryTopology:

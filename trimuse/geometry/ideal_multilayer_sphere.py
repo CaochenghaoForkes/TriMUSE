@@ -1,7 +1,7 @@
 from trimuse.input.geometry_mesh.config import GeometryMeshCard
 IdealMultilayerSphereConfig = GeometryMeshCard.Geometry.IdealMultilayerSphere
 ZonesConfig = GeometryMeshCard.Geometry.Zones
-from trimuse.geometry.topology import GeometryTopology
+from trimuse.geometry.topology import GeometryTopology, make_region_layers
 from trimuse.geometry.zones import partition_surface_3d
 import gmsh
 from math import cos, pi, sin
@@ -13,11 +13,14 @@ class IdealMultilayerSphereBuilder:
     def build(cls, config: IdealMultilayerSphereConfig, dimension: int, zones: ZonesConfig) -> GeometryTopology:
         """构造已通过输入检查的理想颗粒, Gmsh 生命周期由外部管理"""
         if dimension == 1:
-            return cls._build_radial_line(config, zones)
-        if dimension == 2:
-            return cls._build_axisymmetric_section(config, zones)
-        if dimension == 3:
-            return cls._build_concentric_spheres(config, zones)
+            topology = cls._build_radial_line(config, zones)
+        elif dimension == 2:
+            topology = cls._build_axisymmetric_section(config, zones)
+        else:
+            topology = cls._build_concentric_spheres(config, zones)
+        profiles = [{"radius": region.outer_radius} for region in config.regions.region]
+        topology.region_layers = make_region_layers([region.name for region in config.regions.region], profiles)
+        return topology
 
     @staticmethod
     def _build_radial_line(config: IdealMultilayerSphereConfig, zones: ZonesConfig) -> GeometryTopology:

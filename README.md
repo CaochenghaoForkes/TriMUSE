@@ -4,7 +4,7 @@ Python 负责 XML 输入、几何与网格生成及流程调度, C++ 基于 MFEM
 
 ## 开发环境构建
 
-在已安装 MFEM、MPI、CMake、Ninja、pybind11 的 Conda 环境中, 从项目根目录执行:
+在已安装 MFEM、MPI、Boost（仅头文件）、CMake、Ninja、pybind11 的 Conda 环境中, 从项目根目录执行:
 
 ```sh
 conda activate trimuse-dev

@@ -1,4 +1,5 @@
 find_package(MPI REQUIRED COMPONENTS CXX)
+find_package(Boost CONFIG REQUIRED)
 
 find_path(
     MFEM_INCLUDE_DIR
@@ -26,6 +27,7 @@ add_library(
     fem/field_view.cpp
     fem/region_field_data.cpp
     fem/fem_system.cpp
+    fem/material_coordinate_system.cpp
     solver/solver_system.cpp
     solver/cg_solver.cpp
     output/output_manager.cpp
@@ -66,6 +68,8 @@ target_link_libraries(
     PUBLIC
     ${MFEM_LIBRARY}
     MPI::MPI_CXX
+    PRIVATE
+    Boost::headers
 )
 
 # macOS 的 Conda MFEM 使用随包 libc++; 扩展也应链接同一运行库。
