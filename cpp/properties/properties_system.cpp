@@ -1,4 +1,5 @@
 #include "properties/properties_system.hpp"
+#include "properties/precomputed/precomputed.hpp"
 
 #include <algorithm>
 #include <stdexcept>
@@ -7,7 +8,7 @@
 namespace trimuse
 {
 
-PropertiesSystem::PropertiesSystem(const FemSystem& fem_system, const std::vector<std::string>& field_names) // Global、Region、Zone 初始化为 std::nullopt IntegrationPoint 创建空数组 并预存储各个区域的体积
+PropertiesSystem::PropertiesSystem(const FemSystem& fem_system, const std::vector<std::string>& field_names) // 初始化属性存储，并填入固定几何的预计算属性
     : fem_system_(fem_system), field_names_(field_names)
 {
     for (const PropertyInfo& property : properties_)
@@ -31,10 +32,12 @@ PropertiesSystem::PropertiesSystem(const FemSystem& fem_system, const std::vecto
             properties_field_data_.integration_point_values.emplace(property.name, PropertiesFieldData::IntegrationPointValues{}); // 初始化各 integrationPoint 属性在的积分点值列表为空
         }
     }
-    for (const auto& [region_attribute, volume] : fem_system_.mesh_data().region_volumes())
+    std::unordered_map<std::string, std::vector<std::string>> required_properties; // 临时的仅包含本次求解场的需求属性
+    for (const std::string& field : field_names_)
     {
-        properties_field_data_.region_values["precomputed.region_volume"][region_attribute] = StateValue{volume}; // 预存储各个区域的体积
+        required_properties.emplace(field, field_required_properties_.at(field));
     }
+    initialize_precomputed(properties_field_data_, fem_system_, required_properties);
 }
 
 void PropertiesSystem::set_precomputed(const std::string& name, const ModelParameterValue& value) // 为已声明的全局预计算属性填写值，并把它保存为所有模型共用的构造参数

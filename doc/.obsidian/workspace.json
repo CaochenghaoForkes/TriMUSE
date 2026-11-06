@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "TriMUSE v1.0/BISON作者 WenJiang 第一次讨论.md",
+                "file": "TriMUSE v1.0/基本理论.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "BISON作者 WenJiang 第一次讨论"
+              "title": "基本理论"
             }
           }
         ]
@@ -83,7 +83,8 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300
+    "width": 300,
+    "collapsed": true
   },
   "right": {
     "id": "134f8b9b3980ec1d",
@@ -188,34 +189,33 @@
       "bases:新建数据库": false
     }
   },
-  "active": "6b88f3d2da5eaf9d",
+  "active": "f06c16a0a362e3e1",
   "lastOpenFiles": [
-    "TriMUSE v1.0/BISON作者 WenJiang 第一次讨论.pdf",
-    "TriMUSE v1.0/BISON作者 WenJiang 第一次讨论_tmp.html",
+    "TriMUSE v1.0/BISON_TRISO_热力与核素行为模型调研.md",
     "TriMUSE v1.0/基本理论.md",
+    "TriMUSE v1.0/BISON作者 WenJiang 第一次讨论.md",
+    "TriMUSE v0.5/程序指南.md",
+    "TriMUSE v0.5/基本理论.md",
+    "TriMUSE v1.0/附件/Pasted image 20261106191838.png",
+    "TriMUSE v1.0/平底颗粒几何.eddx",
+    "TriMUSE v1.0/附件/Pasted image 20261106162226.png",
+    "TriMUSE v1.0/附件/Pasted image 20261106153902.png",
+    "TriMUSE v1.0/等s面.eddx",
+    "TriMUSE v1.0/附件/Pasted image 20261106120015.png",
+    "TriMUSE v1.0/局部坐标系.eddx",
+    "TriMUSE v1.0/BISON作者 WenJiang 第一次讨论.pdf",
+    "TriMUSE v1.0/附件/Pasted image 20261106101213.png",
+    "TriMUSE v1.0/附件/Pasted image 20261106095342.png",
+    "TriMUSE v1.0/基本理论.pdf",
+    "TriMUSE v1.0/BISON作者 WenJiang 第一次讨论_tmp.html",
     "TriMUSE v1.0/附件/Pasted image 20261104195819.png",
     "TriMUSE v1.0/附件/Pasted image 20261104195406.png",
-    "TriMUSE v1.0/基本理论.pdf",
-    "TriMUSE v1.0/BISON作者 WenJiang 第一次讨论.md",
     "TriMUSE v1.0/基本理论_tmp.html",
-    "TriMUSE v1.0/BISON_TRISO_热力与核素行为模型调研.md",
     "TriMUSE v1.0/附件/Modeling Interface Debonding in Coated Fuel Particles with BISON.pdf",
     "TriMUSE v1.0/附件",
-    "TriMUSE v0.5/基本理论.md",
     "TriMUSE v1.0",
-    "TriMUSE v0.5/程序指南.md",
     "TriMUSE v0.5/附件/Pasted image 20261102123834.png",
     "TriMUSE v0.5/附件/Pasted image 20261102123058.png",
-    "TriMUSE v0.5/附件/Pasted image 20261102122002.png",
-    "TriMUSE v0.5/附件/Pasted image 20261102115747.png",
-    "TriMUSE v0.5/附件/Pasted image 20261102114441.png",
-    "TriMUSE v0.5/附件/Pasted image 20261102114011.png",
-    "TriMUSE v0.5/附件/Pasted image 20261102113611.png",
-    "TriMUSE v0.5/附件/Pasted image 20261102111422.png",
-    "TriMUSE 第一阶段程序指南/TriMUSE 第一阶段程序指南.md",
-    "TriMUSE v0.5/附件/界面单元.eddx",
-    "TriMUSE 第一阶段程序指南/程序指南",
-    "TriMUSE 第一阶段程序指南/界面单元.eddx",
-    "TriMUSE v0.5/附件"
+    "TriMUSE 第一阶段程序指南/TriMUSE 第一阶段程序指南.md"
   ]
 }

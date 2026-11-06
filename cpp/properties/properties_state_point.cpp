@@ -23,4 +23,9 @@ const Tensor3DValue& PropertiesStatePoint::tensor_3d(const std::string& name) co
     return std::get<Tensor3DValue>(values.at(name));
 }
 
+const ElasticityTensorValue& PropertiesStatePoint::elasticity_tensor(const std::string& name) const
+{
+    return std::get<ElasticityTensorValue>(values.at(name));
+}
+
 }

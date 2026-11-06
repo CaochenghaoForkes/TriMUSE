@@ -21,7 +21,7 @@ class PropertiesSystem
 public:
     using FieldMap = std::unordered_map<std::string, FieldView>; // 场名 -> 连续场或分域场的只读视图, 用于传入试探场
 
-    explicit PropertiesSystem(const FemSystem& fem_system, const std::vector<std::string>& field_names = {}); // Global、Region、Zone 初始化为 std::nullopt IntegrationPoint 创建空数组 并预存储各个区域的体积
+    explicit PropertiesSystem(const FemSystem& fem_system, const std::vector<std::string>& field_names = {}); // 初始化属性存储，并按启用场填入体积及所需的坐标转换缓存
 
     void set_precomputed(const std::string& name, const ModelParameterValue& value); // assign 前填写已声明的全局预计算属性 precomputed.name, 并以 name 作为公共构造参数键
 
@@ -93,6 +93,8 @@ private:
 
     std::vector<PropertyInfo> properties_ = {
         {"precomputed.region_volume", PropertyType::Precomputed, PropertyScope::Region},
+        {"precomputed.tensor_transform", PropertyType::Precomputed, PropertyScope::IntegrationPoint}, // 六分量张量 local -> global 的 T
+        {"precomputed.tensor_transform_inverse", PropertyType::Precomputed, PropertyScope::IntegrationPoint}, // 六分量张量 global -> local 的 T^{-1}
         {"precomputed.nuclide_name", PropertyType::Precomputed, PropertyScope::Global}, // 核素名称, 如 Cs137
         {"precomputed.nuclide_symbol", PropertyType::Precomputed, PropertyScope::Global}, // 元素符号, 如 Cs
         {"external.time", PropertyType::External, PropertyScope::Global},
@@ -120,16 +122,17 @@ private:
         {"material.mechanics.young_modulus", PropertyType::Material, PropertyScope::IntegrationPoint}, // Pa, [Er, Et]，径向、切向杨氏模量
         {"material.mechanics.poisson_ratio", PropertyType::Material, PropertyScope::IntegrationPoint}, // 无量纲, [nu_rt, nu_tt]，径向受力的切向泊松比、切向之间的泊松比
         {"material.mechanics.shear_modulus", PropertyType::Material, PropertyScope::IntegrationPoint}, // Pa, 标量 Grt；由用户在材料卡中指定模型
+        {"material.mechanics.elasticity_tensor", PropertyType::Material, PropertyScope::IntegrationPoint, "common.from_engineering_constants"}, // Pa
         {"material.radioactivity.nuclide_diffusion_coef", PropertyType::Material, PropertyScope::IntegrationPoint} // m²/s
     };
 
     inline static const std::unordered_set<std::string> solution_field_states = {"temperature", "concentration", "displacement", "stress", "strain"}; // 求解场的状态名集合 inline: 静态成员变量直接在类定义中初始化，放在头文件里被多个 .cpp 包含，也不会产生重复定义错误；整个程序共享同一个实体
 
-    // 场名 -> 程序内置且无需用户选择模型的固定关系属性；当前各场均为空。
+    // 场名 -> 程序内置且无需用户选择模型的固定关系属性
     inline static const std::unordered_map<std::string, std::vector<std::string>> field_required_properties_ = {
         {"temperature", {}},
         {"concentration", {}},
-        {"displacement", {}}
+        {"displacement", {"material.mechanics.elasticity_tensor"}}
     };
 
     const FemSystem& fem_system_;

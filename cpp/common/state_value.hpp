@@ -61,7 +61,30 @@ struct Tensor3DValue
     }
 };
 
+struct ElasticityTensorValue // 六分量弹性矩阵，顺序为 [11,22,33,23,13,12]；应变使用张量剪应变 sigma_V = C_V * epsilon_V；双点乘另需 W = diag(1,1,1,2,2,2)
+{
+    double data[6][6] = {};
+
+    bool operator==(const ElasticityTensorValue& other) const
+    {
+        for (int row = 0; row < 6; ++row)
+        for (int column = 0; column < 6; ++column)
+        {
+            if (data[row][column] != other.data[row][column])
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    bool operator!=(const ElasticityTensorValue& other) const
+    {
+        return !(*this == other);
+    }
+};
+
 // variant: 一个有明确候选清单、并记得当前内容类型的容器
-using StateValue = std::variant<double, VectorValue, Tensor2DValue, Tensor3DValue, std::string>; // 单个时空点的值: 数值或预计算的文本信息
+using StateValue = std::variant<double, VectorValue, Tensor2DValue, Tensor3DValue, ElasticityTensorValue, std::string>; // 单个时空点的值: 数值或预计算的文本信息
 
 }
