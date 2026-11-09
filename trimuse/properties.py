@@ -8,6 +8,7 @@ if TYPE_CHECKING:
     from .geometry.topology import MeshInfo
     from .input.xml_loader import InputCards
     from .input.material.config import MaterialCard
+    from .input.mechanics.config import MechanicsCard
     from .input.properties.config import PropertiesCard
     from .input.radioactivity.config import RadioactivityCard
 
@@ -17,6 +18,7 @@ class PropertiesManager:
     def __init__(self, input_cards: InputCards, mesh_info: MeshInfo, fem: FemSystem, field_names: set[str]) -> None:
         """创建属性系统, 按材料区域或边界分区编号安排模型"""
         self.properties_system = PropertiesSystem(fem, sorted(field_names))
+        self.assign_mechanics_card(input_cards.mechanics)
         self.assign_radioactivity_card(input_cards.radioactivity)
         self.assign_properties_card(input_cards.properties, mesh_info)
         self.assign_material_card(input_cards.material, mesh_info)
@@ -48,6 +50,11 @@ class PropertiesManager:
         if radioactivity is not None:
             self.properties_system.set_precomputed("nuclide_name", radioactivity.nuclide.name)
             self.properties_system.set_precomputed("nuclide_symbol", radioactivity.nuclide.element_symbol)
+
+    def assign_mechanics_card(self, mechanics: MechanicsCard | None) -> None:
+        """在分配模型前，把力学卡中的参考温度存为全局预计算属性和公共构造参数"""
+        if mechanics is not None:
+            self.properties_system.set_precomputed("thermal_expansion_reference_temperature", mechanics.thermal_expansion_reference_temperature)
 
     def update_external(self, time: float, time_step: float) -> None:
         """更新给定时刻的外部属性"""

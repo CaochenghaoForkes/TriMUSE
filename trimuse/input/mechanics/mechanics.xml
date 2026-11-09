@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mechanics>
+    <!-- 当前接入热膨胀参考温度的初始化，边界求解配置在力学模块中继续扩展 -->
+    <thermal_expansion_reference_temperature value="273.15" unit="[K]"/>
+</mechanics>

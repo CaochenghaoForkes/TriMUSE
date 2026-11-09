@@ -93,6 +93,7 @@ private:
 
     std::vector<PropertyInfo> properties_ = {
         {"precomputed.region_volume", PropertyType::Precomputed, PropertyScope::Region},
+        {"precomputed.thermal_expansion_reference_temperature", PropertyType::Precomputed, PropertyScope::Global}, // K, 来自力学卡的固定热膨胀参考温度
         {"precomputed.tensor_transform", PropertyType::Precomputed, PropertyScope::IntegrationPoint}, // 六分量张量 local -> global 的 T
         {"precomputed.tensor_transform_inverse", PropertyType::Precomputed, PropertyScope::IntegrationPoint}, // 六分量张量 global -> local 的 T^{-1}
         {"precomputed.nuclide_name", PropertyType::Precomputed, PropertyScope::Global}, // 核素名称, 如 Cs137
@@ -104,6 +105,9 @@ private:
         {"external.surface_nuclide_concentration", PropertyType::External, PropertyScope::Zone}, // atom/m³, 指定表面浓度
         {"external.nuclide_flux", PropertyType::External, PropertyScope::Zone}, // atom/(m²·s), 外流为正、流入为负
         {"external.surface_temperature", PropertyType::External, PropertyScope::Zone}, // K, 指定表面温度
+        {"external.surface_traction", PropertyType::External, PropertyScope::Zone}, // Pa, 求解坐标系中的面力分量
+        {"external.surface_displacement", PropertyType::External, PropertyScope::Zone}, // m, 求解坐标系中的位移分量
+        {"external.surface_pressure", PropertyType::External, PropertyScope::Zone}, // Pa, 正值沿表面内法向加载
         {"external.heat_flux", PropertyType::External, PropertyScope::Zone}, // W/m², 外流为正、流入为负
         {"external.burnup_fima_fraction", PropertyType::External, PropertyScope::Global},
         {"external.power", PropertyType::External, PropertyScope::Region},

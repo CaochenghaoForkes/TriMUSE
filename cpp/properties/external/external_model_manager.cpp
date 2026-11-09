@@ -16,6 +16,9 @@ void ExternalModelManager::register_models()
     environment_temperature_model_manager_.register_models();
     environment_nuclide_concentration_model_manager_.register_models();
     surface_temperature_model_manager_.register_models();
+    surface_traction_model_manager_.register_models();
+    surface_displacement_model_manager_.register_models();
+    surface_pressure_model_manager_.register_models();
     surface_nuclide_concentration_model_manager_.register_models();
     heat_flux_model_manager_.register_models();
     nuclide_flux_model_manager_.register_models();
@@ -82,6 +85,21 @@ void ExternalModelManager::assign(const std::string& name, int attribute, const 
         nuclide_flux_model_manager_.assign(attribute, model_name, parameters, value_type);
         return;
     }
+    if (name == "external.surface_traction")
+    {
+        surface_traction_model_manager_.assign(attribute, model_name, parameters);
+        return;
+    }
+    if (name == "external.surface_displacement")
+    {
+        surface_displacement_model_manager_.assign(attribute, model_name, parameters);
+        return;
+    }
+    if (name == "external.surface_pressure")
+    {
+        surface_pressure_model_manager_.assign(attribute, model_name, parameters);
+        return;
+    }
     throw std::out_of_range("尚未支持的外部量: " + name);
 }
 
@@ -131,6 +149,18 @@ StateValue ExternalModelManager::evaluate(const std::string& name, const Propert
     {
         return nuclide_flux_model_manager_.evaluate(point);
     }
+    if (name == "external.surface_traction")
+    {
+        return surface_traction_model_manager_.evaluate(point);
+    }
+    if (name == "external.surface_displacement")
+    {
+        return surface_displacement_model_manager_.evaluate(point);
+    }
+    if (name == "external.surface_pressure")
+    {
+        return surface_pressure_model_manager_.evaluate(point);
+    }
     throw std::out_of_range("尚未支持的外部量: " + name);
 }
 
@@ -179,6 +209,18 @@ const std::vector<std::string>& ExternalModelManager::required_states(const std:
     if (name == "external.nuclide_flux")
     {
         return nuclide_flux_model_manager_.required_states(model_name);
+    }
+    if (name == "external.surface_traction")
+    {
+        return surface_traction_model_manager_.required_states(model_name);
+    }
+    if (name == "external.surface_displacement")
+    {
+        return surface_displacement_model_manager_.required_states(model_name);
+    }
+    if (name == "external.surface_pressure")
+    {
+        return surface_pressure_model_manager_.required_states(model_name);
     }
     throw std::out_of_range("尚未支持的外部量: " + name);
 }

@@ -8,6 +8,8 @@ from .geometry_mesh.config import GeometryMeshCard, GeometryMeshCardLoader
 from .geometry_mesh.examine import GeometryMeshCardExamine
 from .material.config import MaterialCard, MaterialCardLoader
 from .material.examine import MaterialCardExamine
+from .mechanics.config import MechanicsCard, MechanicsCardLoader
+from .mechanics.examine import MechanicsCardExamine
 from .properties.config import PropertiesCard, PropertiesCardLoader
 from .properties.examine import PropertiesCardExamine
 from .thermal.config import ThermalCard, ThermalCardLoader
@@ -32,6 +34,7 @@ class InputCards:
     postprocess: PostprocessCard | None = None
     thermal: ThermalCard | None = None
     radioactivity: RadioactivityCard | None = None
+    mechanics: MechanicsCard | None = None
 
 class XmlLoader:
     """统一加载输入卡, 空路径由对应读取器生成模板并退出程序"""
@@ -47,12 +50,13 @@ class XmlLoader:
         material = cls._load_material(chief.input_files.material)
         thermal = cls._load_thermal(chief.input_files.thermal) if chief.input_files.thermal is not None else None
         radioactivity = cls._load_radioactivity(chief.input_files.radioactivity) if chief.input_files.radioactivity is not None else None
+        mechanics = cls._load_mechanics(chief.input_files.mechanics) if chief.input_files.mechanics is not None else None
         properties = cls._load_properties(chief.input_files.properties)
         simulation = cls._load_simulation(chief.input_files.simulation)
         postprocess = cls._load_postprocess(chief.input_files.postprocess) if chief.workflow.end_at == "postprocess" else None
         InputCardsExamine.examine(geometry_mesh, material, properties, thermal, postprocess, radioactivity)
         InputCardsExamine.check_thermal_space(simulation, thermal)
-        input_cards = InputCards(chief=chief, geometry_mesh=geometry_mesh, material=material, properties=properties, thermal=thermal, simulation=simulation, postprocess=postprocess, radioactivity=radioactivity)
+        input_cards = InputCards(chief=chief, geometry_mesh=geometry_mesh, material=material, properties=properties, thermal=thermal, simulation=simulation, postprocess=postprocess, radioactivity=radioactivity, mechanics=mechanics)
         return input_cards
 
     @staticmethod
@@ -103,6 +107,12 @@ class XmlLoader:
         postprocess = PostprocessCardLoader.load(path)
         PostprocessCardExamine.examine(postprocess)
         return postprocess
+
+    @staticmethod
+    def _load_mechanics(path: str | None) -> MechanicsCard:
+        card = MechanicsCardLoader.load(path)
+        MechanicsCardExamine.examine(card)
+        return card
 
 def load_input_cards(chief_path: str | Path | None = None) -> InputCards:
     """对外的输入加载入口"""

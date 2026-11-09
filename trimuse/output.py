@@ -173,7 +173,7 @@ class OutputManager:
                 "simulation": self._simulation_card,
                 "postprocess": self._postprocess_card
             }
-            for name, writer in (("thermal", self._thermal_card), ("radioactivity", self._radioactivity_card)):
+            for name, writer in (("thermal", self._thermal_card), ("radioactivity", self._radioactivity_card), ("mechanics", self._mechanics_card)):
                 if getattr(cards, name) is not None:
                     writers[name] = writer
             for name, writer in writers.items():
@@ -263,6 +263,10 @@ class OutputManager:
                             cls._model(cls._node(node, scope, name=item.name), item.model, item.parameters)
                     if property.global_ is not None:
                         cls._model(cls._node(node, "global"), property.global_.model, property.global_.parameters)
+
+        @classmethod
+        def _mechanics_card(cls, root: ET.Element, card) -> None:
+            cls._quantity(root, "thermal_expansion_reference_temperature", card.thermal_expansion_reference_temperature, "[K]")
 
         @classmethod
         def _thermal_card(cls, root: ET.Element, card) -> None:

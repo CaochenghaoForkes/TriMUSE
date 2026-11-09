@@ -74,7 +74,7 @@ class PropertiesCardLoader:
 
     @staticmethod
     def read_zone(element: ET.Element) -> PropertiesCard.Zone:
-        """读取 common.constant 的标量或 common.time_series 的 times/values 参数"""
+        """读取常数或时间表模型参数，数值可以是标量或向量"""
         name = XmlUtils.read_attribute(element, "name", required=True)
         model_config = XmlUtils.read_model(element, context=name)
         return PropertiesCard.Zone(name=name, **model_config)

@@ -195,4 +195,42 @@
         </region>
         -->
     </derived_property>
+    <!-- 力学表面向量：1D [r]、2D [r,z]、3D [x,y,z]，以下向量示例采用 2D -->
+    <!-- time_series 的 values 按时刻平铺，例如 [r0,z0,r1,z1] -->
+    <!-- 指定求解坐标系下的面力分量 -->
+    <external_property name="surface_traction">
+        <zone name="[str]" model="common.constant">
+            <parameter name="constant_value" value="[float] [float]" unit="[Pa]" si_unit="[Pa]"/>
+        </zone>
+        <!-- 时间表模型可替换上面的常数模型，times 严格递增
+        <zone name="[str]" model="common.time_series">
+            <parameter name="times" value="[float] [float]" unit="[s]" si_unit="[s]"/>
+            <parameter name="values" value="[float] [float] [float] [float]" unit="[Pa]" si_unit="[Pa]"/>
+        </zone>
+        -->
+    </external_property>
+    <!-- 指定求解坐标系下的位移分量 -->
+    <external_property name="surface_displacement">
+        <zone name="[str]" model="common.constant">
+            <parameter name="constant_value" value="[float] [float]" unit="[m]" si_unit="[m]"/>
+        </zone>
+        <!-- 时间表模型可替换上面的常数模型，times 严格递增
+        <zone name="[str]" model="common.time_series">
+            <parameter name="times" value="[float] [float]" unit="[s]" si_unit="[s]"/>
+            <parameter name="values" value="[float] [float] [float] [float]" unit="[m]" si_unit="[m]"/>
+        </zone>
+        -->
+    </external_property>
+    <!-- 压力为标量，正值沿表面内法向加载 -->
+    <external_property name="surface_pressure">
+        <zone name="[str]" model="common.constant">
+            <parameter name="constant_value" value="[float]" unit="[Pa]" si_unit="[Pa]"/>
+        </zone>
+        <!-- 时间表模型可替换上面的常数模型，times 严格递增
+        <zone name="[str]" model="common.time_series">
+            <parameter name="times" value="[float] [float]" unit="[s]" si_unit="[s]"/>
+            <parameter name="values" value="[float] [float]" unit="[Pa]" si_unit="[Pa]"/>
+        </zone>
+        -->
+    </external_property>
 </properties>

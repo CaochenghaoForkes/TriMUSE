@@ -21,6 +21,7 @@ class ChiefCard:
         simulation: str | None = None
         postprocess: str | None = None
         radioactivity: str | None = None
+        mechanics: str | None = None
 
     @dataclass
     class Output:
@@ -99,11 +100,14 @@ class ChiefCardLoader:
         radioactivity = XmlUtils.read_child(element, "radioactivity", required=False)
         radioactivity_path = XmlUtils.read_attribute(radioactivity, "file", default="", allow_empty=True)
         radioactivity_path = str(XmlUtils.resolve_path(radioactivity_path, base_directory)) if radioactivity_path else None
+        mechanics = XmlUtils.read_child(element, "mechanics", required=False)
+        mechanics_path = XmlUtils.read_attribute(mechanics, "file", default="", allow_empty=True)
+        mechanics_path = str(XmlUtils.resolve_path(mechanics_path, base_directory)) if mechanics_path else None
         simulation = XmlUtils.read_child(element, "simulation", required=False)
         simulation_path = XmlUtils.read_attribute(simulation, "file", default="", allow_empty=True)
         simulation_path = str(XmlUtils.resolve_path(simulation_path, base_directory)) if simulation_path else None
         postprocess = XmlUtils.read_child(element, "postprocess", required=False)
         postprocess_path = XmlUtils.read_attribute(postprocess, "file", default="", allow_empty=True)
         postprocess_path = str(XmlUtils.resolve_path(postprocess_path, base_directory)) if postprocess_path else None
-        input_files = ChiefCard.InputFiles(geometry_mesh=geometry_mesh_path, material=material_path, properties=properties_path, thermal=thermal_path, simulation=simulation_path, postprocess=postprocess_path, radioactivity=radioactivity_path)
+        input_files = ChiefCard.InputFiles(geometry_mesh=geometry_mesh_path, material=material_path, properties=properties_path, thermal=thermal_path, simulation=simulation_path, postprocess=postprocess_path, radioactivity=radioactivity_path, mechanics=mechanics_path)
         return input_files

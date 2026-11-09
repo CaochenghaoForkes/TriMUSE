@@ -13,6 +13,9 @@ class PropertiesCardExamine:
         "external.environment_temperature": COMMON_MODELS,
         "external.surface_temperature": COMMON_MODELS,
         "external.heat_flux": COMMON_MODELS,
+        "external.surface_traction": COMMON_MODELS,
+        "external.surface_displacement": COMMON_MODELS,
+        "external.surface_pressure": COMMON_MODELS,
         "external.environment_nuclide_concentration": COMMON_MODELS,
         "external.surface_nuclide_concentration": COMMON_MODELS,
         "external.nuclide_flux": COMMON_MODELS,
@@ -22,6 +25,8 @@ class PropertiesCardExamine:
         "derived.volumetric_nuclide_birth_rate": COMMON_MODELS | {"common.uniform_from_birth_rate"},
         "derived.fast_neutron_fluence": COMMON_MODELS | {"common.accumulate_from_fast_neutron_flux"},
     }
+
+    MECHANICS_PROPERTIES = {"external.surface_traction", "external.surface_displacement", "external.surface_pressure"}
 
     RADIOACTIVITY_PROPERTIES = {
         "external.nuclide_birth_rate": ("external_property", "global"),
@@ -66,6 +71,15 @@ class PropertiesCardExamine:
         zone_names = [zone.name for zone in property_config.zone]
         if len(zone_names) != len(set(zone_names)):
             raise ValueError(f"{location}: 外表面分区名称不能重复")
+        if property_config.name in cls.MECHANICS_PROPERTIES:
+            if property_config.region or property_config.global_ is not None:
+                raise ValueError(f"{location}: 请按 zone 配置边界属性")
+            for zone in property_config.zone:
+                if property_config.name == "external.surface_pressure":
+                    cls.check_time_model(zone, f"{location}.{zone.name}")
+                else:
+                    cls.check_vector_time_model(zone, f"{location}.{zone.name}")
+            return
         if property_config.name in cls.RADIOACTIVITY_PROPERTIES:
             cls.check_radioactivity_property(category, property_config)
             return
@@ -176,3 +190,23 @@ class PropertiesCardExamine:
                 raise ValueError(f"{location}: times 和 values 必须为等长列表, times 至少有两个严格递增的值")
         else:
             raise ValueError(f"{location}: 不支持的模型 {config.model}")
+
+    @staticmethod
+    def check_vector_time_model(config: PropertiesCard.Zone, location: str) -> None:
+        """向量时间表按时刻依次平铺各分量，具体分量数在卡间检查中与维数核对"""
+        for value in config.parameters.values():
+            numbers = value if isinstance(value, list) else [value]
+            if not all(math.isfinite(number) for number in numbers):
+                raise ValueError(f"{location}: 参数值必须有限")
+        if config.model == "common.constant":
+            value = config.parameters.get("constant_value")
+            values = value if isinstance(value, list) else [value]
+            if not 1 <= len(values) <= 3 or not all(isinstance(number, float) for number in values):
+                raise ValueError(f"{location}: constant_value 必须为 1 到 3 个分量")
+        else:
+            times = config.parameters.get("times")
+            values = config.parameters.get("values")
+            if not isinstance(times, list) or len(times) < 2 or any(right <= left for left, right in zip(times, times[1:])):
+                raise ValueError(f"{location}: times 必须为至少两个严格递增的时间值")
+            if not isinstance(values, list) or len(values) % len(times) != 0 or not 1 <= len(values) // len(times) <= 3:
+                raise ValueError(f"{location}: values 必须按时刻平铺，每个时刻包含相同的 1 到 3 个分量")

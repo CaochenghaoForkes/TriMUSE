@@ -139,6 +139,13 @@ class InputCardsExamine:
             unknown_zones = {zone.name for zone in property_config.zone} - zone_names
             if unknown_zones:
                 raise ValueError(f"属性 {property_config.name} 引用了不存在的外表面分区: {', '.join(sorted(unknown_zones))}")
+            if property_config.name in ("external.surface_traction", "external.surface_displacement"):
+                for zone in property_config.zone:
+                    values = zone.parameters["constant_value"] if zone.model == "common.constant" else zone.parameters["values"]
+                    count = len(values) if isinstance(values, list) else 1
+                    components = count if zone.model == "common.constant" else count // len(zone.parameters["times"])
+                    if components != geometry_mesh.model.dimension:
+                        raise ValueError(f"{property_config.name}.{zone.name}: 分量数必须等于问题维数 {geometry_mesh.model.dimension}")
             if property_config.name == "derived.volumetric_power":
                 uniform_regions = {region.name for region in property_config.region if region.model == "common.uniform_from_power"}
                 missing = uniform_regions - power_regions
