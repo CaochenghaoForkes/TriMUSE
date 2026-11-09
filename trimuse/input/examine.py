@@ -1,6 +1,8 @@
 from .geometry_mesh.config import GeometryMeshCard
 from .material.config import MaterialCard
 from .material.examine import MaterialCardExamine
+from .mechanics.config import MechanicsCard
+from .mechanics.examine import MechanicsCardExamine
 from .properties.config import PropertiesCard
 from .thermal.config import ThermalCard
 from .radioactivity.config import RadioactivityCard
@@ -20,7 +22,7 @@ class InputCardsExamine:
             raise ValueError("热阻界面要求 temperature 的 fem_space 设置 continuity=\"region\"")
 
     @classmethod
-    def examine(cls, geometry_mesh: GeometryMeshCard, material: MaterialCard, properties: PropertiesCard, thermal: ThermalCard | None, postprocess: PostprocessCard | None, radioactivity: RadioactivityCard | None = None) -> None:
+    def examine(cls, geometry_mesh: GeometryMeshCard, material: MaterialCard, properties: PropertiesCard, thermal: ThermalCard | None, postprocess: PostprocessCard | None, radioactivity: RadioactivityCard | None = None, mechanics: MechanicsCard | None = None) -> None:
         """检查各已启用物理卡的几何引用, 以及后处理配置与几何维数的一致性"""
         cls.check_material_assignments(geometry_mesh, material)
         cls.check_properties_references(geometry_mesh, properties)
@@ -28,6 +30,9 @@ class InputCardsExamine:
             cls.check_thermal_references(geometry_mesh, thermal)
             cls.check_thermal_boundary_properties(properties, thermal)
             cls.check_thermal_source_dependencies(properties, thermal)
+        if mechanics is not None:
+            cls.check_mechanics_references(geometry_mesh, mechanics)
+            cls.check_mechanics_boundary_properties(properties, mechanics)
         if postprocess is not None:
             cls.check_postprocess_geometry(geometry_mesh, postprocess)
         if radioactivity is None and any(
@@ -162,6 +167,28 @@ class InputCardsExamine:
                     and property_config.global_.model == "common.accumulate_from_fast_neutron_flux"
                     and (fast_neutron_flux is None or fast_neutron_flux.global_ is None)):
                 raise ValueError("accumulate_from_fast_neutron_flux 缺少全局 fast_neutron_flux")
+
+    @staticmethod
+    def check_mechanics_references(geometry_mesh: GeometryMeshCard, mechanics: MechanicsCard) -> None:
+        """力学外边界引用外表面分区，内部界面引用材料层之间的边界"""
+        geometry = getattr(geometry_mesh.geometry, geometry_mesh.geometry.source)
+        interface_names = {region.outer_boundary.name for region in geometry.regions.region[:-1]}
+        for items, allowed, location in (
+            (mechanics.boundary, InputCardsExamine.outer_boundary_names(geometry_mesh), "力学外边界"),
+            (mechanics.interfaces.interface, interface_names, "力学界面"),
+        ):
+            unknown = {item.name for item in items} - allowed
+            if unknown:
+                raise ValueError(f"{location}引用了不存在的几何名称: {', '.join(sorted(unknown))}")
+
+    @staticmethod
+    def check_mechanics_boundary_properties(properties: PropertiesCard, mechanics: MechanicsCard) -> None:
+        """每个边界模型必须在同名外表面分区配置对应的外部属性"""
+        property_zones = {item.name: {zone.name for zone in item.zone} for item in properties.external_property}
+        for boundary in mechanics.boundary:
+            name = MechanicsCardExamine.BOUNDARY_PROPERTIES[boundary.model]
+            if boundary.name not in property_zones.get(name, set()):
+                raise ValueError(f"力学 {boundary.model} 边界 {boundary.name} 缺少 {name} 属性")
 
     @staticmethod
     def check_thermal_boundary_properties(properties: PropertiesCard, thermal: ThermalCard) -> None:

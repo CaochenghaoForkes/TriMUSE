@@ -267,6 +267,13 @@ class OutputManager:
         @classmethod
         def _mechanics_card(cls, root: ET.Element, card) -> None:
             cls._quantity(root, "thermal_expansion_reference_temperature", card.thermal_expansion_reference_temperature, "[K]")
+            for group, tag, configs in (("boundaries", "boundary", card.boundary),
+                                        ("interfaces", "interface", card.interfaces.interface)):
+                node = cls._node(root, group)
+                for element in node.findall(tag):
+                    node.remove(element)
+                for item in configs:
+                    cls._model(cls._node(node, tag, name=item.name), item.model, item.parameters)
 
         @classmethod
         def _thermal_card(cls, root: ET.Element, card) -> None:

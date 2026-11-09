@@ -1,5 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <mechanics>
-    <!-- 当前接入热膨胀参考温度的初始化，边界求解配置在力学模块中继续扩展 -->
     <thermal_expansion_reference_temperature value="273.15" unit="[K]"/>
+    <!-- 边界值配置在属性卡中，未指定的外表面默认为零面力 -->
+    <boundaries>
+        <!-- 读取同名分区的 external.surface_pressure，正压力沿表面内法向加载 -->
+        <boundary name="[str]" model="from_surface_pressure"/>
+        <!-- 读取同名分区的 external.surface_displacement，指定全部位移分量 -->
+        <boundary name="[str]" model="from_surface_displacement"/>
+        <!-- 指定面力时用下方节点替换对应边界，读取 external.surface_traction
+        <boundary name="[str]" model="from_surface_traction"/>
+        -->
+    </boundaries>
+    <!-- 名称引用材料层之间的界面，未指定时默认完美粘结 -->
+    <interfaces>
+        <interface name="[str]" model="perfect_contact"/>
+    </interfaces>
 </mechanics>
