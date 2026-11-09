@@ -48,11 +48,16 @@ file(GLOB_RECURSE RADIOACTIVITY_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/physics/radioactivity/*.cpp"
 )
 
+file(GLOB_RECURSE MECHANICS_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/physics/mechanics/*.cpp"
+)
+
 target_sources(trimuse_core PRIVATE
     common/linear_interpolation.cpp
     ${PROPERTY_SOURCES}
     ${THERMAL_SOURCES}
     ${RADIOACTIVITY_SOURCES}
+    ${MECHANICS_SOURCES}
     ${PHYSICS_COMMON_SOURCES}
 )
 
