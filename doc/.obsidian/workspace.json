@@ -14,8 +14,8 @@
               "type": "markdown",
               "state": {
                 "file": "TriMUSE v1.0/基本理论.md",
-                "mode": "source",
-                "source": false
+                "mode": "preview",
+                "source": true
               },
               "icon": "lucide-file",
               "title": "基本理论"

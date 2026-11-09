@@ -35,6 +35,7 @@ class MaterialCardExamine:
         "material.mechanics.young_modulus": DIRECTIONAL_MODELS,
         "material.mechanics.poisson_ratio": DIRECTIONAL_MODELS,
         "material.mechanics.shear_modulus": COMMON_MODELS | {"common.isotropy"},
+        "material.mechanics.thermal_expansion_coef": {"common.isotropy_constant", "common.anisotropy_constant"},
         "material.radioactivity.nuclide_diffusion_coef": COMMON_MODELS | {"common.arrhenius"} | set(TECDOC978_SYMBOLS),
     }
 
@@ -65,7 +66,8 @@ class MaterialCardExamine:
             cls.check_property(property_config, mat.name)
         mechanics = {item.property_name.rsplit(".", 1)[-1]: item for item in mat.properties
                      if item.property_name.startswith("material.mechanics.")}
-        directional = any(item.model.startswith("common.anisotropy_") for item in mechanics.values())
+        directional = any(item.model.startswith("common.anisotropy_")
+                          for name, item in mechanics.items() if name in ("young_modulus", "poisson_ratio"))
         shear = mechanics.get("shear_modulus")
         if directional and (shear is None or shear.model == "common.isotropy"):
             raise ValueError(f"{mat.name}: 横观各向同性材料必须显式指定 Grt，不能使用 common.isotropy")
@@ -160,7 +162,7 @@ class MaterialCardExamine:
 
     @staticmethod
     def check_mechanics_property(property_config: MaterialCard.Property, location: str) -> None:
-        """E 返回 [Er,Et]，nu 返回 [nu_rt,nu_tt]，G 返回标量 Grt。"""
+        """E、热膨胀系数返回径向和切向分量，nu 返回 [nu_rt,nu_tt]，G 返回标量"""
         name = property_config.property_name.rsplit(".", 1)[-1]
         model, parameters = property_config.model, property_config.parameters
         if model == "common.isotropy":
@@ -168,7 +170,7 @@ class MaterialCardExamine:
                 raise ValueError(f"{location}: common.isotropy 不需要构造参数")
             return
         anisotropic = model.startswith("common.anisotropy_")
-        components = ("r", "t") if name == "young_modulus" else ("rt", "tt")
+        components = ("r", "t") if name in ("young_modulus", "thermal_expansion_coef") else ("rt", "tt")
         if model.endswith("time_series"):
             times = parameters.get("times")
             keys = tuple(f"{component}_values" for component in components) if anisotropic else ("values",)
@@ -188,9 +190,10 @@ class MaterialCardExamine:
         if name in ("young_modulus", "shear_modulus"):
             if any(value <= 0 for samples in series for value in samples):
                 raise ValueError(f"{location}: 模量必须为正数")
-        elif anisotropic:
-            # nu_rt 的范围还取决于 Er/Et，不能套用各向同性的 (-1,0.5)。
-            if any(not -1 < value < 1 for value in series[1]):
-                raise ValueError(f"{location}: nu_tt 必须在 (-1,1) 内")
-        elif any(not -1 < value < 0.5 for value in series[0]):
-            raise ValueError(f"{location}: 各向同性泊松比必须在 (-1,0.5) 内")
+        elif name == "poisson_ratio":
+            if anisotropic:
+                # nu_rt 的范围还取决于 Er/Et，不能套用各向同性的 (-1,0.5)
+                if any(not -1 < value < 1 for value in series[1]):
+                    raise ValueError(f"{location}: nu_tt 必须在 (-1,1) 内")
+            elif any(not -1 < value < 0.5 for value in series[0]):
+                raise ValueError(f"{location}: 各向同性泊松比必须在 (-1,0.5) 内")

@@ -7,6 +7,7 @@
 #include "properties/material/mechanics/poisson_ratio/poisson_ratio_model_manager.hpp"
 #include "properties/material/mechanics/shear_modulus/shear_modulus_model_manager.hpp"
 #include "properties/material/mechanics/elasticity_tensor/elasticity_tensor_model_manager.hpp"
+#include "properties/material/mechanics/thermal_expansion_coef/thermal_expansion_coef_model_manager.hpp"
 
 namespace trimuse
 {
@@ -27,6 +28,7 @@ private:
     PoissonRatioModelManager poisson_ratio_model_manager_;
     ShearModulusModelManager shear_modulus_model_manager_;
     ElasticityTensorModelManager elasticity_tensor_model_manager_;
+    ThermalExpansionCoefModelManager thermal_expansion_coef_model_manager_;
 };
 
 }

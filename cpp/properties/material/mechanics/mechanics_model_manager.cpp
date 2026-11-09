@@ -11,6 +11,7 @@ void MechanicsModelManager::register_models()
     poisson_ratio_model_manager_.register_models();
     shear_modulus_model_manager_.register_models();
     elasticity_tensor_model_manager_.register_models();
+    thermal_expansion_coef_model_manager_.register_models();
 }
 
 void MechanicsModelManager::assign(int region_attribute, const std::string& property_name, const std::string& model_name, const ModelParameterMap& parameters)
@@ -35,6 +36,11 @@ void MechanicsModelManager::assign(int region_attribute, const std::string& prop
         elasticity_tensor_model_manager_.assign(region_attribute, model_name, parameters);
         return;
     }
+    if (property_name == "material.mechanics.thermal_expansion_coef")
+    {
+        thermal_expansion_coef_model_manager_.assign(region_attribute, model_name, parameters);
+        return;
+    }
     throw std::out_of_range("尚未支持的力学物性: " + property_name);
 }
 
@@ -56,6 +62,10 @@ StateValue MechanicsModelManager::evaluate(const std::string& property_name, con
     {
         return elasticity_tensor_model_manager_.evaluate(state_point);
     }
+    if (property_name == "material.mechanics.thermal_expansion_coef")
+    {
+        return thermal_expansion_coef_model_manager_.evaluate(state_point);
+    }
     throw std::out_of_range("尚未支持的力学物性: " + property_name);
 }
 
@@ -76,6 +86,10 @@ const std::vector<std::string>& MechanicsModelManager::required_states(const std
     if (property_name == "material.mechanics.elasticity_tensor")
     {
         return elasticity_tensor_model_manager_.required_states(model_name);
+    }
+    if (property_name == "material.mechanics.thermal_expansion_coef")
+    {
+        return thermal_expansion_coef_model_manager_.required_states(model_name);
     }
     throw std::out_of_range("尚未支持的力学物性: " + property_name);
 }

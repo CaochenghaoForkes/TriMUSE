@@ -68,6 +68,16 @@
             <!-- Grt 返回标量；各向同性时由 E/(2*(1+nu)) 计算，无需参数。 -->
             <!-- 剪切模量可选 common.isotropy、common.constant、common.time_series。 -->
             <shear_modulus model="common.isotropy"/>
+            <!-- 热膨胀系数返回 [alpha_r,alpha_t]，单位 K^-1 -->
+            <thermal_expansion_coef model="common.isotropy_constant">
+                <parameter name="isotropy_constant_value" value="[float]" unit="[1]/[K]" si_unit="[1]/[K]"/>
+            </thermal_expansion_coef>
+            <!-- 各向异性热膨胀时，用下方节点替换上面的 thermal_expansion_coef
+            <thermal_expansion_coef model="common.anisotropy_constant">
+                <parameter name="r_constant_value" value="[float]" unit="[1]/[K]" si_unit="[1]/[K]"/>
+                <parameter name="t_constant_value" value="[float]" unit="[1]/[K]" si_unit="[1]/[K]"/>
+            </thermal_expansion_coef>
+            -->
             <!-- 横观各向同性时，用下方三个节点替换上面的同名节点，必须独立指定 Grt。
             <young_modulus model="common.anisotropy_constant">
                 <parameter name="r_constant_value" value="[float]" unit="[Pa]" si_unit="[Pa]"/>

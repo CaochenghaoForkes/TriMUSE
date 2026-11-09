@@ -123,6 +123,7 @@ private:
         {"material.mechanics.poisson_ratio", PropertyType::Material, PropertyScope::IntegrationPoint}, // 无量纲, [nu_rt, nu_tt]，径向受力的切向泊松比、切向之间的泊松比
         {"material.mechanics.shear_modulus", PropertyType::Material, PropertyScope::IntegrationPoint}, // Pa, 标量 Grt；由用户在材料卡中指定模型
         {"material.mechanics.elasticity_tensor", PropertyType::Material, PropertyScope::IntegrationPoint, "common.from_engineering_constants"}, // Pa
+        {"material.mechanics.thermal_expansion_coef", PropertyType::Material, PropertyScope::IntegrationPoint}, // K^-1, [alpha_r, alpha_t]，径向、切向热膨胀系数
         {"material.radioactivity.nuclide_diffusion_coef", PropertyType::Material, PropertyScope::IntegrationPoint} // m²/s
     };
 
