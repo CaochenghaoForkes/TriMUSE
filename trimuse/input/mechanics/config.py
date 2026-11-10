@@ -8,7 +8,7 @@ from ..xml_utils import XmlUtils
 
 @dataclass
 class MechanicsCard:
-    """力学参考温度、外表面边界和内部材料界面配置"""
+    """力学参考温度、外表面边界、内部材料界面和体积力配置"""
 
     @dataclass
     class Boundary:
@@ -26,9 +26,16 @@ class MechanicsCard:
 
         interface: list[Interface] = field(default_factory=list)
 
+    @dataclass
+    class BodyForce:
+        region: str
+        model: str
+        parameters: dict[str, float | list[float]] = field(default_factory=dict)
+
     thermal_expansion_reference_temperature: float
     boundary: list[Boundary] = field(default_factory=list)
     interfaces: Interfaces = field(default_factory=Interfaces)
+    body_force: list[BodyForce] = field(default_factory=list)
 
 class MechanicsCardLoader:
     @classmethod
@@ -44,7 +51,9 @@ class MechanicsCardLoader:
         boundaries = XmlUtils.read_child(root, "boundaries", required=False)
         boundary = [cls.read_boundary(element) for element in XmlUtils.read_children(boundaries, "boundary")] if boundaries is not None else []
         interfaces = cls.read_interfaces(XmlUtils.read_child(root, "interfaces", required=False))
-        return MechanicsCard(thermal_expansion_reference_temperature=temperature, boundary=boundary, interfaces=interfaces)
+        body_forces = XmlUtils.read_child(root, "body_forces", required=False)
+        body_force = [cls.read_body_force(element) for element in XmlUtils.read_children(body_forces, "body_force")] if body_forces is not None else []
+        return MechanicsCard(thermal_expansion_reference_temperature=temperature, boundary=boundary, interfaces=interfaces, body_force=body_force)
 
     @staticmethod
     def read_boundary(element: ET.Element) -> MechanicsCard.Boundary:
@@ -62,3 +71,9 @@ class MechanicsCardLoader:
         name = XmlUtils.read_attribute(element, "name", required=True)
         model_config = XmlUtils.read_model(element, context=f"interfaces.{name}")
         return MechanicsCard.Interfaces.Interface(name=name, **model_config)
+
+    @staticmethod
+    def read_body_force(element: ET.Element) -> MechanicsCard.BodyForce:
+        region = XmlUtils.read_attribute(element, "region", required=True)
+        model_config = XmlUtils.read_model(element, context=f"body_forces.{region}")
+        return MechanicsCard.BodyForce(region=region, **model_config)

@@ -274,6 +274,13 @@ class OutputManager:
                     node.remove(element)
                 for item in configs:
                     cls._model(cls._node(node, tag, name=item.name), item.model, item.parameters)
+            body_forces = cls._node(root, "body_forces")
+            regions = {item.region for item in card.body_force}
+            for element in body_forces.findall("body_force"):
+                if element.get("region") not in regions:
+                    body_forces.remove(element)
+            for item in card.body_force:
+                cls._model(cls._node(body_forces, "body_force", region=item.region), item.model, item.parameters)
 
         @classmethod
         def _thermal_card(cls, root: ET.Element, card) -> None:

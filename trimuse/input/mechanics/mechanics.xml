@@ -15,4 +15,10 @@
     <interfaces>
         <interface name="[str]" model="perfect_contact"/>
     </interfaces>
+    <!-- 可选体积力，未配置区域为零；2D acceleration 为 [r,z] 且径向为 0，3D 为 [x,y,z]，1D 球对称不支持固定方向重力 -->
+    <body_forces>
+        <body_force region="[str]" model="gravity">
+            <parameter name="acceleration" value="0 -9.81" unit="[m]/[s]^2" si_unit="[m]/[s]^2"/>
+        </body_force>
+    </body_forces>
 </mechanics>

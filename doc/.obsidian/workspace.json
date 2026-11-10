@@ -83,8 +83,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300,
-    "collapsed": true
+    "width": 300
   },
   "right": {
     "id": "134f8b9b3980ec1d",
@@ -191,11 +190,11 @@
   },
   "active": "f06c16a0a362e3e1",
   "lastOpenFiles": [
-    "TriMUSE v1.0/BISON_TRISO_热力与核素行为模型调研.md",
-    "TriMUSE v1.0/基本理论.md",
-    "TriMUSE v1.0/BISON作者 WenJiang 第一次讨论.md",
-    "TriMUSE v0.5/程序指南.md",
     "TriMUSE v0.5/基本理论.md",
+    "TriMUSE v1.0/基本理论.md",
+    "TriMUSE v0.5/程序指南.md",
+    "TriMUSE v1.0/BISON_TRISO_热力与核素行为模型调研.md",
+    "TriMUSE v1.0/BISON作者 WenJiang 第一次讨论.md",
     "TriMUSE v1.0/附件/Pasted image 20261106191838.png",
     "TriMUSE v1.0/平底颗粒几何.eddx",
     "TriMUSE v1.0/附件/Pasted image 20261106162226.png",

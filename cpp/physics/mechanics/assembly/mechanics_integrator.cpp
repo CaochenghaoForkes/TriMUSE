@@ -59,6 +59,41 @@ std::shared_ptr<mfem::SparseMatrix> MechanicsIntegrator::domain_matrix(int regio
     return result;
 }
 
+std::shared_ptr<mfem::Vector> MechanicsIntegrator::domain_load(int region, const std::vector<VectorValue>& values) // 组装 region 内体积力贡献的总体载荷 int_Omega (N^e)^T b
+{
+    auto result = std::make_shared<mfem::Vector>(trial_field_.size()); // 完整自由度长度，只累加当前区域的贡献
+    *result = 0.0;
+    mfem::IsoparametricTransformation transformation;
+    mfem::Vector shape, local;
+    mfem::Array<int> dofs;
+    for (int element : fem_.mesh_data().region_elements(region))
+    {
+        const auto* fe = trial_field_.space(region).GetFE(trial_field_.local_element(element)); // 取得当前有限元对象
+        fem_.mesh_data().mfem_mesh().GetElementTransformation(element, &transformation); // 取得当前几何映射
+        const auto* rule = fem_.domain_quadrature_rule(fe->GetGeomType()); // 取得当前求积规则
+        const auto offset = fem_.domain_quadrature_offset(element); // 取得当前单元积分点全局偏移量
+        shape.SetSize(fe->GetDof());
+        local.SetSize(fe->GetDof() * dimension_);
+        local = 0.0;
+        for (int q = 0; q < rule->GetNPoints(); ++q) // 遍历积分点
+        {
+            const auto& point = rule->IntPoint(q); // 取得当前积分点位置
+            transformation.SetIntPoint(&point); // 设置转化为当前位置
+            fe->CalcShape(point, shape); // 计算形函数
+            const auto& force = values[offset + q]; // 直接读取体积力，如重力模型已包含 rho*g
+            const double weight = point.weight * transformation.Weight() * fem_.geometric_weight(transformation, point);
+            for (int c = 0; c < dimension_; ++c) // 遍历维度
+            for (int i = 0; i < shape.Size(); ++i) // 遍历插值节点
+            {
+                local[c * shape.Size() + i] += weight * shape[i] * force[c]; // f^e_{c,i} += wq Jq gq Ni b_c
+            }
+        }
+        trial_field_.element_dofs(element, dofs); // 连续场或分域场的完整自由度编号，局部按分量分块排列
+        result->AddElementVector(dofs, local);
+    }
+    return result;
+}
+
 std::shared_ptr<mfem::Vector> MechanicsIntegrator::eigenstrain_load(int region, const std::vector<VectorValue>& values) // 组装 region 贡献的总体本征应变构成的载荷向量 int_Omega (B^e)^T W C_{global} \epsilon^*_{global}
 {
     auto result = std::make_shared<mfem::Vector>(trial_field_.size()); // 初始化本征载荷向量

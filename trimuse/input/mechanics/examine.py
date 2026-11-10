@@ -32,3 +32,15 @@ class MechanicsCardExamine:
                 raise ValueError(f"{location}: model 必须为 perfect_contact")
             if interface.parameters:
                 raise ValueError(f"{location}: perfect_contact 不需要模型参数")
+        regions = [item.region for item in card.body_force]
+        if len(regions) != len(set(regions)):
+            raise ValueError("mechanics.body_forces: 区域不能重复")
+        for item in card.body_force:
+            location = f"mechanics.body_forces.{item.region}"
+            if item.model != "gravity":
+                raise ValueError(f"{location}: model 必须为 gravity")
+            if set(item.parameters) != {"acceleration"}:
+                raise ValueError(f"{location}: gravity 只接受 acceleration 参数")
+            acceleration = item.parameters["acceleration"]
+            if not isinstance(acceleration, list) or not acceleration or not all(math.isfinite(value) for value in acceleration):
+                raise ValueError(f"{location}: acceleration 必须为非空的有限数值向量")

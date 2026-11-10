@@ -33,6 +33,7 @@ class InputCardsExamine:
         if mechanics is not None:
             cls.check_mechanics_references(geometry_mesh, mechanics)
             cls.check_mechanics_boundary_properties(properties, mechanics)
+            cls.check_mechanics_body_forces(geometry_mesh, material, mechanics)
         if postprocess is not None:
             cls.check_postprocess_geometry(geometry_mesh, postprocess)
         if radioactivity is None and any(
@@ -180,6 +181,29 @@ class InputCardsExamine:
             unknown = {item.name for item in items} - allowed
             if unknown:
                 raise ValueError(f"{location}引用了不存在的几何名称: {', '.join(sorted(unknown))}")
+
+    @staticmethod
+    def check_mechanics_body_forces(geometry_mesh: GeometryMeshCard, material: MaterialCard, mechanics: MechanicsCard) -> None:
+        """检查体积力的区域、维数、对称性和材料密度依赖"""
+        geometry = getattr(geometry_mesh.geometry, geometry_mesh.geometry.source)
+        region_names = {region.name for region in geometry.regions.region}
+        unknown = {item.region for item in mechanics.body_force} - region_names
+        if unknown:
+            raise ValueError(f"力学体积力引用了不存在的区域: {', '.join(sorted(unknown))}")
+        dimension = geometry_mesh.model.dimension
+        materials = {item.name: item for item in material.mat}
+        region_materials = {item.name: materials[item.mat] for item in material.assign.region}
+        for item in mechanics.body_force:
+            location = f"mechanics.body_forces.{item.region}"
+            if dimension == 1:
+                raise ValueError(f"{location}: 1D 球对称模型不支持固定方向重力")
+            acceleration = item.parameters["acceleration"]
+            if len(acceleration) != dimension:
+                raise ValueError(f"{location}: acceleration 分量数必须等于问题维数 {dimension}")
+            if dimension == 2 and acceleration[0] != 0.0:
+                raise ValueError(f"{location}: 2D 轴对称模型的重力只能沿轴向，径向加速度必须为 0")
+            if not any(prop.property_name == "material.general.mass_density" for prop in region_materials[item.region].properties):
+                raise ValueError(f"{location}: gravity 需要该区域材料的 mass_density 属性")
 
     @staticmethod
     def check_mechanics_boundary_properties(properties: PropertiesCard, mechanics: MechanicsCard) -> None:
