@@ -121,6 +121,7 @@ private:
         {"derived.fast_neutron_fluence", PropertyType::Derived, PropertyScope::Global}, // 1/m², 累积快中子注量
         {"material.general.porosity", PropertyType::Material, PropertyScope::IntegrationPoint},
         {"material.general.mass_density", PropertyType::Material, PropertyScope::IntegrationPoint},
+        {"material.general.crystallite_diameter", PropertyType::Material, PropertyScope::Region}, // m，各区域的微晶直径 Lc
         {"material.general.initial_bacon_anisotropy_factor", PropertyType::Material, PropertyScope::IntegrationPoint}, // 无量纲，初始 BAF
         {"material.general.bacon_anisotropy_factor", PropertyType::Material, PropertyScope::IntegrationPoint}, // 无量纲，当前 BAF
         {"material.thermal.conductivity", PropertyType::Material, PropertyScope::IntegrationPoint},

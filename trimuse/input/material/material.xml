@@ -141,6 +141,10 @@
                 <parameter name="values" value="[float] [float]" unit="[kg]/[m]^3" si_unit="[kg]/[m]^3"/>
             </mass_density>
             -->
+            <!-- 微晶直径按 Region 存储，各区域内均匀，只支持 common.constant 正标量；30 Å = 3e-9 m，不需要时可删除 -->
+            <crystallite_diameter model="common.constant">
+                <parameter name="constant_value" value="3e-9" unit="[m]" si_unit="[m]"/>
+            </crystallite_diameter>
             <!-- PyC 的初始 BAF 只支持常数，BAF 为无量纲且不小于 1；其他材料可删除这两项 -->
             <initial_bacon_anisotropy_factor model="common.constant">
                 <parameter name="constant_value" value="1.0" unit="[1]" si_unit="[1]"/>

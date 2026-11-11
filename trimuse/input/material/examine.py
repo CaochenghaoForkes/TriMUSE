@@ -27,6 +27,7 @@ class MaterialCardExamine:
     MODELS = {
         "material.general.porosity": COMMON_MODELS,
         "material.general.mass_density": COMMON_MODELS,
+        "material.general.crystallite_diameter": {"common.constant"},
         "material.general.initial_bacon_anisotropy_factor": {"common.constant"},
         "material.general.bacon_anisotropy_factor": COMMON_MODELS | {"pyc.bison_2021"},
         "material.thermal.conductivity": {
@@ -89,7 +90,11 @@ class MaterialCardExamine:
             numbers = value if isinstance(value, list) else [value]
             if not all(math.isfinite(number) for number in numbers):
                 raise ValueError(f"{location}: 参数值必须有限")
-        if property_config.property_name in ("material.general.initial_bacon_anisotropy_factor", "material.general.bacon_anisotropy_factor"):
+        if property_config.property_name == "material.general.crystallite_diameter":
+            value = property_config.parameters.get("constant_value")
+            if not isinstance(value, float) or value <= 0:
+                raise ValueError(f"{location}: constant_value 必须为正标量，单位为 m")
+        elif property_config.property_name in ("material.general.initial_bacon_anisotropy_factor", "material.general.bacon_anisotropy_factor"):
             MaterialCardExamine.check_bacon_anisotropy_factor(property_config, location)
         elif property_config.property_name == "material.radioactivity.nuclide_diffusion_coef":
             if property_config.model in MaterialCardExamine.TECDOC978_SYMBOLS:
