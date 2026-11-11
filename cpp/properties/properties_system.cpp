@@ -169,13 +169,13 @@ void PropertiesSystem::prepare_dependencies() // 标记各个属性在各个区�
                 {
                     continue; // 任意类型的属性依赖自身时，读取已接受的旧值，不构成当前时刻的依赖环
                 }
-                if (solution_field_states.count(required_name) != 0) // 检查依赖名称是否在求解场名称集合中
+                if (field_state_owners_.count(required_name) != 0) // 检查依赖是否为求解场或由求解场恢复的状态量
                 {
                     if (property.type != PropertyType::Material) // 只有材料属性允许依赖求解场 外部属性或派生属性如果声明依赖温度、浓度等求解场，就报错
                     {
                         throw std::logic_error("外部量和派生量不能依赖求解场: " + property.name);
                     }
-                    property.field_regions[required_name].insert(location); // 记录当前属性在这个位置依赖该场
+                    property.field_regions[field_state_owners_.at(required_name)].insert(location); // 按所属求解场登记依赖，stress 和 strain 随 displacement 更新
                     continue;
                 }
                 const std::size_t upstream_index = property_index(required_name); // 如果依赖的是其他属性 还要检查该属性(称之为上游属性) 首先查询该上游属性在 properties_ 中的下标
@@ -236,9 +236,9 @@ void PropertiesSystem::mark_coupled(const std::string& field_name, const std::ve
                 {
                     continue;
                 }
-                if (solution_field_states.count(required_name) != 0)
+                if (field_state_owners_.count(required_name) != 0)
                 {
-                    continue; // 如果依赖本身就是 "temperature" 等求解场，跳过
+                    continue; // 状态量是依赖传播的终点，保留原状态名供后续取值
                 }
                 PropertyInfo& upstream = property_info(required_name); // 取得上游属性记录
                 const int upstream_location = upstream.scope == PropertyScope::Global ? 0 : region_attribute; // 确定上游对应的位置：全局属性使用 0，其他使用相同配置编号
@@ -463,11 +463,10 @@ void PropertiesSystem::evaluate_and_store_points(const Manager& manager, const P
         {
             continue;
         } 
-        if (solution_field_states.count(required_name) != 0)
+        if (field_state_owners_.count(required_name) != 0)
         {
             const auto trial_entry = trial_fields.find(required_name); // 为当前依赖的求解场选择数据来源: 有试探场就用试探场，否则用 FemSystem 中的正式场，并把选好的视图存入列表
-            required_field_views.emplace_back(required_name,
-                trial_entry != trial_fields.end() ? trial_entry->second : fem_system_.field_view(required_name));
+            required_field_views.emplace_back(required_name, trial_entry != trial_fields.end() ? trial_entry->second : fem_system_.field_view(required_name));
             continue;
         }
         (property_info(required_name).scope == PropertyScope::IntegrationPoint ? point_required : common_required).push_back(required_name); // 积分点属性加入 point_required 其他属性加入 common_required

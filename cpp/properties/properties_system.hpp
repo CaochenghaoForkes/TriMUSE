@@ -134,7 +134,15 @@ private:
         {"material.radioactivity.nuclide_diffusion_coef", PropertyType::Material, PropertyScope::IntegrationPoint} // m²/s
     };
 
-    inline static const std::unordered_set<std::string> solution_field_states = {"temperature", "concentration", "displacement", "stress", "strain"}; // 求解场的状态名集合 inline: 静态成员变量直接在类定义中初始化，放在头文件里被多个 .cpp 包含，也不会产生重复定义错误；整个程序共享同一个实体
+    // 状态名 -> 负责更新它的求解场，模型取值仍使用原状态名
+    // inline: 静态成员变量直接在类定义中初始化，放在头文件里被多个 .cpp 包含，也不会产生重复定义错误；整个程序共享同一个实体
+    inline static const std::unordered_map<std::string, std::string> field_state_owners_ = {
+        {"temperature", "temperature"},
+        {"concentration", "concentration"},
+        {"displacement", "displacement"},
+        {"stress", "displacement"},
+        {"strain", "displacement"}
+    };
 
     // 场名 -> 程序内置且无需用户选择模型的固定关系属性
     inline static const std::unordered_map<std::string, std::vector<std::string>> field_required_properties_ = {
