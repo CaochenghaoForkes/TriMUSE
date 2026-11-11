@@ -27,6 +27,7 @@ class InputCardsExamine:
         cls.check_material_assignments(geometry_mesh, material)
         cls.check_properties_references(geometry_mesh, properties)
         cls.check_bacon_anisotropy_factor_dependencies(material, properties)
+        cls.check_mechanics_material_dependencies(material, properties, thermal)
         if thermal is not None:
             cls.check_thermal_references(geometry_mesh, thermal)
             cls.check_thermal_boundary_properties(properties, thermal)
@@ -57,6 +58,19 @@ class InputCardsExamine:
         if uses_bison and not any(item.name == "derived.fast_neutron_fluence" and item.global_ is not None
                                   for item in properties.derived_property):
             raise ValueError("pyc.bison_2021 BAF 模型需要全局 derived.fast_neutron_fluence")
+
+    @staticmethod
+    def check_mechanics_material_dependencies(material: MaterialCard, properties: PropertiesCard, thermal: ThermalCard | None) -> None:
+        """检查已分配材料的 BISON 力学物性所需的温度场和全局快中子注量"""
+        assigned = {region.mat for region in material.assign.region}
+        required = {name for mat in material.mat if mat.name in assigned for item in mat.properties
+                    for name in MaterialCardExamine.BISON_MODELS.get(item.property_name, {}).get(item.model, ())}
+        if "temperature" in required and thermal is None:
+            raise ValueError("BISON 力学物性模型依赖温度场，必须提供 thermal 输入卡")
+        if "derived.fast_neutron_fluence" in required and not any(
+            item.name == "derived.fast_neutron_fluence" and item.global_ is not None for item in properties.derived_property
+        ):
+            raise ValueError("BISON 力学物性模型需要全局 derived.fast_neutron_fluence")
 
     @staticmethod
     def check_radioactivity_dependencies(material: MaterialCard, properties: PropertiesCard, radioactivity: RadioactivityCard, thermal: ThermalCard | None) -> None:

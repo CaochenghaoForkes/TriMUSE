@@ -120,6 +120,20 @@
                 <parameter name="values" value="[float] [float]" unit="[Pa]" si_unit="[Pa]"/>
             </shear_modulus>
             -->
+            <!-- BISON 2021 经验模型：用下方节点替换对应的同名物性节点，均不接收构造参数
+                 UO2 的 E、nu 读取 mass_density，理论密度在模型内固定为 10960 kg/m³
+                 Buffer 的 E 读取 mass_density、全局 derived.fast_neutron_fluence 和 temperature
+                 PyC 的 E 读取 mass_density、initial_bacon_anisotropy_factor、区域 crystallite_diameter、注量和温度
+                 PyC 的 E 返回 [Er,Et]，必须另外指定 Grt；微晶直径输入单位为 m
+                 Buffer 的热膨胀系数读取温度，PyC 的热膨胀系数读取温度和当前 bacon_anisotropy_factor
+                 除 UO2 泊松比外，这些模型都需要 thermal 输入卡提供温度场
+            <young_modulus model="kernel.bison_2021_uo2"/>
+            <young_modulus model="buffer.bison_2021"/>
+            <young_modulus model="pyc.bison_2021"/>
+            <poisson_ratio model="kernel.bison_2021_uo2"/>
+            <thermal_expansion_coef model="buffer.bison_2021"/>
+            <thermal_expansion_coef model="pyc.bison_2021"/>
+            -->
         </mechanics>
         <!-- 不需要通用物性时可删除 general 节点 -->
         <general>

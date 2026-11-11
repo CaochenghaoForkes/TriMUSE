@@ -1,6 +1,8 @@
 #include "properties/material/mechanics/thermal_expansion_coef/thermal_expansion_coef_model_manager.hpp"
 #include "properties/material/mechanics/thermal_expansion_coef/common/isotropy_constant_thermal_expansion_coef.hpp"
 #include "properties/material/mechanics/thermal_expansion_coef/common/anisotropy_constant_thermal_expansion_coef.hpp"
+#include "properties/material/mechanics/thermal_expansion_coef/buffer/bison_2021_buffer_thermal_expansion_coef.hpp"
+#include "properties/material/mechanics/thermal_expansion_coef/pyc/bison_2021_pyc_thermal_expansion_coef.hpp"
 
 namespace trimuse
 {
@@ -11,6 +13,8 @@ void ThermalExpansionCoefModelManager::register_models()
 {
     registry_.register_model<IsotropyConstantThermalExpansionCoef>("common.isotropy_constant");
     registry_.register_model<AnisotropyConstantThermalExpansionCoef>("common.anisotropy_constant");
+    registry_.register_model<Bison2021BufferThermalExpansionCoef>("buffer.bison_2021", {"temperature"});
+    registry_.register_model<Bison2021PycThermalExpansionCoef>("pyc.bison_2021", {"temperature", "material.general.bacon_anisotropy_factor"});
 }
 
 void ThermalExpansionCoefModelManager::assign(int region_attribute, const std::string& model_name, const ModelParameterMap& parameters)

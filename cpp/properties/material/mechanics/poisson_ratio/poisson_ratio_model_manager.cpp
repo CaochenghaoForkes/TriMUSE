@@ -3,6 +3,7 @@
 #include "properties/material/mechanics/poisson_ratio/common/anisotropy_constant_poisson_ratio.hpp"
 #include "properties/material/mechanics/poisson_ratio/common/isotropy_time_series_poisson_ratio.hpp"
 #include "properties/material/mechanics/poisson_ratio/common/anisotropy_time_series_poisson_ratio.hpp"
+#include "properties/material/mechanics/poisson_ratio/kernel/bison_2021_uo2_poisson_ratio.hpp"
 
 namespace trimuse
 {
@@ -15,6 +16,7 @@ void PoissonRatioModelManager::register_models()
     registry_.register_model<AnisotropyConstantPoissonRatio>("common.anisotropy_constant");
     registry_.register_model<IsotropyTimeSeriesPoissonRatio>("common.isotropy_time_series", {"external.time"});
     registry_.register_model<AnisotropyTimeSeriesPoissonRatio>("common.anisotropy_time_series", {"external.time"});
+    registry_.register_model<Bison2021Uo2PoissonRatio>("kernel.bison_2021_uo2", {"material.general.mass_density"});
 }
 
 void PoissonRatioModelManager::assign(int region_attribute, const std::string& model_name, const ModelParameterMap& parameters)

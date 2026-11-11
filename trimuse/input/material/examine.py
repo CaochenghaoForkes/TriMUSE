@@ -24,6 +24,21 @@ class MaterialCardExamine:
         "sic.tecdoc978_japan": {"Cs", "Sr", "Ag", "Xe"},
         "sic.tecdoc978_russian": {"Cs", "Ag"},
     }
+    BISON_MODELS = {
+        "material.mechanics.young_modulus": {
+            "kernel.bison_2021_uo2": ("temperature", "material.general.mass_density"),
+            "buffer.bison_2021": ("temperature", "material.general.mass_density", "derived.fast_neutron_fluence"),
+            "pyc.bison_2021": ("temperature", "material.general.mass_density", "material.general.initial_bacon_anisotropy_factor",
+                               "material.general.crystallite_diameter", "derived.fast_neutron_fluence"),
+        },
+        "material.mechanics.poisson_ratio": {
+            "kernel.bison_2021_uo2": ("material.general.mass_density",),
+        },
+        "material.mechanics.thermal_expansion_coef": {
+            "buffer.bison_2021": ("temperature",),
+            "pyc.bison_2021": ("temperature", "material.general.bacon_anisotropy_factor"),
+        },
+    }
     MODELS = {
         "material.general.porosity": COMMON_MODELS,
         "material.general.mass_density": COMMON_MODELS,
@@ -35,10 +50,10 @@ class MaterialCardExamine:
             "buffer.bison_2021", "buffer.uk_2004", "sic.miller", "sic.cea_2004",
         },
         "material.thermal.specific_heat": COMMON_MODELS | {"kernel.fink_2000_uo2", "sic.bison_2021"},
-        "material.mechanics.young_modulus": DIRECTIONAL_MODELS,
-        "material.mechanics.poisson_ratio": DIRECTIONAL_MODELS,
+        "material.mechanics.young_modulus": DIRECTIONAL_MODELS | set(BISON_MODELS["material.mechanics.young_modulus"]),
+        "material.mechanics.poisson_ratio": DIRECTIONAL_MODELS | set(BISON_MODELS["material.mechanics.poisson_ratio"]),
         "material.mechanics.shear_modulus": COMMON_MODELS | {"common.isotropy"},
-        "material.mechanics.thermal_expansion_coef": {"common.isotropy_constant", "common.anisotropy_constant"},
+        "material.mechanics.thermal_expansion_coef": {"common.isotropy_constant", "common.anisotropy_constant"} | set(BISON_MODELS["material.mechanics.thermal_expansion_coef"]),
         "material.radioactivity.nuclide_diffusion_coef": COMMON_MODELS | {"common.arrhenius"} | set(TECDOC978_SYMBOLS),
     }
 
@@ -67,12 +82,16 @@ class MaterialCardExamine:
             raise ValueError(f"材料 {mat.name} 重复配置物性")
         for property_config in mat.properties:
             cls.check_property(property_config, mat.name)
+            required = cls.BISON_MODELS.get(property_config.property_name, {}).get(property_config.model, ())
+            missing = [name for name in required if name.startswith("material.") and name not in property_names]
+            if missing:
+                raise ValueError(f"{mat.name}.{property_config.property_name}: {property_config.model} 缺少物性 {', '.join(missing)}")
         if any(item.property_name == "material.general.bacon_anisotropy_factor" and item.model == "pyc.bison_2021"
                for item in mat.properties) and "material.general.initial_bacon_anisotropy_factor" not in property_names:
             raise ValueError(f"{mat.name}: pyc.bison_2021 需要同一材料的 initial_bacon_anisotropy_factor")
         mechanics = {item.property_name.rsplit(".", 1)[-1]: item for item in mat.properties
                      if item.property_name.startswith("material.mechanics.")}
-        directional = any(item.model.startswith("common.anisotropy_")
+        directional = any(item.model.startswith("common.anisotropy_") or (name == "young_modulus" and item.model == "pyc.bison_2021")
                           for name, item in mechanics.items() if name in ("young_modulus", "poisson_ratio"))
         shear = mechanics.get("shear_modulus")
         if directional and (shear is None or shear.model == "common.isotropy"):
@@ -193,6 +212,10 @@ class MaterialCardExamine:
     @staticmethod
     def check_mechanics_property(property_config: MaterialCard.Property, location: str) -> None:
         """E、热膨胀系数返回径向和切向分量，nu 返回 [nu_rt,nu_tt]，G 返回标量"""
+        if property_config.model in MaterialCardExamine.BISON_MODELS.get(property_config.property_name, {}):
+            if property_config.parameters:
+                raise ValueError(f"{location}: {property_config.model} 不需要构造参数")
+            return
         name = property_config.property_name.rsplit(".", 1)[-1]
         model, parameters = property_config.model, property_config.parameters
         if model == "common.isotropy":
