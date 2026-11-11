@@ -30,7 +30,7 @@ public:
 
     MechanicsBoundaryType type(int zone) const; // 指定边界区域的模型的返回类型 三类力学边界 0-Traction 面力向量 1-Displacement 各向位移 2-Pressure 法向压力
 
-    bool essential(int zone) const; // 指定位移为本质边界，面力和压力为自然边界
+    bool essential(int zone) const; // 判断指定边界区域是否为给定位移的本质边界
 
 private:
     struct Assignment
