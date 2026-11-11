@@ -183,4 +183,28 @@ std::shared_ptr<mfem::Vector> MechanicsIntegrator::boundary_load(const std::vect
     return result;
 }
 
+void MechanicsIntegrator::recover_state(const std::vector<ElasticityTensorValue>& elasticity, const std::vector<VectorValue>& eigenstrain_coefficients, std::vector<VectorValue>& strain_values, std::vector<VectorValue>& stress_values) const // 从当前完整试探位移中提取各单元的位移，在每个求积点计算应变、应力，并直接写入传入的结果数组 传入弹性矩阵 CV 各求积点点 beta=Cv\epsilonV*
+{
+    const mfem::Vector displacement = trial_field_.values(); // 取得完整位移场向量
+    mfem::Array<int> dofs; // 当前单元的各个位移自由度在完整向量中的编号
+    mfem::Vector local_displacement; // 按这些编号提取出的单元位移向量 d^e
+    for (int element = 0; element < fem_.mesh_data().element_count(); ++element) // 遍历原网格域单元，提取单元位移
+    {
+        trial_field_.element_dofs(element, dofs);  // 取得当前单元的完整自由度编号
+        displacement.GetSubVector(dofs, local_displacement); // 按 dofs 从完整位移向量中提取当前单元的位移 如 d^e=[u_{r,1},u_{r,2},u_{r,3},u_{z,1},u_{z,2},u_{z,3}]^T
+        for (std::size_t point = fem_.domain_quadrature_offset(element); point < fem_.domain_quadrature_offset(element + 1); ++point) // 遍历当前求积点
+        {
+            mfem::Vector strain(strain_values[point].data(), 6); // 为输出数组建立 MFEM 向量视图 .data() 容器方法返回内部连续数据的指针，让 MFEM 向量直接使用这6个数值的存储空间，因此给 strain 写值就会直接修改原来的 strain_values[point]
+            mfem::Vector stress(stress_values[point].data(), 6); // 为输出数组建立 MFEM 向量视图 .data() 容器方法返回内部连续数据的指针，让 MFEM 向量直接使用这6个数值的存储空间，因此给 stress 写值就会直接修改原来的 stress_values[point]
+            strain_matrices_[point].Mult(local_displacement, strain); // 总应变 epsilon_V = B d
+            const mfem::DenseMatrix elasticity_matrix(elasticity[point].data); // 将该点的六乘六弹性矩阵包装成 MFEM 稠密矩阵对象 .data 是我们自己定义的那个6*6数组
+            elasticity_matrix.Mult(strain, stress); // sigma_V = C_V epsilon_V，本构计算不乘双点乘权重 W
+            for (int component = 0; component < 6; ++component) // 逐分量扣除
+            {
+                stress[component] -= eigenstrain_coefficients[point][component]; // 扣除 beta = C_V epsilon*_V，当前为热膨胀贡献
+            }
+        }
+    }
+}
+
 }

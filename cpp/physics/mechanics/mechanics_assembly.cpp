@@ -1,4 +1,5 @@
 #include "physics/mechanics/mechanics_assembly.hpp"
+#include "physics/mechanics/mechanics_state.hpp"
 #include "physics/common/assembly/assembly_utils.hpp"
 #include "physics/mechanics/constraint/rigid_body_constraints.hpp"
 
@@ -204,6 +205,11 @@ void MechanicsAssembly::form_system(const mfem::SparseMatrix& matrix, const mfem
 void MechanicsAssembly::recover(const mfem::Vector& reduced_displacement) // 将独立自由度位移恢复完整自由度位移
 {
     trial_field_.set_values(constraints_.recover(reduced_displacement)); 
+}
+
+void MechanicsAssembly::update_state(MechanicsState& mechanics_state) const // 更新各求积点的试探应变、应力
+{
+    mechanics_state.update(integrator_, stiffness_manager_.values(), thermal_expansion_manager_.values());
 }
 
 const MechanicsAssembly::Counts& MechanicsAssembly::counts() const // 返回组装次数信息表

@@ -12,6 +12,8 @@
 namespace trimuse
 {
 
+class MechanicsState;
+
 class MechanicsAssembly // 汇集完整自由度上的刚度与载荷，统一处理位移约束和求解结果恢复
 {
 public:
@@ -37,6 +39,8 @@ public:
     void form_system(const mfem::SparseMatrix& matrix, const mfem::Vector& rhs, mfem::SparseMatrix& system, mfem::Vector& load, mfem::Vector& reduced_displacement) const; // 收集指定位移与刚体约束，再约化方程并进行 Dirichlet 消元
 
     void recover(const mfem::Vector& reduced_displacement); // 完整位移 = P * 独立位移，将结果写入试探场
+
+    void update_state(MechanicsState& mechanics_state) const; // 使用最近一次 update 的 C、beta 及当前试探位移恢复应变和应力，不重新组装
 
     const Counts& counts() const; // 返回组装次数信息表
 
