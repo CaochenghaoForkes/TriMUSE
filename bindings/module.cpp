@@ -7,6 +7,7 @@
 #include "fem/fem_system.hpp"
 #include "output/output_manager.hpp"
 #include "physics/thermal/thermal_problem.hpp"
+#include "physics/mechanics/mechanics_problem.hpp"
 #include "physics/radioactivity/radioactivity_problem.hpp"
 #include "properties/properties_system.hpp"
 #include "solver/solver_system.hpp"
@@ -74,9 +75,9 @@ PYBIND11_MODULE(_core, module)
         .def(py::init<trimuse::FemSystem&, const std::string&>(),
              py::arg("fem_system"), py::arg("output_directory"), py::keep_alive<1, 2>())
         .def("add_field", &trimuse::OutputManager::add_field,
-             py::arg("field_name"), py::arg("directory_name"))
-        .def("save", &trimuse::OutputManager::save,
-             py::arg("field_name"), py::arg("cycle"), py::arg("time"), py::arg("time_step"))
+             py::arg("field_name"), py::arg("directory_name"), py::arg("project_to_l2") = false, py::arg("order") = 0)
+        .def("save", py::overload_cast<const std::string&, const std::vector<double>&, int, double, double>(&trimuse::OutputManager::save),
+             py::arg("field_name"), py::arg("values"), py::arg("cycle"), py::arg("time"), py::arg("time_step"))
         .def("solve_information", &trimuse::OutputManager::solve_information, py::arg("field_name"));
 
     py::class_<trimuse::PropertiesSystem>(module, "PropertiesSystem")
@@ -140,8 +141,37 @@ PYBIND11_MODULE(_core, module)
             py::arg("initial_configs"), py::arg("source_configs"), py::arg("boundary_configs"),
             py::arg("interface_configs") = std::vector<ProblemConfigEntry>{},
             py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::keep_alive<1, 4>(), py::keep_alive<1, 5>())
+        .def("save_output", &trimuse::ThermalProblem::save_output,
+             py::arg("cycle"), py::arg("time"), py::arg("time_step"))
         .def("assembly_counts", &trimuse::ThermalProblem::assembly_counts)
         .def("solve", &trimuse::ThermalProblem::solve, py::arg("time_step") = 0.0, py::arg("theta") = 1.0);
+
+    py::class_<trimuse::MechanicsProblem>(module, "MechanicsProblem")
+        .def(py::init([](trimuse::FemSystem& fem, trimuse::PropertiesSystem& properties,
+                         trimuse::SolverSystem& solver, trimuse::OutputManager& output,
+                         const std::vector<ProblemConfigEntry>& body_force_configs,
+                         const std::vector<ProblemConfigEntry>& boundary_configs,
+                         const std::vector<ProblemConfigEntry>& interface_configs)
+        {
+            const auto body_forces = problem_configs<trimuse::MechanicsDomainConfig>(body_force_configs);
+            const auto boundaries = problem_configs<trimuse::MechanicsBoundaryConfig>(boundary_configs);
+            const auto interfaces = problem_configs<trimuse::MechanicsInterfaceConfig>(interface_configs);
+            if (fem.has_region_field("displacement"))
+            {
+                return std::make_unique<trimuse::MechanicsProblem>(fem, fem.region_field("displacement"),
+                    properties, solver, output, body_forces, boundaries, interfaces);
+            }
+            return std::make_unique<trimuse::MechanicsProblem>(fem, fem.field_data("displacement"),
+                properties, solver, output, body_forces, boundaries, interfaces);
+        }), py::arg("fem_system"), py::arg("properties_system"), py::arg("solver_system"), py::arg("output_manager"),
+            py::arg("body_force_configs") = std::vector<ProblemConfigEntry>{},
+            py::arg("boundary_configs") = std::vector<ProblemConfigEntry>{},
+            py::arg("interface_configs") = std::vector<ProblemConfigEntry>{},
+            py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::keep_alive<1, 4>(), py::keep_alive<1, 5>())
+        .def("solve", &trimuse::MechanicsProblem::solve)
+        .def("save_output", &trimuse::MechanicsProblem::save_output,
+             py::arg("cycle"), py::arg("time"), py::arg("time_step"))
+        .def("assembly_counts", &trimuse::MechanicsProblem::assembly_counts);
 
     py::class_<trimuse::RadioactivityProblem>(module, "RadioactivityProblem")
         .def(py::init([](trimuse::FemSystem& fem, trimuse::PropertiesSystem& properties,
@@ -168,6 +198,8 @@ PYBIND11_MODULE(_core, module)
             py::arg("initial_configs"), py::arg("source_configs"), py::arg("boundary_configs"),
             py::arg("interface_configs") = std::vector<ProblemConfigEntry>{},
             py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::keep_alive<1, 4>(), py::keep_alive<1, 5>())
+        .def("save_output", &trimuse::RadioactivityProblem::save_output,
+             py::arg("cycle"), py::arg("time"), py::arg("time_step"))
         .def("assembly_counts", &trimuse::RadioactivityProblem::assembly_counts)
         .def("solve", &trimuse::RadioactivityProblem::solve, py::arg("time_step") = 0.0, py::arg("theta") = 1.0);
 }

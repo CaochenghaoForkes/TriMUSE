@@ -34,6 +34,7 @@ RadioactivityProblem::RadioactivityProblem(FemSystem& fem, TrialField trial_conc
     trial_concentration_.load(); // 正式场初值复制到试探场
     assembly_.project_initial(); // 必要时将区域初始阶跃投影到完美接触约束空间
     trial_concentration_.accept(); // 将投影后的初值写回正式场
+    output_.add_field("concentration", "radioactivity"); // 注册本问题的输出场
 }
 
 void RadioactivityProblem::accept_concentration()
@@ -65,6 +66,12 @@ void RadioactivityProblem::solve(double time_step, double theta) // 每个时刻
         output_.append_solve_information("concentration", name + "_assemblies",
             count - (old == before.end() ? 0 : old->second));
     }
+}
+
+void RadioactivityProblem::save_output(int cycle, double time, double time_step)
+{
+    const FieldView accepted_concentration = trial_concentration_.regional() ? FieldView(trial_concentration_.accepted_region_field()) : FieldView(&trial_concentration_.accepted_continuous_field()->mfem_grid_function());
+    output_.save("concentration", accepted_concentration, cycle, time, time_step);
 }
 
 void RadioactivityProblem::iterate(double time_step, double theta) // 在完整自由度上形成方程，再约化并求解

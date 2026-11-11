@@ -56,6 +56,7 @@ class XmlLoader:
         postprocess = cls._load_postprocess(chief.input_files.postprocess) if chief.workflow.end_at == "postprocess" else None
         InputCardsExamine.examine(geometry_mesh, material, properties, thermal, postprocess, radioactivity, mechanics)
         InputCardsExamine.check_thermal_space(simulation, thermal)
+        InputCardsExamine.check_simulation_cards(simulation, material, thermal, radioactivity, mechanics, postprocess)
         input_cards = InputCards(chief=chief, geometry_mesh=geometry_mesh, material=material, properties=properties, thermal=thermal, simulation=simulation, postprocess=postprocess, radioactivity=radioactivity, mechanics=mechanics)
         return input_cards
 

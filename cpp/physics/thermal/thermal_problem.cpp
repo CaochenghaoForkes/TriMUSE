@@ -43,6 +43,7 @@ ThermalProblem::ThermalProblem(FemSystem& fem, TrialField trial_temperature, Pro
     trial_temperature_.load(); // 将正式场的初温复制到试探场
     assembly_.project_initial(); // 必要时投影初温，使分域场满足理想接触等连续约束
     trial_temperature_.accept(); // 把当前试探场的场值复制回正式场，接受本次求解结果
+    output_.add_field("temperature", "thermal"); // 注册本问题的输出场
 }
 
 void ThermalProblem::accept_temperature() // 收敛后的属性与最终温度同步; 上一时间步快照仍由外部调度统一提交
@@ -71,6 +72,12 @@ void ThermalProblem::solve(double time_step, double theta) // 热问题的统一
         const auto old = before.find(name); // 查找求解前对应的累计值
         output_.append_solve_information("temperature", name + "_assemblies", count - (old == before.end() ? 0 : old->second)); // 本次组装次数 = 求解后累计次数 - 求解前累计次数
     }
+}
+
+void ThermalProblem::save_output(int cycle, double time, double time_step)
+{
+    const FieldView accepted_temperature = trial_temperature_.regional() ? FieldView(trial_temperature_.accepted_region_field()) : FieldView(&trial_temperature_.accepted_continuous_field()->mfem_grid_function());
+    output_.save("temperature", accepted_temperature, cycle, time, time_step);
 }
 
 void ThermalProblem::iterate(double time_step, double theta) // 准备旧时刻贡献，更新当前温度相关属性，形成方程并求解，直到 Picard 迭代收敛 处理 M\dot{T} + KT =F

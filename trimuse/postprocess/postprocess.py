@@ -28,6 +28,8 @@ class PostprocessManager:
         self.property_metadata = {
             "temperature": {"unit": "K", "color": "jet"},
             "concentration": {"unit": "atom/m³", "color": "viridis"},
+            "max_principal_stress": {"unit": "Pa", "color": "coolwarm"},
+            "max_shear_stress": {"unit": "Pa", "color": "viridis"},
         }
         self.output_directory = Path(input_cards.chief.output.directory).expanduser().resolve()
         self.postprocess_directory = self.output_directory / "postprocess"

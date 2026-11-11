@@ -33,7 +33,6 @@ class OutputManager:
         self.mesh_statistics = None
         self.frame_count = 0
         self.field_output = None
-        self.field_directories = {"temperature": "thermal", "concentration": "radioactivity"}
 
     @staticmethod
     def _now() -> str:
@@ -57,16 +56,14 @@ class OutputManager:
         }
 
     def initialize_field_output(self, fem_system: FemSystem) -> None:
-        """创建 C++ 场输出对象并初始化本次运行报告"""
+        """创建 C++ 输出管理器并初始化本次运行报告，各物理问题自行注册输出"""
         from _core import OutputManager as CoreOutputManager
         self.field_output = CoreOutputManager(fem_system, str(self.directory))
-        for field in self.input_cards.simulation.problem.field:
-            self.field_output.add_field(field.name, self.field_directories[field.name])
         self.report_file.write_text("TriMUSE simulation report\n", encoding="utf-8")
 
-    def save(self, cycle: int, time: float, time_step: float) -> None:
+    def save(self, cycle: int, time: float, time_step: float, problems: dict) -> None:
         for field in self.input_cards.simulation.problem.field:
-            self.field_output.save(field.name, cycle, time, time_step)
+            problems[field.name].save_output(cycle, time, time_step)
         self.frame_count += 1
 
     def _append_report(self, text: str) -> None:
@@ -331,7 +328,7 @@ class OutputManager:
                 cls._node(node, "linear_solver", **asdict(field.linear_solver))
                 nonlinear = asdict(field.nonlinear_solver)
                 tolerance = nonlinear.pop("absolute_tolerance")
-                unit = "[atom]/[m]^3" if field.name == "concentration" else "[K]"
+                unit = {"temperature": "[K]", "concentration": "[atom]/[m]^3", "displacement": "[m]"}[field.name]
                 cls._quantity(cls._node(node, "nonlinear_solver", **nonlinear), "absolute_tolerance", tolerance, unit)
             coupling = cls._node(root, "coupling")
             coupling.attrib.clear()

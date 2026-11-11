@@ -48,6 +48,34 @@ class InputCardsExamine:
             cls.check_radioactivity_dependencies(material, properties, radioactivity, thermal)
 
     @staticmethod
+    def check_simulation_cards(simulation: SimulationCard, material: MaterialCard, thermal: ThermalCard | None,
+                               radioactivity: RadioactivityCard | None, mechanics: MechanicsCard | None,
+                               postprocess: PostprocessCard | None) -> None:
+        """核对启用场、对应物理卡、力学所需材料和可输出的标量"""
+        fields = {item.name for item in simulation.problem.field}
+        for name, card in (("temperature", thermal), ("concentration", radioactivity), ("displacement", mechanics)):
+            if name in fields and card is None:
+                raise ValueError(f"求解 {name} 必须提供对应的物理输入卡")
+        if "displacement" in fields:
+            if "temperature" not in fields:
+                raise ValueError("当前力学热膨胀模型需要启用 temperature 场")
+            assigned = {item.mat for item in material.assign.region}
+            required = {"material.mechanics." + name for name in ("young_modulus", "poisson_ratio", "shear_modulus", "thermal_expansion_coef")}
+            for mat in material.mat:
+                if mat.name not in assigned:
+                    continue
+                missing = required - {item.property_name for item in mat.properties}
+                if missing:
+                    raise ValueError(f"力学材料 {mat.name} 缺少属性: {', '.join(sorted(missing))}")
+        outputs = fields & {"temperature", "concentration"}
+        if "displacement" in fields:
+            outputs |= {"max_principal_stress", "max_shear_stress"}
+        if postprocess is not None:
+            missing = set(postprocess.properties) - outputs
+            if missing:
+                raise ValueError(f"后处理引用了未输出的属性: {', '.join(sorted(missing))}")
+
+    @staticmethod
     def check_bacon_anisotropy_factor_dependencies(material: MaterialCard, properties: PropertiesCard) -> None:
         """已分配材料的 BISON BAF 模型需要全局快中子注量"""
         assigned = {region.mat for region in material.assign.region}

@@ -5,13 +5,13 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .output import OutputManager
     from .input.simulation.config import SimulationCard
-    from .problem import Thermal, Radioactivity
+    from .problem import Thermal, Radioactivity, Mechanics
     from .properties import PropertiesManager
 
 class CouplingManager:
     """管理分阶段时间推进与当前单步场求解"""
 
-    def __init__(self, simulation_config: SimulationCard, properties_manager: PropertiesManager, problems: dict[str, Thermal | Radioactivity], output_manager: OutputManager) -> None:
+    def __init__(self, simulation_config: SimulationCard, properties_manager: PropertiesManager, problems: dict[str, Thermal | Radioactivity | Mechanics], output_manager: OutputManager) -> None:
         self.time_span = simulation_config.problem.time_span
         self.min_time_step = simulation_config.problem.min_time_step
         self.write_interval = simulation_config.output.write_interval
@@ -32,7 +32,7 @@ class CouplingManager:
         self.cycle = 0
         total_steps = sum(ceil(duration / time_step) for duration, time_step in zip(self.time_span, self.min_time_step))
         self.update_and_solve()
-        self.output_manager.save(self.cycle, self.time, self.time_step)
+        self.output_manager.save(self.cycle, self.time, self.time_step, self.problems)
         print(f"计算进度: 0/{total_steps}, 时间: 0 s", flush=True)
         for duration, time_step, write_interval in zip(self.time_span, self.min_time_step, self.write_interval):
             stage_start = self.time
@@ -55,7 +55,7 @@ class CouplingManager:
                     if write_due:
                         next_output = output_period + 1
                 if write_due or step == step_count:
-                    self.output_manager.save(self.cycle, self.time, self.time_step)
+                    self.output_manager.save(self.cycle, self.time, self.time_step, self.problems)
                 print(f"计算进度: {self.cycle}/{total_steps} ({self.cycle / total_steps:.1%}), 时间: {self.time:.6g} s", flush=True)
 
     def update_and_solve(self) -> None:

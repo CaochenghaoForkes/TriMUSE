@@ -1,5 +1,6 @@
 #include "physics/mechanics/mechanics_problem.hpp"
 
+#include <algorithm>
 #include <chrono>
 #include <utility>
 
@@ -28,10 +29,14 @@ MechanicsProblem::MechanicsProblem(FemSystem& fem, TrialField trial_displacement
     SolverSystem& solver, OutputManager& output,
     const std::vector<MechanicsDomainConfig>& body_forces,
     const std::vector<MechanicsBoundaryConfig>& boundaries,
-    const std::vector<MechanicsInterfaceConfig>& interfaces) // 真正的构造函数，初始化各对象，标记耦合
+    const std::vector<MechanicsInterfaceConfig>& interfaces) // 真正的构造函数，初始化各对象，标记耦合，为输出对象添加待输出场值信息
     : trial_displacement_(std::move(trial_displacement)), properties_(properties), solver_(solver), output_(output), assembly_(fem, trial_displacement_, body_forces, boundaries, interfaces), mechanics_state_(fem.domain_quadrature_point_count())
 {
     assembly_.mark_coupled(properties_);
+    const int region = fem.mesh_data().region_attributes().front();
+    const int order = std::max(0, trial_displacement_.space(region).GetMaxElementOrder() - 1); // 应力采用逐单元 L2 空间，保留材料界面跳变
+    output_.add_field("max_principal_stress", "mechanics", true, order);
+    output_.add_field("max_shear_stress", "mechanics", true, order);
 }
 
 void MechanicsProblem::solve()
@@ -58,6 +63,18 @@ void MechanicsProblem::solve()
         const auto old = before.find(name);
         output_.append_solve_information("displacement", name + "_assemblies", count - (old == before.end() ? 0 : old->second));
     }
+}
+
+void MechanicsProblem::save_output(int cycle, double time, double time_step)
+{
+    const auto& state = mechanics_state_.accepted_values();
+    std::vector<double> maximum(state.principal_stress.size());
+    for (std::size_t point = 0; point < maximum.size(); ++point)
+    {
+        maximum[point] = state.principal_stress[point][0];
+    }
+    output_.save("max_principal_stress", maximum, cycle, time, time_step);
+    output_.save("max_shear_stress", state.max_shear_stress, cycle, time, time_step);
 }
 
 const MechanicsState::Values& MechanicsProblem::accepted_state() const

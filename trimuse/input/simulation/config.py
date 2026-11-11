@@ -37,7 +37,7 @@ class SimulationCard:
 
             family: str = "H1"
             order: int = 1
-            continuity: str = "continuous"  # [continuous,region], region 可用于温度场和浓度场
+            continuity: str = "continuous"  # [continuous,region]，各求解场均可使用分域空间
 
         @dataclass
         class Quadrature:
@@ -206,7 +206,7 @@ class SimulationCardLoader:
         absolute_tolerance = XmlUtils.read_attribute(absolute_element, "value", float, default=1e-8)
         if absolute_element is not None:
             unit = XmlUtils.read_attribute(absolute_element, "unit", required=True)
-            target_unit = "[atom]/[m]^3" if field_name == "concentration" else "[K]"
+            target_unit = {"temperature": "[K]", "concentration": "[atom]/[m]^3", "displacement": "[m]"}[field_name]
             absolute_tolerance = Units.convert(absolute_tolerance, unit, target_unit, context=f"{field_name}.absolute_tolerance")
         return SimulationCard.Solver.NonlinearSolver(method=method, relative_tolerance=relative_tolerance, absolute_tolerance=absolute_tolerance, max_iterations=max_iterations)
 

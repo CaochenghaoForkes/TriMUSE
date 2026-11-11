@@ -24,6 +24,9 @@ public:
                    const std::vector<RadioactivityInterfaceConfig>& interfaces = {});
 
     void solve(double time_step = 0.0, double theta = 1.0); // 单步求解入口；零时间步只处理瞬态初始约束
+
+    void save_output(int cycle, double time, double time_step); // 将正式场交给统一输出接口
+
     const RadioactivityAssembly::Counts& assembly_counts() const { return assembly_.counts(); } // 返回各贡献累计组装次数
 
 private:

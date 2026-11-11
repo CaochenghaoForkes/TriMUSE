@@ -25,6 +25,8 @@ public:
 
     void solve(double time_step = 0.0, double theta = 1.0); // // 热问题的统一求解入口: 准备试探场、区分初始时刻与正常求解，并记录本次耗时和组装次数
 
+    void save_output(int cycle, double time, double time_step); // 将正式场交给统一输出接口
+
     const ThermalAssembly::Counts& assembly_counts() const { return assembly_.counts(); }
 
 private:

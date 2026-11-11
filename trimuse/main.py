@@ -35,7 +35,7 @@ def main(chief_path: str | Path) -> None:
     from trimuse.fem import FemManager
     from trimuse.properties import PropertiesManager
     from trimuse.solver import SolverManager
-    from trimuse.problem import Thermal, Radioactivity
+    from trimuse.problem import Thermal, Radioactivity, Mechanics
     from trimuse.coupling import CouplingManager
 
     # 收集场名
@@ -53,8 +53,8 @@ def main(chief_path: str | Path) -> None:
     # 创建 C++ 输出对象, 供各问题记录求解信息并保存场数据
     output_manager.initialize_field_output(fem_manager.fem_system)
 
-    # 按本次求解场创建对应问题, 热与放射性可分别或同时启用。
-    problem_types = {"temperature": Thermal, "concentration": Radioactivity}
+    # 按本次求解场创建热、核素或力学问题
+    problem_types = {"temperature": Thermal, "concentration": Radioactivity, "displacement": Mechanics}
     problems = {field.name: problem_types[field.name](input_cards, mesh_info, fem_manager.fem_system, properties_manager.properties_system, solver_manager.solver_system, output_manager.field_output) for field in input_cards.simulation.problem.field}
 
     # 创建耦合求解对象

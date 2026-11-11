@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 
-from _core import ThermalProblem, RadioactivityProblem # type: ignore
+from _core import ThermalProblem, RadioactivityProblem, MechanicsProblem # type: ignore
 
 if TYPE_CHECKING:
     from _core import FemSystem, PropertiesSystem, SolverSystem, OutputManager
@@ -53,6 +53,9 @@ class Thermal:
         """调用统一求解入口, 问题类型由 C++ 对象保存"""
         self.thermal_problem.solve(time_step, theta)
 
+    def save_output(self, cycle: int, time: float, time_step: float) -> None:
+        self.thermal_problem.save_output(cycle, time, time_step)
+
 class Radioactivity:
     """整理单核素配置, 创建并调用 C++ 扩散与衰变问题对象"""
 
@@ -86,3 +89,25 @@ class Radioactivity:
 
     def solve(self, time_step: float = 0.0, theta: float = 1.0) -> None:
         self.radioactivity_problem.solve(time_step, theta)
+
+    def save_output(self, cycle: int, time: float, time_step: float) -> None:
+        self.radioactivity_problem.save_output(cycle, time, time_step)
+
+class Mechanics:
+    """整理力学配置，每个调度时刻求解一次准静态平衡"""
+
+    field_state = "displacement"
+
+    def __init__(self, input_cards: InputCards, mesh_info: MeshInfo, fem: FemSystem, properties: PropertiesSystem, solver: SolverSystem, output: OutputManager) -> None:
+        card = input_cards.mechanics
+        body_forces = [(mesh_info.region_attributes[item.region], item.model, item.parameters) for item in card.body_force]
+        boundaries = [(mesh_info.boundary_attributes[item.name], item.model, item.parameters) for item in card.boundary]
+        interfaces = [(mesh_info.boundary_attributes[item.name], item.model, item.parameters) for item in card.interfaces.interface]
+        self.mechanics_problem = MechanicsProblem(fem, properties, solver, output, body_forces, boundaries, interfaces)
+
+    def solve(self, time_step: float = 0.0, theta: float = 1.0) -> None:
+        """保持统一调度接口，准静态方程本身不使用时间离散参数"""
+        self.mechanics_problem.solve()
+
+    def save_output(self, cycle: int, time: float, time_step: float) -> None:
+        self.mechanics_problem.save_output(cycle, time, time_step)

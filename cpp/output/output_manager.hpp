@@ -18,9 +18,11 @@ public:
 
     OutputManager(FemSystem& fem_system, const std::string& output_directory);
 
-    void add_field(const std::string& field_name, const std::string& directory_name);
+    void add_field(const std::string& field_name, const std::string& directory_name, bool project_to_l2 = false, int order = 0); // 标量求解场沿用原空间，标量求积点数组按指定阶次建立 L2 输出空间
 
-    void save(const std::string& field_name, int cycle, double time, double time_step);
+    void save(const std::string& field_name, const FieldView& values, int cycle, double time, double time_step); // 按输出节点读取传入的正式标量场，不做 L2 投影
+
+    void save(const std::string& field_name, const std::vector<double>& values, int cycle, double time, double time_step); // 传入全域标量求积点数组，逐单元 L2 投影后保存
 
     void clear_solve_information(const std::string& field_name);
 
@@ -31,7 +33,7 @@ public:
 private:
     struct FieldOutput // 管理每个场的 ParaView 输出对象，以及本次求解的统计信息
     {
-        std::unique_ptr<mfem::L2_FECollection> collection; // 拥有一套 L2 有限元基函数集合，供分域场输出使用 L2 空间允许单元之间的场值不连续，因此可以保留材料界面两侧不同的温度或浓度
+        std::unique_ptr<mfem::L2_FECollection> collection; // 拥有一套 L2 有限元基函数集合，供分域场和求积点数据输出使用 L2 空间允许单元之间的场值不连续，因此可以保留材料界面两侧不同的温度或浓度
 
         std::unique_ptr<mfem::FiniteElementSpace> space; // 建立在原网格上、用于输出的有限元空间，使用上面的 L2 集合
 
@@ -40,7 +42,9 @@ private:
         std::unique_ptr<mfem::ParaViewDataCollection> collection_output; // MFEM 的 ParaView 输出管理对象，负责登记场变量、设置时间和步数，并保存 PVD、PVTU、VTU 等结果文件
     };
 
-    void update_region_output(const std::string& name, mfem::GridFunction& output); // 在保存结果前，根据场名找到对应分域场，把各区域的当前场值更新到 output 这个输出 GridFunction 中
+    void write_field(const std::string& field_name, int cycle, double time, double time_step); // 设置时间信息并写出已经填好的输出场
+
+    void update_field_output(const FieldView& view, mfem::GridFunction& output); // 将传入的连续标量场或分域标量场插值到输出节点
 
     FemSystem& fem_system_; // 有限元系统的引用
 
