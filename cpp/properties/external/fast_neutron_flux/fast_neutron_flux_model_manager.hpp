@@ -13,7 +13,7 @@ namespace trimuse
 class FastNeutronFluxModel
 {
 public:
-    virtual ~FastNeutronFluxModel() = default;
+    virtual ~FastNeutronFluxModel();
 
     virtual StateValue evaluate(const PropertiesStatePoint& point) const = 0;
 };

@@ -9,6 +9,8 @@ void GeneralModelManager::register_models()
 {
     porosity_model_manager_.register_models();
     mass_density_model_manager_.register_models();
+    bacon_anisotropy_factor_model_manager_.register_models();
+    initial_bacon_anisotropy_factor_model_manager_.register_models();
 }
 
 void GeneralModelManager::assign(int region_attribute, const std::string& property_name, const std::string& model_name, const ModelParameterMap& parameters)
@@ -21,6 +23,16 @@ void GeneralModelManager::assign(int region_attribute, const std::string& proper
     if (property_name == "material.general.mass_density")
     {
         mass_density_model_manager_.assign(region_attribute, model_name, parameters);
+        return;
+    }
+    if (property_name == "material.general.bacon_anisotropy_factor")
+    {
+        bacon_anisotropy_factor_model_manager_.assign(region_attribute, model_name, parameters);
+        return;
+    }
+    if (property_name == "material.general.initial_bacon_anisotropy_factor")
+    {
+        initial_bacon_anisotropy_factor_model_manager_.assign(region_attribute, model_name, parameters);
         return;
     }
     throw std::out_of_range("尚未支持的通用物性: " + property_name);
@@ -36,6 +48,14 @@ StateValue GeneralModelManager::evaluate(const std::string& property_name, const
     {
         return mass_density_model_manager_.evaluate(state_point);
     }
+    if (property_name == "material.general.bacon_anisotropy_factor")
+    {
+        return bacon_anisotropy_factor_model_manager_.evaluate(state_point);
+    }
+    if (property_name == "material.general.initial_bacon_anisotropy_factor")
+    {
+        return initial_bacon_anisotropy_factor_model_manager_.evaluate(state_point);
+    }
     throw std::out_of_range("尚未支持的通用物性: " + property_name);
 }
 
@@ -48,6 +68,14 @@ const std::vector<std::string>& GeneralModelManager::required_states(const std::
     if (property_name == "material.general.mass_density")
     {
         return mass_density_model_manager_.required_states(model_name);
+    }
+    if (property_name == "material.general.bacon_anisotropy_factor")
+    {
+        return bacon_anisotropy_factor_model_manager_.required_states(model_name);
+    }
+    if (property_name == "material.general.initial_bacon_anisotropy_factor")
+    {
+        return initial_bacon_anisotropy_factor_model_manager_.required_states(model_name);
     }
     throw std::out_of_range("尚未支持的通用物性: " + property_name);
 }

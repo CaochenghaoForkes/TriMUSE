@@ -14,7 +14,7 @@ namespace trimuse
 class PorosityModel
 {
 public:
-    virtual ~PorosityModel() = default;
+    virtual ~PorosityModel();
 
     virtual double evaluate(const PropertiesStatePoint& state_point) const = 0;
 };

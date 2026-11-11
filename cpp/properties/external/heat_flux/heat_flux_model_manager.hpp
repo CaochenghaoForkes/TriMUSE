@@ -14,7 +14,7 @@ namespace trimuse
 class HeatFluxModel
 {
 public:
-    virtual ~HeatFluxModel() = default;
+    virtual ~HeatFluxModel();
 
     virtual StateValue evaluate(const PropertiesStatePoint& point) const = 0;
 };

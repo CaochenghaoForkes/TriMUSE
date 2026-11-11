@@ -5,6 +5,8 @@
 namespace trimuse
 {
 
+EnvironmentTemperatureModel::~EnvironmentTemperatureModel() = default;
+
 void EnvironmentTemperatureModelManager::register_models()
 {
     registry_.register_model<ConstantEnvironmentTemperature>("common.constant");

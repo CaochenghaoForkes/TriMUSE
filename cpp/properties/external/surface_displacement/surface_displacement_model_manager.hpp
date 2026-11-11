@@ -15,7 +15,7 @@ namespace trimuse
 class SurfaceDisplacementModel
 {
 public:
-    virtual ~SurfaceDisplacementModel() = default;
+    virtual ~SurfaceDisplacementModel();
 
     virtual VectorValue evaluate(const PropertiesStatePoint& point) const = 0;
 };

@@ -6,6 +6,8 @@
 namespace trimuse
 {
 
+VolumetricPowerModel::~VolumetricPowerModel() = default;
+
 void VolumetricPowerModelManager::register_models()
 {
     registry_.register_model<ConstantVolumetricPower>("common.constant");

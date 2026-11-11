@@ -4,6 +4,10 @@
 namespace trimuse
 {
 
+FromEngineeringConstantsElasticityTensor::FromEngineeringConstantsElasticityTensor(const ModelParameterMap&)
+{
+}
+
 ElasticityTensorValue FromEngineeringConstantsElasticityTensor::evaluate(const PropertiesStatePoint& state_point) const
 {
     const auto& young = state_point.vector("material.mechanics.young_modulus");

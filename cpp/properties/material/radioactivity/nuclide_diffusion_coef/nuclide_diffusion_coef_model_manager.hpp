@@ -14,7 +14,7 @@ namespace trimuse
 class NuclideDiffusionCoefModel
 {
 public:
-    virtual ~NuclideDiffusionCoefModel() = default;
+    virtual ~NuclideDiffusionCoefModel();
 
     virtual double evaluate(const PropertiesStatePoint& state_point) const = 0;
 };

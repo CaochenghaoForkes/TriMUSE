@@ -5,6 +5,8 @@
 namespace trimuse
 {
 
+SurfaceTractionModel::~SurfaceTractionModel() = default;
+
 void SurfaceTractionModelManager::register_models()
 {
     registry_.register_model<ConstantSurfaceTraction>("common.constant");

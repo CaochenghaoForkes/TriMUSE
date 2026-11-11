@@ -15,7 +15,7 @@ namespace trimuse
 class SurfacePressureModel
 {
 public:
-    virtual ~SurfacePressureModel() = default;
+    virtual ~SurfacePressureModel();
 
     virtual double evaluate(const PropertiesStatePoint& point) const = 0;
 };

@@ -5,6 +5,8 @@
 namespace trimuse
 {
 
+SurfaceTemperatureModel::~SurfaceTemperatureModel() = default;
+
 void SurfaceTemperatureModelManager::register_models()
 {
     registry_.register_model<ConstantSurfaceTemperature>("common.constant");

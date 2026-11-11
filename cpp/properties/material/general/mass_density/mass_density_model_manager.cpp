@@ -5,6 +5,8 @@
 namespace trimuse
 {
 
+MassDensityModel::~MassDensityModel() = default;
+
 void MassDensityModelManager::register_models()
 {
     registry_.register_model<ConstantMassDensity>("common.constant");

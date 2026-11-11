@@ -14,7 +14,7 @@ namespace trimuse
 class EnvironmentNuclideConcentrationModel
 {
 public:
-    virtual ~EnvironmentNuclideConcentrationModel() = default;
+    virtual ~EnvironmentNuclideConcentrationModel();
 
     virtual StateValue evaluate(const PropertiesStatePoint& point) const = 0;
 };

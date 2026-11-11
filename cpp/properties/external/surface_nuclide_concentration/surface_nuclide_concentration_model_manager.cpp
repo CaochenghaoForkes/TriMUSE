@@ -5,6 +5,8 @@
 namespace trimuse
 {
 
+SurfaceNuclideConcentrationModel::~SurfaceNuclideConcentrationModel() = default;
+
 void SurfaceNuclideConcentrationModelManager::register_models()
 {
     registry_.register_model<ConstantSurfaceNuclideConcentration>("common.constant");

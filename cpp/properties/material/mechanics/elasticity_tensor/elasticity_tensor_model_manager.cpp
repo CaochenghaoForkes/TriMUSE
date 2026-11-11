@@ -4,6 +4,8 @@
 namespace trimuse
 {
 
+ElasticityTensorModel::~ElasticityTensorModel() = default;
+
 void ElasticityTensorModelManager::register_models()
 {
     registry_.register_model<FromEngineeringConstantsElasticityTensor>(

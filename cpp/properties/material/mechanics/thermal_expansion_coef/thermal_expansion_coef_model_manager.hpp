@@ -15,7 +15,7 @@ namespace trimuse
 class ThermalExpansionCoefModel
 {
 public:
-    virtual ~ThermalExpansionCoefModel() = default;
+    virtual ~ThermalExpansionCoefModel();
 
     virtual VectorValue evaluate(const PropertiesStatePoint& state_point) const = 0;
 };

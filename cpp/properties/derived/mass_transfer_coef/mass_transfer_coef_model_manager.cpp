@@ -5,6 +5,8 @@
 namespace trimuse
 {
 
+MassTransferCoefModel::~MassTransferCoefModel() = default;
+
 void MassTransferCoefModelManager::register_models()
 {
     registry_.register_model<ConstantMassTransferCoef>("common.constant");

@@ -27,6 +27,8 @@ class MaterialCardExamine:
     MODELS = {
         "material.general.porosity": COMMON_MODELS,
         "material.general.mass_density": COMMON_MODELS,
+        "material.general.initial_bacon_anisotropy_factor": {"common.constant"},
+        "material.general.bacon_anisotropy_factor": COMMON_MODELS | {"pyc.bison_2021"},
         "material.thermal.conductivity": {
             "common.constant", "common.time_series", "kernel.bison_2021_uco", "kernel.ineri_2004_uo2",
             "buffer.bison_2021", "buffer.uk_2004", "sic.miller", "sic.cea_2004",
@@ -64,6 +66,9 @@ class MaterialCardExamine:
             raise ValueError(f"材料 {mat.name} 重复配置物性")
         for property_config in mat.properties:
             cls.check_property(property_config, mat.name)
+        if any(item.property_name == "material.general.bacon_anisotropy_factor" and item.model == "pyc.bison_2021"
+               for item in mat.properties) and "material.general.initial_bacon_anisotropy_factor" not in property_names:
+            raise ValueError(f"{mat.name}: pyc.bison_2021 需要同一材料的 initial_bacon_anisotropy_factor")
         mechanics = {item.property_name.rsplit(".", 1)[-1]: item for item in mat.properties
                      if item.property_name.startswith("material.mechanics.")}
         directional = any(item.model.startswith("common.anisotropy_")
@@ -84,7 +89,9 @@ class MaterialCardExamine:
             numbers = value if isinstance(value, list) else [value]
             if not all(math.isfinite(number) for number in numbers):
                 raise ValueError(f"{location}: 参数值必须有限")
-        if property_config.property_name == "material.radioactivity.nuclide_diffusion_coef":
+        if property_config.property_name in ("material.general.initial_bacon_anisotropy_factor", "material.general.bacon_anisotropy_factor"):
+            MaterialCardExamine.check_bacon_anisotropy_factor(property_config, location)
+        elif property_config.property_name == "material.radioactivity.nuclide_diffusion_coef":
             if property_config.model in MaterialCardExamine.TECDOC978_SYMBOLS:
                 if property_config.parameters:
                     raise ValueError(f"{location}: {property_config.model} 不需要构造参数")
@@ -159,6 +166,24 @@ class MaterialCardExamine:
                     raise ValueError(f"{location}: sic.bison_2021 不需要构造参数")
             else:
                 raise ValueError(f"{location}: 不支持的物性模型 {property_config.model}")
+
+    @staticmethod
+    def check_bacon_anisotropy_factor(property_config: MaterialCard.Property, location: str) -> None:
+        """初始和当前 BAF 均为不小于 1 的无量纲标量"""
+        parameters = property_config.parameters
+        if property_config.model == "pyc.bison_2021":
+            if parameters:
+                raise ValueError(f"{location}: pyc.bison_2021 不需要构造参数")
+        elif property_config.model == "common.constant":
+            value = parameters.get("constant_value")
+            if not isinstance(value, float) or value < 1:
+                raise ValueError(f"{location}: constant_value 必须为不小于 1 的标量")
+        else:
+            times, values = parameters.get("times"), parameters.get("values")
+            if not isinstance(times, list) or not isinstance(values, list) or len(times) < 2 or len(times) != len(values) or any(right <= left for left, right in zip(times, times[1:])):
+                raise ValueError(f"{location}: times 和 values 必须为等长列表, times 至少有两个严格递增的值")
+            if any(value < 1 for value in values):
+                raise ValueError(f"{location}: BAF 必须不小于 1")
 
     @staticmethod
     def check_mechanics_property(property_config: MaterialCard.Property, location: str) -> None:

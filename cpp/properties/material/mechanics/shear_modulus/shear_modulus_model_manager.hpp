@@ -15,7 +15,7 @@ namespace trimuse
 class ShearModulusModel
 {
 public:
-    virtual ~ShearModulusModel() = default;
+    virtual ~ShearModulusModel();
 
     virtual double evaluate(const PropertiesStatePoint& state_point) const = 0;
 };

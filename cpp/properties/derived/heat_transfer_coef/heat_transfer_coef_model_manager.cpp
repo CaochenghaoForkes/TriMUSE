@@ -5,6 +5,8 @@
 namespace trimuse
 {
 
+HeatTransferCoefModel::~HeatTransferCoefModel() = default; // = default 表示：自动执行成员、基类等正常的销毁过程 virtual 通过基类指针销毁对象时，也能正确调用具体派生类的析构函数
+
 void HeatTransferCoefModelManager::register_models()
 {
     registry_.register_model<ConstantHeatTransferCoef>("common.constant");

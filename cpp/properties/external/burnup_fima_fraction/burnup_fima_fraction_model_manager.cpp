@@ -7,6 +7,8 @@
 namespace trimuse
 {
 
+BurnupFimaFractionModel::~BurnupFimaFractionModel() = default;
+
 void BurnupFimaFractionModelManager::register_models()
 {
     registry_.register_model<ConstantBurnupFimaFraction>("common.constant");

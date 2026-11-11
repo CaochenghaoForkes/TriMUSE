@@ -6,6 +6,8 @@
 namespace trimuse
 {
 
+VolumetricNuclideBirthRateModel::~VolumetricNuclideBirthRateModel() = default;
+
 void VolumetricNuclideBirthRateModelManager::register_models()
 {
     registry_.register_model<ConstantVolumetricNuclideBirthRate>("common.constant");

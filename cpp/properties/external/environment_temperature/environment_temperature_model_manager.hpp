@@ -14,7 +14,7 @@ namespace trimuse
 class EnvironmentTemperatureModel
 {
 public:
-    virtual ~EnvironmentTemperatureModel() = default;
+    virtual ~EnvironmentTemperatureModel();
 
     virtual StateValue evaluate(const PropertiesStatePoint& point) const = 0;
 };

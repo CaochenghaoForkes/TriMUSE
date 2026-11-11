@@ -14,7 +14,7 @@ namespace trimuse
 class SurfaceTemperatureModel
 {
 public:
-    virtual ~SurfaceTemperatureModel() = default;
+    virtual ~SurfaceTemperatureModel();
 
     virtual StateValue evaluate(const PropertiesStatePoint& point) const = 0;
 };

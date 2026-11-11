@@ -15,7 +15,7 @@ namespace trimuse
 class SurfaceTractionModel
 {
 public:
-    virtual ~SurfaceTractionModel() = default;
+    virtual ~SurfaceTractionModel();
 
     virtual VectorValue evaluate(const PropertiesStatePoint& point) const = 0;
 };

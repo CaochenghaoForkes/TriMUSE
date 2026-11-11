@@ -5,6 +5,8 @@
 namespace trimuse
 {
 
+HeatFluxModel::~HeatFluxModel() = default;
+
 void HeatFluxModelManager::register_models()
 {
     registry_.register_model<ConstantHeatFlux>("common.constant");

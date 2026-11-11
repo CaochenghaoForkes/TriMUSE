@@ -5,6 +5,8 @@
 namespace trimuse
 {
 
+EnvironmentNuclideConcentrationModel::~EnvironmentNuclideConcentrationModel() = default;
+
 void EnvironmentNuclideConcentrationModelManager::register_models()
 {
     registry_.register_model<ConstantEnvironmentNuclideConcentration>("common.constant");

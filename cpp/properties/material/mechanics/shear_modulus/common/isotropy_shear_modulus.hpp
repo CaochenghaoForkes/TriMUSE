@@ -10,7 +10,7 @@ namespace trimuse
 class IsotropyShearModulus final : public ShearModulusModel
 {
 public:
-    explicit IsotropyShearModulus(const ModelParameterMap&) {}
+    explicit IsotropyShearModulus(const ModelParameterMap&);
 
     double evaluate(const PropertiesStatePoint& state_point) const override;
 };

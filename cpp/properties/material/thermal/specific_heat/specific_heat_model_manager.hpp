@@ -14,7 +14,7 @@ namespace trimuse
 class SpecificHeatModel
 {
 public:
-    virtual ~SpecificHeatModel() = default;
+    virtual ~SpecificHeatModel();
 
     virtual double evaluate(const PropertiesStatePoint& state_point) const = 0;
 };

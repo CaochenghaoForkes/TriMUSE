@@ -14,7 +14,7 @@ namespace trimuse
 class HeatTransferCoefModel
 {
 public:
-    virtual ~HeatTransferCoefModel() = default; // = default 表示：自动执行成员、基类等正常的销毁过程 virtual 通过基类指针销毁对象时，也能正确调用具体派生类的析构函数 
+    virtual ~HeatTransferCoefModel();
 
     virtual StateValue evaluate(const PropertiesStatePoint& point) const = 0; // =0 表示 这是一个纯虚函数，要求具体派生类提供实现
 };

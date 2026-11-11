@@ -7,6 +7,8 @@
 namespace trimuse
 {
 
+NuclideBirthRateModel::~NuclideBirthRateModel() = default;
+
 void NuclideBirthRateModelManager::register_models()
 {
     registry_.register_model<ConstantNuclideBirthRate>("common.constant");

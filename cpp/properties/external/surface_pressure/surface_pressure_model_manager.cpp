@@ -5,6 +5,8 @@
 namespace trimuse
 {
 
+SurfacePressureModel::~SurfacePressureModel() = default;
+
 void SurfacePressureModelManager::register_models()
 {
     registry_.register_model<ConstantSurfacePressure>("common.constant");

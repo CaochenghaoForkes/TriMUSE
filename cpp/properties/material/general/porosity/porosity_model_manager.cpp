@@ -5,6 +5,8 @@
 namespace trimuse
 {
 
+PorosityModel::~PorosityModel() = default;
+
 void PorosityModelManager::register_models()
 {
     registry_.register_model<ConstantPorosity>("common.constant");

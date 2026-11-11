@@ -3,6 +3,10 @@
 namespace trimuse
 {
 
+IsotropyShearModulus::IsotropyShearModulus(const ModelParameterMap&)
+{
+}
+
 double IsotropyShearModulus::evaluate(const PropertiesStatePoint& state_point) const
 {
     const double young_modulus = state_point.vector("material.mechanics.young_modulus")[0];

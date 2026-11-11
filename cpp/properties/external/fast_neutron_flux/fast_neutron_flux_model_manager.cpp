@@ -7,6 +7,8 @@
 namespace trimuse
 {
 
+FastNeutronFluxModel::~FastNeutronFluxModel() = default;
+
 void FastNeutronFluxModelManager::register_models()
 {
     registry_.register_model<ConstantFastNeutronFlux>("common.constant");
@@ -20,9 +22,9 @@ void FastNeutronFluxModelManager::assign(const std::string& model_name, const Mo
 
 StateValue FastNeutronFluxModelManager::evaluate(const PropertiesStatePoint& point) const
 {
-    if (!model_) 
-    { 
-        throw std::logic_error("尚未设置 fast_neutron_flux 模型"); 
+    if (!model_)
+    {
+        throw std::logic_error("尚未设置 fast_neutron_flux 模型");
     }
     return model_->evaluate(point);
 }

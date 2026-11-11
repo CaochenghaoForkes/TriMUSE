@@ -12,6 +12,17 @@
 namespace trimuse
 {
 
+double ConductivityModel::checked_conductivity(double conductivity)
+{
+    if (!std::isfinite(conductivity) || conductivity <= 0.0)
+    {
+        throw std::domain_error("导热模型计算结果必须为有限正数");
+    }
+    return conductivity;
+}
+
+ConductivityModel::~ConductivityModel() = default;
+
 void ConductivityModelManager::register_models()
 {
     registry_.register_model<ConstantConductivity>("common.constant");

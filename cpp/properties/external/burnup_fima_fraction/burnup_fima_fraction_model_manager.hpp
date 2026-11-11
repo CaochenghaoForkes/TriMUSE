@@ -13,7 +13,7 @@ namespace trimuse
 class BurnupFimaFractionModel
 {
 public:
-    virtual ~BurnupFimaFractionModel() = default;
+    virtual ~BurnupFimaFractionModel();
 
     virtual StateValue evaluate(const PropertiesStatePoint& point) const = 0;
 };

@@ -5,6 +5,8 @@
 namespace trimuse
 {
 
+SurfaceDisplacementModel::~SurfaceDisplacementModel() = default;
+
 void SurfaceDisplacementModelManager::register_models()
 {
     registry_.register_model<ConstantSurfaceDisplacement>("common.constant");

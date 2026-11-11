@@ -5,6 +5,8 @@
 namespace trimuse
 {
 
+UraniumFractionModel::~UraniumFractionModel() = default;
+
 void UraniumFractionModelManager::register_models()
 {
     registry_.register_model<ConstantUraniumFraction>("common.constant");

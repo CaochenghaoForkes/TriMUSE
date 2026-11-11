@@ -26,6 +26,7 @@ class InputCardsExamine:
         """检查各已启用物理卡的几何引用, 以及后处理配置与几何维数的一致性"""
         cls.check_material_assignments(geometry_mesh, material)
         cls.check_properties_references(geometry_mesh, properties)
+        cls.check_bacon_anisotropy_factor_dependencies(material, properties)
         if thermal is not None:
             cls.check_thermal_references(geometry_mesh, thermal)
             cls.check_thermal_boundary_properties(properties, thermal)
@@ -44,6 +45,18 @@ class InputCardsExamine:
         if radioactivity is not None:
             cls.check_radioactivity_references(geometry_mesh, radioactivity)
             cls.check_radioactivity_dependencies(material, properties, radioactivity, thermal)
+
+    @staticmethod
+    def check_bacon_anisotropy_factor_dependencies(material: MaterialCard, properties: PropertiesCard) -> None:
+        """已分配材料的 BISON BAF 模型需要全局快中子注量"""
+        assigned = {region.mat for region in material.assign.region}
+        uses_bison = any(
+            item.property_name == "material.general.bacon_anisotropy_factor" and item.model == "pyc.bison_2021"
+            for mat in material.mat if mat.name in assigned for item in mat.properties
+        )
+        if uses_bison and not any(item.name == "derived.fast_neutron_fluence" and item.global_ is not None
+                                  for item in properties.derived_property):
+            raise ValueError("pyc.bison_2021 BAF 模型需要全局 derived.fast_neutron_fluence")
 
     @staticmethod
     def check_radioactivity_dependencies(material: MaterialCard, properties: PropertiesCard, radioactivity: RadioactivityCard, thermal: ThermalCard | None) -> None:

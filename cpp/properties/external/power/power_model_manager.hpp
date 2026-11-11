@@ -14,7 +14,7 @@ namespace trimuse
 class PowerModel
 {
 public:
-    virtual ~PowerModel() = default;
+    virtual ~PowerModel();
 
     virtual StateValue evaluate(const PropertiesStatePoint& point) const = 0;
 };

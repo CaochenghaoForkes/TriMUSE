@@ -13,7 +13,7 @@ namespace trimuse
 class NuclideBirthRateModel
 {
 public:
-    virtual ~NuclideBirthRateModel() = default;
+    virtual ~NuclideBirthRateModel();
 
     virtual StateValue evaluate(const PropertiesStatePoint& point) const = 0;
 };

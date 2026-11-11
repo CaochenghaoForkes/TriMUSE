@@ -5,6 +5,8 @@
 namespace trimuse
 {
 
+NuclideFluxModel::~NuclideFluxModel() = default;
+
 void NuclideFluxModelManager::register_models()
 {
     registry_.register_model<ConstantNuclideFlux>("common.constant");

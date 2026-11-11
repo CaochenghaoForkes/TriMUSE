@@ -14,7 +14,7 @@ namespace trimuse
 class VolumetricPowerModel
 {
 public:
-    virtual ~VolumetricPowerModel() = default;
+    virtual ~VolumetricPowerModel();
 
     virtual StateValue evaluate(const PropertiesStatePoint& point) const = 0;
 };

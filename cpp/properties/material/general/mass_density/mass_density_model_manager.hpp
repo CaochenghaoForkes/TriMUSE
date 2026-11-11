@@ -14,7 +14,7 @@ namespace trimuse
 class MassDensityModel
 {
 public:
-    virtual ~MassDensityModel() = default;
+    virtual ~MassDensityModel();
 
     virtual double evaluate(const PropertiesStatePoint& state_point) const = 0;
 };

@@ -7,6 +7,8 @@
 namespace trimuse
 {
 
+YoungModulusModel::~YoungModulusModel() = default;
+
 void YoungModulusModelManager::register_models()
 {
     registry_.register_model<IsotropyConstantYoungModulus>("common.isotropy_constant");

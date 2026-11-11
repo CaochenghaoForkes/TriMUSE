@@ -9,7 +9,7 @@ namespace trimuse
 class FromEngineeringConstantsElasticityTensor final : public ElasticityTensorModel
 {
 public:
-    explicit FromEngineeringConstantsElasticityTensor(const ModelParameterMap&) {}
+    explicit FromEngineeringConstantsElasticityTensor(const ModelParameterMap&);
 
     ElasticityTensorValue evaluate(const PropertiesStatePoint& state_point) const override;
 };

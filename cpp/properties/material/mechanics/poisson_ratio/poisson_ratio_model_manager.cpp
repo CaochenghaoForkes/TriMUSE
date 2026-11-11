@@ -7,6 +7,8 @@
 namespace trimuse
 {
 
+PoissonRatioModel::~PoissonRatioModel() = default;
+
 void PoissonRatioModelManager::register_models()
 {
     registry_.register_model<IsotropyConstantPoissonRatio>("common.isotropy_constant");

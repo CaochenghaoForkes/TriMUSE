@@ -5,6 +5,8 @@
 namespace trimuse
 {
 
+PowerModel::~PowerModel() = default;
+
 void PowerModelManager::register_models()
 {
     registry_.register_model<ConstantPower>("common.constant");

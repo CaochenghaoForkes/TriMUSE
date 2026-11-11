@@ -14,7 +14,7 @@ namespace trimuse
 class UraniumFractionModel
 {
 public:
-    virtual ~UraniumFractionModel() = default;
+    virtual ~UraniumFractionModel();
 
     virtual StateValue evaluate(const PropertiesStatePoint& point) const = 0;
 };

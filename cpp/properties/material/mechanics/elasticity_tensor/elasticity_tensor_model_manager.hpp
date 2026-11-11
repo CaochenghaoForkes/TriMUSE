@@ -14,7 +14,7 @@ namespace trimuse
 class ElasticityTensorModel
 {
 public:
-    virtual ~ElasticityTensorModel() = default;
+    virtual ~ElasticityTensorModel();
 
     virtual ElasticityTensorValue evaluate(const PropertiesStatePoint& state_point) const = 0;
 };

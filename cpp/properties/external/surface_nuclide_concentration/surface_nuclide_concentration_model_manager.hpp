@@ -14,7 +14,7 @@ namespace trimuse
 class SurfaceNuclideConcentrationModel
 {
 public:
-    virtual ~SurfaceNuclideConcentrationModel() = default;
+    virtual ~SurfaceNuclideConcentrationModel();
 
     virtual StateValue evaluate(const PropertiesStatePoint& point) const = 0;
 };

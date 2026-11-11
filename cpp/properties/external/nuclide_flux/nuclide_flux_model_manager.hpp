@@ -14,7 +14,7 @@ namespace trimuse
 class NuclideFluxModel
 {
 public:
-    virtual ~NuclideFluxModel() = default;
+    virtual ~NuclideFluxModel();
 
     virtual StateValue evaluate(const PropertiesStatePoint& point) const = 0;
 };

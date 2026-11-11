@@ -17,19 +17,12 @@ namespace trimuse
 class ConductivityModel
 {
 public:
-    virtual ~ConductivityModel() = default;
+    virtual ~ConductivityModel();
 
     virtual double evaluate(const PropertiesStatePoint& state_point) const = 0;
 
 protected:
-    static double checked_conductivity(double conductivity)
-    {
-        if (!std::isfinite(conductivity) || conductivity <= 0.0)
-        {
-            throw std::domain_error("导热模型计算结果必须为有限正数");
-        }
-        return conductivity;
-    }
+    static double checked_conductivity(double conductivity);
 };
 
 class ConductivityModelManager

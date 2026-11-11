@@ -6,6 +6,8 @@
 namespace trimuse
 {
 
+ShearModulusModel::~ShearModulusModel() = default;
+
 void ShearModulusModelManager::register_models()
 {
     registry_.register_model<ConstantShearModulus>("common.constant");

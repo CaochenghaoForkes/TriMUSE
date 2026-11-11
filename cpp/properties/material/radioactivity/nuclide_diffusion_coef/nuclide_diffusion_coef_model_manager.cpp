@@ -16,6 +16,8 @@
 namespace trimuse
 {
 
+NuclideDiffusionCoefModel::~NuclideDiffusionCoefModel() = default;
+
 void NuclideDiffusionCoefModelManager::register_models()
 {
     registry_.register_model<ConstantNuclideDiffusionCoef>("common.constant");

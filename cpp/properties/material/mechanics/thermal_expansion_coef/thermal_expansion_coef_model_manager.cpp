@@ -5,6 +5,8 @@
 namespace trimuse
 {
 
+ThermalExpansionCoefModel::~ThermalExpansionCoefModel() = default;
+
 void ThermalExpansionCoefModelManager::register_models()
 {
     registry_.register_model<IsotropyConstantThermalExpansionCoef>("common.isotropy_constant");

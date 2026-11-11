@@ -15,7 +15,7 @@ namespace trimuse
 class YoungModulusModel
 {
 public:
-    virtual ~YoungModulusModel() = default;
+    virtual ~YoungModulusModel();
 
     virtual VectorValue evaluate(const PropertiesStatePoint& state_point) const = 0;
 };

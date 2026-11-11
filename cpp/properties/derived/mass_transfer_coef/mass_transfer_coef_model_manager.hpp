@@ -14,7 +14,7 @@ namespace trimuse
 class MassTransferCoefModel
 {
 public:
-    virtual ~MassTransferCoefModel() = default;
+    virtual ~MassTransferCoefModel();
 
     virtual StateValue evaluate(const PropertiesStatePoint& point) const = 0;
 };

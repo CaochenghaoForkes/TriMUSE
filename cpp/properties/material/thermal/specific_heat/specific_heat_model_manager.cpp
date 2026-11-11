@@ -8,6 +8,8 @@
 namespace trimuse
 {
 
+SpecificHeatModel::~SpecificHeatModel() = default;
+
 void SpecificHeatModelManager::register_models()
 {
     registry_.register_model<ConstantSpecificHeat>("common.constant");

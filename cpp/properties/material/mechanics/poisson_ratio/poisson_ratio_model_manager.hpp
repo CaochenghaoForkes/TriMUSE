@@ -15,7 +15,7 @@ namespace trimuse
 class PoissonRatioModel
 {
 public:
-    virtual ~PoissonRatioModel() = default;
+    virtual ~PoissonRatioModel();
 
     virtual VectorValue evaluate(const PropertiesStatePoint& state_point) const = 0;
 };
