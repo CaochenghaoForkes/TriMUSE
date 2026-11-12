@@ -112,7 +112,7 @@ class SectionPlotter:
         from matplotlib.tri import Triangulation
         from matplotlib.collections import LineCollection
         from matplotlib.lines import Line2D
-        from matplotlib.colors import Normalize
+        from matplotlib.colors import Normalize, TwoSlopeNorm
         from mpl_toolkits.axes_grid1 import make_axes_locatable
 
         coordinates = vtk_to_numpy(section.GetPoints().GetData())
@@ -129,6 +129,8 @@ class SectionPlotter:
         FigureCanvasAgg(figure)
         axes = figure.subplots()
         norm = Normalize(*value_limits) if value_limits is not None else None
+        if property_name == "max_principal_stress" and value_limits is not None and value_limits[0] < 0 < value_limits[1]:
+            norm = TwoSlopeNorm(vcenter=0.0, vmin=value_limits[0], vmax=value_limits[1])
         color = self.property_metadata.get(property_name, {}).get("color", "viridis")
         values = section.GetPointData().GetArray(property_name)
         if values is not None:

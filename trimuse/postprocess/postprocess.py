@@ -26,10 +26,10 @@ class PostprocessManager:
         self.formats = set(self.config.output.formats)
         self.image_directory: Path | None = None
         self.property_metadata = {
-            "temperature": {"unit": "K", "color": "jet"},
+            "temperature": {"unit": "K", "color": "inferno"},
             "concentration": {"unit": "atom/m³", "color": "viridis"},
-            "max_principal_stress": {"unit": "Pa", "color": "coolwarm"},
-            "max_shear_stress": {"unit": "Pa", "color": "viridis"},
+            "max_principal_stress": {"unit": "Pa", "color": "jet"},
+            "max_shear_stress": {"unit": "Pa", "color": "jet"},
         }
         self.output_directory = Path(input_cards.chief.output.directory).expanduser().resolve()
         self.postprocess_directory = self.output_directory / "postprocess"
