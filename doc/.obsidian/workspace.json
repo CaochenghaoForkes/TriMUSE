@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "TriMUSE v1.0/基本理论.md",
-                "mode": "preview",
+                "file": "TriMUSE v0.5/程序指南.md",
+                "mode": "source",
                 "source": true
               },
               "icon": "lucide-file",
-              "title": "基本理论"
+              "title": "程序指南"
             }
           }
         ]
@@ -193,8 +193,8 @@
   "lastOpenFiles": [
     "TriMUSE v0.5/基本理论.md",
     "TriMUSE v1.0/基本理论.md",
-    "TriMUSE v0.5/程序指南.md",
     "TriMUSE v1.0/BISON_TRISO_热力与核素行为模型调研.md",
+    "TriMUSE v0.5/程序指南.md",
     "TriMUSE v1.0/BISON作者 WenJiang 第一次讨论.md",
     "TriMUSE v1.0/附件/Pasted image 20261106191838.png",
     "TriMUSE v1.0/平底颗粒几何.eddx",
