@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "TriMUSE v0.5/程序指南.md",
+                "file": "TriMUSE v1.0/基本理论.md",
                 "mode": "preview",
                 "source": true
               },
               "icon": "lucide-file",
-              "title": "程序指南"
+              "title": "基本理论"
             }
           }
         ]
@@ -83,8 +83,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 200,
-    "collapsed": true
+    "width": 200
   },
   "right": {
     "id": "134f8b9b3980ec1d",
@@ -191,9 +190,9 @@
   },
   "active": "f06c16a0a362e3e1",
   "lastOpenFiles": [
-    "TriMUSE v1.0/基本理论.md",
-    "TriMUSE v0.5/程序指南.md",
     "TriMUSE v0.5/基本理论.md",
+    "TriMUSE v0.5/程序指南.md",
+    "TriMUSE v1.0/基本理论.md",
     "TriMUSE v1.0/BISON_TRISO_热力与核素行为模型调研.md",
     "TriMUSE v1.0/TRISO 颗粒燃料性能建模.xlsx",
     "TriMUSE v1.0/BISON作者 WenJiang 第一次讨论.md",

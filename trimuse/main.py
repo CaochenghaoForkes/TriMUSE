@@ -11,8 +11,20 @@ from trimuse.input import load_input_cards
 from trimuse.output import OutputManager
 from trimuse.geometry.builder import GeometryMeshBuilder
 
+
+STARTUP_BANNER = r"""
+ _____          _   __  __   _   _   ____    _____
+|_   _|  _ __  (_) |  \/  | | | | | / ___|  | ____|
+  | |   | '__| | | | |\/| | | | | | \___ \  |  _|
+  | |   | |    | | | |  | | | |_| |  ___) | | |___
+  |_|   |_|    |_| |_|  |_|  \___/  |____/  |_____|
+
+    TRISO Multiphysics Simulation Environment
+"""
+
 def main(chief_path: str | Path) -> None:
     """读取总调度卡，依次执行网格生成、模拟与后处理"""
+    print(STARTUP_BANNER, flush=True)
     # 读取输入
     chief_path = Path(chief_path).expanduser().resolve()
     input_cards = load_input_cards(chief_path)
