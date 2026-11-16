@@ -4,11 +4,9 @@ from dataclasses import dataclass, field
 LayerParameters = dict[str, float | list[float]]
 RegionLayers = dict[str, LayerParameters]  # inner、outer；kernel 的 inner 为空，表示半径零
 
-
 def make_region_layers(names: list[str], profiles: list[LayerParameters]) -> dict[str, RegionLayers]:
     """按从内到外的实际轮廓参数，为各材料区域登记内、外表面"""
     return {name: {"inner": profiles[index - 1] if index else {}, "outer": profiles[index]} for index, name in enumerate(names)}
-
 
 @dataclass
 class GeometryTopology:

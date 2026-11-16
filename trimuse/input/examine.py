@@ -22,7 +22,7 @@ class InputCardsExamine:
             raise ValueError("热阻界面要求 temperature 的 fem_space 设置 continuity=\"region\"")
 
     @classmethod
-    def examine(cls, geometry_mesh: GeometryMeshCard, material: MaterialCard, properties: PropertiesCard, thermal: ThermalCard | None, postprocess: PostprocessCard | None, radioactivity: RadioactivityCard | None = None, mechanics: MechanicsCard | None = None) -> None:
+    def examine(cls, geometry_mesh: GeometryMeshCard, material: MaterialCard, properties: PropertiesCard, thermal: ThermalCard | None, postprocess: PostprocessCard, radioactivity: RadioactivityCard | None = None, mechanics: MechanicsCard | None = None) -> None:
         """检查各已启用物理卡的几何引用, 以及后处理配置与几何维数的一致性"""
         cls.check_material_assignments(geometry_mesh, material)
         cls.check_properties_references(geometry_mesh, properties)
@@ -35,9 +35,8 @@ class InputCardsExamine:
         if mechanics is not None:
             cls.check_mechanics_references(geometry_mesh, mechanics)
             cls.check_mechanics_boundary_properties(properties, mechanics)
-            cls.check_mechanics_body_forces(geometry_mesh, material, mechanics)
-        if postprocess is not None:
-            cls.check_postprocess_geometry(geometry_mesh, postprocess)
+            cls.check_mechanics_sources(geometry_mesh, material, mechanics)
+        cls.check_postprocess_geometry(geometry_mesh, postprocess)
         if radioactivity is None and any(
             item.property_name == "material.radioactivity.nuclide_diffusion_coef" and item.model in MaterialCardExamine.TECDOC978_SYMBOLS
             for mat in material.mat for item in mat.properties
@@ -50,7 +49,7 @@ class InputCardsExamine:
     @staticmethod
     def check_simulation_cards(simulation: SimulationCard, material: MaterialCard, thermal: ThermalCard | None,
                                radioactivity: RadioactivityCard | None, mechanics: MechanicsCard | None,
-                               postprocess: PostprocessCard | None) -> None:
+                               postprocess: PostprocessCard) -> None:
         """核对启用场、对应物理卡、力学所需材料和可输出的标量"""
         fields = {item.name for item in simulation.problem.field}
         for name, card in (("temperature", thermal), ("concentration", radioactivity), ("displacement", mechanics)):
@@ -70,10 +69,9 @@ class InputCardsExamine:
         outputs = fields & {"temperature", "concentration"}
         if "displacement" in fields:
             outputs |= {"max_principal_stress", "max_shear_stress"}
-        if postprocess is not None:
-            missing = set(postprocess.properties) - outputs
-            if missing:
-                raise ValueError(f"后处理引用了未输出的属性: {', '.join(sorted(missing))}")
+        missing = set(postprocess.properties) - outputs
+        if missing:
+            raise ValueError(f"后处理引用了未输出的属性: {', '.join(sorted(missing))}")
 
     @staticmethod
     def check_bacon_anisotropy_factor_dependencies(material: MaterialCard, properties: PropertiesCard) -> None:
@@ -238,18 +236,18 @@ class InputCardsExamine:
                 raise ValueError(f"{location}引用了不存在的几何名称: {', '.join(sorted(unknown))}")
 
     @staticmethod
-    def check_mechanics_body_forces(geometry_mesh: GeometryMeshCard, material: MaterialCard, mechanics: MechanicsCard) -> None:
+    def check_mechanics_sources(geometry_mesh: GeometryMeshCard, material: MaterialCard, mechanics: MechanicsCard) -> None:
         """检查体积力的区域、维数、对称性和材料密度依赖"""
         geometry = getattr(geometry_mesh.geometry, geometry_mesh.geometry.source)
         region_names = {region.name for region in geometry.regions.region}
-        unknown = {item.region for item in mechanics.body_force} - region_names
+        unknown = {item.name for item in mechanics.source.region} - region_names
         if unknown:
             raise ValueError(f"力学体积力引用了不存在的区域: {', '.join(sorted(unknown))}")
         dimension = geometry_mesh.model.dimension
         materials = {item.name: item for item in material.mat}
         region_materials = {item.name: materials[item.mat] for item in material.assign.region}
-        for item in mechanics.body_force:
-            location = f"mechanics.body_forces.{item.region}"
+        for item in mechanics.source.region:
+            location = f"mechanics.source.{item.name}"
             if dimension == 1:
                 raise ValueError(f"{location}: 1D 球对称模型不支持固定方向重力")
             acceleration = item.parameters["acceleration"]
@@ -257,7 +255,7 @@ class InputCardsExamine:
                 raise ValueError(f"{location}: acceleration 分量数必须等于问题维数 {dimension}")
             if dimension == 2 and acceleration[0] != 0.0:
                 raise ValueError(f"{location}: 2D 轴对称模型的重力只能沿轴向，径向加速度必须为 0")
-            if not any(prop.property_name == "material.general.mass_density" for prop in region_materials[item.region].properties):
+            if not any(prop.property_name == "material.general.mass_density" for prop in region_materials[item.name].properties):
                 raise ValueError(f"{location}: gravity 需要该区域材料的 mass_density 属性")
 
     @staticmethod

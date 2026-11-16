@@ -13,13 +13,13 @@ class MechanicsProblem // 调度当前线弹性与热膨胀模型的准静态平
 public:
     MechanicsProblem(FemSystem& fem, FieldData& accepted_displacement, PropertiesSystem& properties,
         SolverSystem& solver, OutputManager& output,
-        const std::vector<MechanicsDomainConfig>& body_forces = {},
+        const std::vector<MechanicsDomainConfig>& sources = {},
         const std::vector<MechanicsBoundaryConfig>& boundaries = {},
         const std::vector<MechanicsInterfaceConfig>& interfaces = {});
 
     MechanicsProblem(FemSystem& fem, RegionFieldData& accepted_displacement, PropertiesSystem& properties,
         SolverSystem& solver, OutputManager& output,
-        const std::vector<MechanicsDomainConfig>& body_forces = {},
+        const std::vector<MechanicsDomainConfig>& sources = {},
         const std::vector<MechanicsBoundaryConfig>& boundaries = {},
         const std::vector<MechanicsInterfaceConfig>& interfaces = {});
 
@@ -34,7 +34,7 @@ public:
 private:
     MechanicsProblem(FemSystem& fem, TrialField trial_displacement, PropertiesSystem& properties,
         SolverSystem& solver, OutputManager& output,
-        const std::vector<MechanicsDomainConfig>& body_forces,
+        const std::vector<MechanicsDomainConfig>& sources,
         const std::vector<MechanicsBoundaryConfig>& boundaries,
         const std::vector<MechanicsInterfaceConfig>& interfaces);
 

@@ -1,14 +1,14 @@
 #pragma once
 
-#include "physics/mechanics/body_force/mechanics_body_force_model.hpp"
+#include "physics/mechanics/source/mechanics_source_model.hpp"
 
 namespace trimuse
 {
 
-class GravityBodyForce final : public MechanicsBodyForceModel // 使用积分点质量密度计算 b = rho*g
+class GravitySource final : public MechanicsSourceModel // 使用积分点质量密度计算 b = rho*g
 {
 public:
-    GravityBodyForce(const ModelParameterMap& parameters);
+    GravitySource(const ModelParameterMap& parameters);
 
     VectorValue evaluate(const PropertiesFieldData& properties, std::size_t point) const override;
 

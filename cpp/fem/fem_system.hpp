@@ -43,6 +43,8 @@ public:
 
     const MeshData& mesh_data() const; // 返回可读网格数据
 
+    const std::array<double, 3>& geometry_center() const { return geometry_center_; } // 返回几何卡指定的颗粒中心
+
     FiniteElementSpaceData& finite_element_space(const std::string& name); // 返回某场可写有限元空间
 
     const FiniteElementSpaceData& finite_element_space(const std::string& name) const; // 返回某场可读有限元空间
@@ -84,6 +86,8 @@ private:
     };
 
     MeshData mesh_data_; // 网格最先构造, 最后销毁
+
+    const std::array<double, 3> geometry_center_;
 
     double radial_origin_x_ = 0.0; // 按当前几何约定, 最小顶点 x 为径向原点或旋转轴位置
 

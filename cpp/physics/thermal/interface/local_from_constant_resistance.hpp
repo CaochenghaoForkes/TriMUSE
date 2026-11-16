@@ -23,8 +23,6 @@ private:
 
     int dimension_; // 模型维数
 
-    std::array<double, 3> center_{}; // 保存颗粒中心的 {x, y, z} 坐标 计算角度前，先用面片中心坐标减去它，得到相对颗粒中心的位置
-
     std::vector<Zone> zones_; // 保存这个界面上的全部局部热阻区域 每个元素是一个 Zone
 };
 

@@ -149,22 +149,22 @@ PYBIND11_MODULE(_core, module)
     py::class_<trimuse::MechanicsProblem>(module, "MechanicsProblem")
         .def(py::init([](trimuse::FemSystem& fem, trimuse::PropertiesSystem& properties,
                          trimuse::SolverSystem& solver, trimuse::OutputManager& output,
-                         const std::vector<ProblemConfigEntry>& body_force_configs,
+                         const std::vector<ProblemConfigEntry>& source_configs,
                          const std::vector<ProblemConfigEntry>& boundary_configs,
                          const std::vector<ProblemConfigEntry>& interface_configs)
         {
-            const auto body_forces = problem_configs<trimuse::MechanicsDomainConfig>(body_force_configs);
+            const auto sources = problem_configs<trimuse::MechanicsDomainConfig>(source_configs);
             const auto boundaries = problem_configs<trimuse::MechanicsBoundaryConfig>(boundary_configs);
             const auto interfaces = problem_configs<trimuse::MechanicsInterfaceConfig>(interface_configs);
             if (fem.has_region_field("displacement"))
             {
                 return std::make_unique<trimuse::MechanicsProblem>(fem, fem.region_field("displacement"),
-                    properties, solver, output, body_forces, boundaries, interfaces);
+                    properties, solver, output, sources, boundaries, interfaces);
             }
             return std::make_unique<trimuse::MechanicsProblem>(fem, fem.field_data("displacement"),
-                properties, solver, output, body_forces, boundaries, interfaces);
+                properties, solver, output, sources, boundaries, interfaces);
         }), py::arg("fem_system"), py::arg("properties_system"), py::arg("solver_system"), py::arg("output_manager"),
-            py::arg("body_force_configs") = std::vector<ProblemConfigEntry>{},
+            py::arg("source_configs") = std::vector<ProblemConfigEntry>{},
             py::arg("boundary_configs") = std::vector<ProblemConfigEntry>{},
             py::arg("interface_configs") = std::vector<ProblemConfigEntry>{},
             py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::keep_alive<1, 4>(), py::keep_alive<1, 5>())

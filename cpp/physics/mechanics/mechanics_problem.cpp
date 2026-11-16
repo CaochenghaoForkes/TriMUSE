@@ -9,28 +9,28 @@ namespace trimuse
 
 MechanicsProblem::MechanicsProblem(FemSystem& fem, FieldData& accepted_displacement, PropertiesSystem& properties,
     SolverSystem& solver, OutputManager& output,
-    const std::vector<MechanicsDomainConfig>& body_forces,
+    const std::vector<MechanicsDomainConfig>& sources,
     const std::vector<MechanicsBoundaryConfig>& boundaries,
     const std::vector<MechanicsInterfaceConfig>& interfaces) // 接收连续场交给第三个构造函数委托构造
-    : MechanicsProblem(fem, TrialField(fem, accepted_displacement), properties, solver, output, body_forces, boundaries, interfaces) 
+    : MechanicsProblem(fem, TrialField(fem, accepted_displacement), properties, solver, output, sources, boundaries, interfaces)
 {
 }
 
 MechanicsProblem::MechanicsProblem(FemSystem& fem, RegionFieldData& accepted_displacement, PropertiesSystem& properties,
     SolverSystem& solver, OutputManager& output,
-    const std::vector<MechanicsDomainConfig>& body_forces,
+    const std::vector<MechanicsDomainConfig>& sources,
     const std::vector<MechanicsBoundaryConfig>& boundaries,
     const std::vector<MechanicsInterfaceConfig>& interfaces) // 接收分域场生成试探场交给第三个构造函数委托构造
-    : MechanicsProblem(fem, TrialField(fem, accepted_displacement), properties, solver, output, body_forces, boundaries, interfaces)
+    : MechanicsProblem(fem, TrialField(fem, accepted_displacement), properties, solver, output, sources, boundaries, interfaces)
 {
 }
 
 MechanicsProblem::MechanicsProblem(FemSystem& fem, TrialField trial_displacement, PropertiesSystem& properties,
     SolverSystem& solver, OutputManager& output,
-    const std::vector<MechanicsDomainConfig>& body_forces,
+    const std::vector<MechanicsDomainConfig>& sources,
     const std::vector<MechanicsBoundaryConfig>& boundaries,
     const std::vector<MechanicsInterfaceConfig>& interfaces) // 真正的构造函数，初始化各对象，标记耦合，为输出对象添加待输出场值信息
-    : trial_displacement_(std::move(trial_displacement)), properties_(properties), solver_(solver), output_(output), assembly_(fem, trial_displacement_, body_forces, boundaries, interfaces), mechanics_state_(fem.domain_quadrature_point_count())
+    : trial_displacement_(std::move(trial_displacement)), properties_(properties), solver_(solver), output_(output), assembly_(fem, trial_displacement_, sources, boundaries, interfaces), mechanics_state_(fem.domain_quadrature_point_count())
 {
     assembly_.mark_coupled(properties_);
     const int region = fem.mesh_data().region_attributes().front();

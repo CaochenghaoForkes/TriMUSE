@@ -8,6 +8,7 @@ namespace trimuse
 
 FemSystem::FemSystem(const std::string& mesh_path, int domain_quadrature_order, int boundary_quadrature_order, const std::string& geometry_method, const std::array<double, 3>& center, const RegionLayerGeometryMap& region_layers)
     : mesh_data_(mesh_path),
+      geometry_center_(center),
       domain_quadrature_rules_(make_quadrature_rules(mesh_data_, mesh_data_.dimension(), domain_quadrature_order)), // 建立域中单元类型的求积规则表
       boundary_quadrature_rules_(make_quadrature_rules(mesh_data_, mesh_data_.dimension() - 1, boundary_quadrature_order)) // 建立边界中单元类型的求积规则表
 {
@@ -21,7 +22,7 @@ FemSystem::FemSystem(const std::string& mesh_path, int domain_quadrature_order, 
         }
     }
     cache_domain_quadrature_positions(); // 缓存每个域单元上所有积分点的实际空间坐标，同时建立积分点的全域连续编号。 对固定网格，后续更新材料属性时就可以直接读取，不必重复计算坐标映射
-    const MaterialCoordinateSystem coordinates(geometry_method, mesh_data_.dimension(), center, region_layers);
+    const MaterialCoordinateSystem coordinates(geometry_method, mesh_data_.dimension(), geometry_center_, region_layers);
     material_bases_.resize(domain_quadrature_point_count());
     for (int element = 0; element < mesh_data_.element_count(); ++element)
     {

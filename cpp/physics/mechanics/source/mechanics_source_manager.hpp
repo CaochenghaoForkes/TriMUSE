@@ -4,17 +4,17 @@
 
 #include "common/model_registry.hpp"
 #include "fem/fem_system.hpp"
-#include "physics/mechanics/body_force/mechanics_body_force_model.hpp"
+#include "physics/mechanics/source/mechanics_source_model.hpp"
 #include "physics/mechanics/mechanics_domain_config.hpp"
 #include "properties/properties_system.hpp"
 
 namespace trimuse
 {
 
-class MechanicsBodyForceManager // 按区域管理体积力模型，缓存全域积分点上的力向量及组装变化标记
+class MechanicsSourceManager // 按区域管理体积力模型，缓存全域积分点上的力向量及组装变化标记
 {
 public:
-    explicit MechanicsBodyForceManager(const FemSystem& fem, const std::vector<MechanicsDomainConfig>& configs = {}); // 只安排显式配置的区域，未配置区域的体积力为零
+    explicit MechanicsSourceManager(const FemSystem& fem, const std::vector<MechanicsDomainConfig>& configs = {}); // 只安排显式配置的区域，未配置区域的体积力为零
 
     void update(const PropertiesFieldData& properties); // 更新各个求积点上的体积力与 dirty 标记
 
@@ -33,13 +33,13 @@ public:
 private:
     struct Assignment
     {
-        std::unique_ptr<MechanicsBodyForceModel> model;
+        std::unique_ptr<MechanicsSourceModel> model;
         std::vector<std::string> required;
         bool dirty = true; // 首次必须组装，之后保持变化标记直到 assembled() 清除
     };
 
     const FemSystem& fem_;
-    ModelRegistry<MechanicsBodyForceModel> registry_; // 模型构造时传入参数字典，维数检查由 Python 输入层负责
+    ModelRegistry<MechanicsSourceModel> registry_; // 模型构造时传入参数字典，维数检查由 Python 输入层负责
     std::map<int, Assignment> models_;
     std::vector<VectorValue> values_; // 下标沿用原网格的全域积分点编号
 };

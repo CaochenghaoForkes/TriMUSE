@@ -26,15 +26,6 @@ ThermalLocalFromConstantResistance::ThermalLocalFromConstantResistance(const Mod
     : dimension_(parameters.count("theta_mins") ? 2 : 3) // 如果参数表里有 theta_mins 则是 2d 问题 否则是 3d 问题
 {
     constexpr double pi = 3.14159265358979323846;
-    if (parameters.count("center")) // 如果参数字典中存在 center (python 层传入 geometry_mesh 中的center)，则读取它；不存在时，成员 center_{} 保持默认的 {0, 0, 0}
-    {
-        const auto center = numbers(parameters, "center");
-        if (center.size() != 3) // 2d 使用 {x,y,0}
-        { 
-            throw std::invalid_argument("center 需要三个坐标分量"); 
-        }
-        std::copy(center.begin(), center.end(), center_.begin()); // 把局部向量 center 中的三个坐标复制到成员数组 center_
-    }
     const auto resistances = numbers(parameters, "constant_resistances"); // 读取每块区域的热阻列表
     const auto minimums = numbers(parameters, dimension_ == 2 ? "theta_mins" : "angular_distance_mins"); // 按维数选择角度下限的参数名 2d 极角下限 theta_mins 3d 相对中心方向的角距离下限 angular_distance_mins
     const auto maximums = numbers(parameters, dimension_ == 2 ? "theta_maxs" : "angular_distance_maxs"); // 按维数选择角度下限的参数名 2d 极角上限 theta_maxs 3d 相对中心方向的角距离上限 angular_distance_maxs
@@ -73,8 +64,9 @@ void ThermalLocalFromConstantResistance::assemble(const InterfaceContext& contex
     }
     mfem::Vector position(transformation.GetSpaceDim()); // 按实际空间维数创建坐标向量，2D 长度为 2，3D 长度为 3
     transformation.Transform(mfem::Geometries.GetCenter(transformation.GetGeometryType()), position); // mfem::Geometries.GetCenter(参考几何形状) 取得该参考几何的中心点 transformation.Transform(..., position); 把参考中心映射到实际界面上，结果写入 position
-    const double x = position[0] - center_[0], y = position[1] - center_[1]; // 转换为相对颗粒中心的坐标
-    const double z = dimension_ == 3 ? position[2] - center_[2] : 0.0; // 转换为相对颗粒中心的坐标 3d 还要转换 z
+    const auto& center = context.geometry_center();
+    const double x = position[0] - center[0], y = position[1] - center[1]; // 转换为相对颗粒中心的坐标
+    const double z = dimension_ == 3 ? position[2] - center[2] : 0.0; // 转换为相对颗粒中心的坐标 3d 还要转换 z
     const double radius = std::sqrt(x * x + y * y + z * z); // 计算相对颗粒中心的半径
     for (const auto& zone : zones_) // 逐个检查区域 计算判定角度
     {

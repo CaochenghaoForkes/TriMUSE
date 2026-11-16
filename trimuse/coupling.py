@@ -1,26 +1,36 @@
 from __future__ import annotations
 from math import ceil, floor, isclose
 from typing import TYPE_CHECKING
+from .problem import Mechanics, Radioactivity, Thermal
 
 if TYPE_CHECKING:
+    from .fem import FemManager
+    from .input.xml_loader import InputCards
     from .output import OutputManager
-    from .input.simulation.config import SimulationCard
-    from .problem import Thermal, Radioactivity, Mechanics
     from .properties import PropertiesManager
+    from .solver import SolverManager
+
+PROBLEM_TYPES = {
+    "temperature": Thermal,
+    "concentration": Radioactivity,
+    "displacement": Mechanics,
+}
 
 class CouplingManager:
     """管理分阶段时间推进与当前单步场求解"""
 
-    def __init__(self, simulation_config: SimulationCard, properties_manager: PropertiesManager, problems: dict[str, Thermal | Radioactivity | Mechanics], output_manager: OutputManager) -> None:
+    def __init__(self, input_cards: InputCards, fem_manager: FemManager, properties_manager: PropertiesManager, solver_manager: SolverManager, output_manager: OutputManager) -> None:
+        simulation_config = input_cards.simulation
+        fields = simulation_config.problem.field
         self.time_span = simulation_config.problem.time_span
         self.min_time_step = simulation_config.problem.min_time_step
         self.write_interval = simulation_config.output.write_interval
         self.steps = simulation_config.coupling.step
-        self.field_theta = {field.name: field.theta for field in simulation_config.problem.field}
+        self.field_theta = {field.name: field.theta for field in fields}
         self.properties_manager = properties_manager
-        self.problems = problems
         self.output_manager = output_manager
-        # 初始化控制变量
+        self.output_manager.initialize_field_output(fem_manager)
+        self.problems = {field.name: PROBLEM_TYPES[field.name](input_cards, fem_manager, properties_manager, solver_manager, output_manager) for field in fields}
         self.cycle = 0
         self.time = 0.0
         self.time_step = 0.0
@@ -57,6 +67,7 @@ class CouplingManager:
                 if write_due or step == step_count:
                     self.output_manager.save(self.cycle, self.time, self.time_step, self.problems)
                 print(f"计算进度: {self.cycle}/{total_steps} ({self.cycle / total_steps:.1%}), 时间: {self.time:.6g} s", flush=True)
+        self.output_manager.finish_simulation(self.time, self.cycle)
 
     def update_and_solve(self) -> None:
         """更新属性, 按步骤求解场, 然后接受当前时刻"""

@@ -1,14 +1,14 @@
-#include "physics/mechanics/body_force/gravity.hpp"
+#include "physics/mechanics/source/gravity.hpp"
 
 namespace trimuse
 {
 
-GravityBodyForce::GravityBodyForce(const ModelParameterMap& parameters)
+GravitySource::GravitySource(const ModelParameterMap& parameters)
 {
     acceleration_ = std::get<VectorValue>(parameters.at("acceleration"));
 }
 
-VectorValue GravityBodyForce::evaluate(const PropertiesFieldData& properties, std::size_t point) const
+VectorValue GravitySource::evaluate(const PropertiesFieldData& properties, std::size_t point) const
 {
     const double density = std::get<double>(properties.integration_point_values.at("material.general.mass_density")[point].value());
     VectorValue force = acceleration_;

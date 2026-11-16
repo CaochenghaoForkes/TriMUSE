@@ -4,8 +4,11 @@ from typing import TYPE_CHECKING
 from _core import ThermalProblem, RadioactivityProblem, MechanicsProblem # type: ignore
 
 if TYPE_CHECKING:
-    from _core import FemSystem, PropertiesSystem, SolverSystem, OutputManager
-    from .geometry.topology import MeshInfo
+    from .fem import FemManager
+    from .output import OutputManager
+    from .properties import PropertiesManager
+    from .solver import SolverManager
+    from .input.mechanics.config import MechanicsCard
     from .input.thermal.config import ThermalCard
     from .input.radioactivity.config import RadioactivityCard
     from .input.xml_loader import InputCards
@@ -17,22 +20,19 @@ class Thermal:
 
     field_state = "temperature"
 
-    def __init__(self, input_cards: InputCards, mesh_info: MeshInfo, fem: FemSystem, properties: PropertiesSystem, solver: SolverSystem, output: OutputManager) -> None:
+    def __init__(self, input_cards: InputCards, fem_manager: FemManager, properties_manager: PropertiesManager, solver_manager: SolverManager, output_manager: OutputManager) -> None:
         problem_type = next(field.model for field in input_cards.simulation.problem.field if field.name == self.field_state)
-        initial_configs = self.prepare_initial(input_cards.thermal.initial, mesh_info.region_attributes)
-        source_configs = self.prepare_source(input_cards.thermal.source, mesh_info.region_attributes)
-        boundary_configs = self.prepare_boundary(input_cards.thermal.boundary, mesh_info.boundary_attributes)
-        geometry = input_cards.geometry_mesh.geometry
-        center = getattr(geometry, geometry.source).center
-        interface_configs = []
-        for item in input_cards.thermal.interfaces.interface:
-            parameters = item.parameters
-            if item.model == "local_from_constant_resistance":
-                # 局部分区沿用几何中心，内部坐标使用 m；不修改用户输入参数。
-                parameters = {**parameters, "center": [center.x, center.y, center.z]}
-            interface_configs.append((mesh_info.boundary_attributes[item.name], item.model, parameters))
-        self.thermal_problem = ThermalProblem(fem, properties, solver, output, problem_type,
-                                             initial_configs, source_configs, boundary_configs, interface_configs)
+        card = input_cards.thermal
+        mesh_info = fem_manager.mesh_info
+        initial_configs = self.prepare_initial(card.initial, mesh_info.region_attributes)
+        source_configs = self.prepare_source(card.source, mesh_info.region_attributes)
+        boundary_configs = self.prepare_boundary(card.boundary, mesh_info.boundary_attributes)
+        interface_configs = self.prepare_interfaces(card.interfaces, mesh_info.boundary_attributes)
+        self.thermal_problem = ThermalProblem(
+            fem_manager.fem_system, properties_manager.properties_system,
+            solver_manager.solver_system, output_manager.field_output, problem_type,
+            initial_configs, source_configs, boundary_configs, interface_configs,
+        )
 
     @staticmethod
     def prepare_initial(initial: ThermalCard.Initial, region_attributes: dict[str, int]) -> list[ProblemConfigEntry]:
@@ -49,6 +49,11 @@ class Thermal:
         """将热边界名称转换为网格边界编号"""
         return [(boundary_attributes[item.name], item.model, item.parameters) for item in boundaries]
 
+    @staticmethod
+    def prepare_interfaces(interfaces: ThermalCard.Interfaces, boundary_attributes: dict[str, int]) -> list[ProblemConfigEntry]:
+        """将热界面名称转换为网格物理组编号"""
+        return [(boundary_attributes[item.name], item.model, item.parameters) for item in interfaces.interface]
+
     def solve(self, time_step: float = 0.0, theta: float = 1.0) -> None:
         """调用统一求解入口, 问题类型由 C++ 对象保存"""
         self.thermal_problem.solve(time_step, theta)
@@ -61,17 +66,18 @@ class Radioactivity:
 
     field_state = "concentration"
 
-    def __init__(self, input_cards: InputCards, mesh_info: MeshInfo, fem: FemSystem, properties: PropertiesSystem, solver: SolverSystem, output: OutputManager) -> None:
+    def __init__(self, input_cards: InputCards, fem_manager: FemManager, properties_manager: PropertiesManager, solver_manager: SolverManager, output_manager: OutputManager) -> None:
         problem_type = next(field.model for field in input_cards.simulation.problem.field if field.name == self.field_state)
         card = input_cards.radioactivity
+        mesh_info = fem_manager.mesh_info
         initial_configs = self.prepare_initial(card.initial, mesh_info.region_attributes)
         source_configs = self.prepare_source(card.source, mesh_info.region_attributes)
         boundary_configs = self.prepare_boundary(card.boundary, mesh_info.boundary_attributes)
-        interface_configs = [(mesh_info.boundary_attributes[item.name], item.model, item.parameters)
-                             for item in card.interfaces.interface]
+        interface_configs = self.prepare_interfaces(card.interfaces, mesh_info.boundary_attributes)
         self.radioactivity_problem = RadioactivityProblem(
-            fem, properties, solver, output, problem_type, card.nuclide.decay_constant,
-            initial_configs, source_configs, boundary_configs, interface_configs
+            fem_manager.fem_system, properties_manager.properties_system,
+            solver_manager.solver_system, output_manager.field_output, problem_type,
+            card.nuclide.decay_constant, initial_configs, source_configs, boundary_configs, interface_configs,
         )
 
     @staticmethod
@@ -87,6 +93,11 @@ class Radioactivity:
     def prepare_boundary(boundaries: list[RadioactivityCard.Boundary], boundary_attributes: dict[str, int]) -> list[ProblemConfigEntry]:
         return [(boundary_attributes[item.name], item.model, item.parameters) for item in boundaries]
 
+    @staticmethod
+    def prepare_interfaces(interfaces: RadioactivityCard.Interfaces, boundary_attributes: dict[str, int]) -> list[ProblemConfigEntry]:
+        """将放射性输运界面名称转换为网格物理组编号"""
+        return [(boundary_attributes[item.name], item.model, item.parameters) for item in interfaces.interface]
+
     def solve(self, time_step: float = 0.0, theta: float = 1.0) -> None:
         self.radioactivity_problem.solve(time_step, theta)
 
@@ -98,12 +109,32 @@ class Mechanics:
 
     field_state = "displacement"
 
-    def __init__(self, input_cards: InputCards, mesh_info: MeshInfo, fem: FemSystem, properties: PropertiesSystem, solver: SolverSystem, output: OutputManager) -> None:
+    def __init__(self, input_cards: InputCards, fem_manager: FemManager, properties_manager: PropertiesManager, solver_manager: SolverManager, output_manager: OutputManager) -> None:
         card = input_cards.mechanics
-        body_forces = [(mesh_info.region_attributes[item.region], item.model, item.parameters) for item in card.body_force]
-        boundaries = [(mesh_info.boundary_attributes[item.name], item.model, item.parameters) for item in card.boundary]
-        interfaces = [(mesh_info.boundary_attributes[item.name], item.model, item.parameters) for item in card.interfaces.interface]
-        self.mechanics_problem = MechanicsProblem(fem, properties, solver, output, body_forces, boundaries, interfaces)
+        mesh_info = fem_manager.mesh_info
+        source_configs = self.prepare_source(card.source, mesh_info.region_attributes)
+        boundary_configs = self.prepare_boundary(card.boundary, mesh_info.boundary_attributes)
+        interface_configs = self.prepare_interfaces(card.interfaces, mesh_info.boundary_attributes)
+        self.mechanics_problem = MechanicsProblem(
+            fem_manager.fem_system, properties_manager.properties_system,
+            solver_manager.solver_system, output_manager.field_output,
+            source_configs, boundary_configs, interface_configs,
+        )
+
+    @staticmethod
+    def prepare_source(source: MechanicsCard.Source, region_attributes: dict[str, int]) -> list[ProblemConfigEntry]:
+        """整理各区域的体积力源项配置"""
+        return [(region_attributes[item.name], item.model, item.parameters) for item in source.region]
+
+    @staticmethod
+    def prepare_boundary(boundaries: list[MechanicsCard.Boundary], boundary_attributes: dict[str, int]) -> list[ProblemConfigEntry]:
+        """将力学外边界名称转换为网格边界编号"""
+        return [(boundary_attributes[item.name], item.model, item.parameters) for item in boundaries]
+
+    @staticmethod
+    def prepare_interfaces(interfaces: MechanicsCard.Interfaces, boundary_attributes: dict[str, int]) -> list[ProblemConfigEntry]:
+        """将力学界面名称转换为网格物理组编号"""
+        return [(boundary_attributes[item.name], item.model, item.parameters) for item in interfaces.interface]
 
     def solve(self, time_step: float = 0.0, theta: float = 1.0) -> None:
         """保持统一调度接口，准静态方程本身不使用时间离散参数"""

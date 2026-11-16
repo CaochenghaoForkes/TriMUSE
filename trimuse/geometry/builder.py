@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from pathlib import Path
+from typing import TYPE_CHECKING
 import gmsh
 import json
 import numpy as np
@@ -9,8 +12,17 @@ from trimuse.geometry.flat_multilayer_particle import FlatMultilayerParticleBuil
 from trimuse.geometry.stochastic_multilayer_particle import StochasticMultilayerParticleBuilder
 from trimuse.geometry.topology import GeometryTopology, MeshInfo
 
+if TYPE_CHECKING:
+    from trimuse.input.xml_loader import InputCards
+
 class GeometryMeshBuilder:
     """统一管理 Gmsh 生命周期和几何网格构建流程"""
+
+    @classmethod
+    def build_case(cls, input_cards: InputCards, output_directory: str | Path) -> MeshInfo:
+        """按总调度卡的随机种子生成本次算例的网格"""
+        rng = np.random.default_rng(input_cards.chief.random_seed)
+        return cls.build(input_cards.geometry_mesh, output_directory, rng)
 
     @classmethod
     def build(cls, config: GeometryMeshCard, output_directory: str | Path, rng: np.random.Generator) -> MeshInfo:

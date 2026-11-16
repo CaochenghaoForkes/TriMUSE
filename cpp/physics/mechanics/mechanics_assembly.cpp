@@ -7,11 +7,11 @@ namespace trimuse
 {
 
 MechanicsAssembly::MechanicsAssembly(FemSystem& fem, TrialField& trial_field,
-    const std::vector<MechanicsDomainConfig>& body_forces,
+    const std::vector<MechanicsDomainConfig>& sources,
     const std::vector<MechanicsBoundaryConfig>& boundaries,
     const std::vector<MechanicsInterfaceConfig>& interfaces) // 初始化对象，登记连接生成界面连续映射 P，建立外边界单元索引表
     : fem_(fem), trial_field_(trial_field), integrator_(fem, trial_field),
-      stiffness_manager_(fem), thermal_expansion_manager_(fem), body_force_manager_(fem, body_forces),
+      stiffness_manager_(fem), thermal_expansion_manager_(fem), source_manager_(fem, sources),
       boundary_manager_(boundaries), constraints_(fem, trial_field), interface_manager_(fem, constraints_, interfaces)
 {
     constraints_.finalize(); // 界面管理器已登记全部连接，统一生成 P （生成约束映射，界面连续约束的映射）
@@ -40,7 +40,7 @@ void MechanicsAssembly::mark_coupled(PropertiesSystem& properties) const // 标�
 {
     stiffness_manager_.mark_coupled(properties, "displacement");
     thermal_expansion_manager_.mark_coupled(properties, "displacement");
-    body_force_manager_.mark_coupled(properties, "displacement");
+    source_manager_.mark_coupled(properties, "displacement");
     boundary_manager_.mark_coupled(properties, "displacement");
 }
 
@@ -48,7 +48,7 @@ bool MechanicsAssembly::coupled(const PropertiesSystem& properties) const // 判
 {
     return stiffness_manager_.coupled(properties, "displacement")
         || thermal_expansion_manager_.coupled(properties, "displacement")
-        || body_force_manager_.coupled(properties, "displacement")
+        || source_manager_.coupled(properties, "displacement")
         || boundary_manager_.coupled(properties, "displacement");
 }
 
@@ -92,23 +92,23 @@ void MechanicsAssembly::refresh_thermal_expansion()
     }
 }
 
-void MechanicsAssembly::refresh_body_force()
+void MechanicsAssembly::refresh_source()
 {
-    bool changed = !body_force_cache_.sum;
-    for (int region : body_force_manager_.regions())
+    bool changed = !source_cache_.sum;
+    for (int region : source_manager_.regions())
     {
-        if (body_force_cache_.parts.count(region) && body_force_manager_.required_no_change(region)) 
-        { 
-            continue; 
+        if (source_cache_.parts.count(region) && source_manager_.required_no_change(region))
+        {
+            continue;
         }
-        body_force_cache_.parts[region] = integrator_.domain_load(region, body_force_manager_.values());
-        body_force_manager_.assembled(region);
-        ++counts_["body_force"];
+        source_cache_.parts[region] = integrator_.domain_load(region, source_manager_.values());
+        source_manager_.assembled(region);
+        ++counts_["source"];
         changed = true;
     }
     if (changed) 
     { 
-        body_force_cache_.sum = sum_vectors(body_force_cache_.parts, trial_field_.size()); 
+        source_cache_.sum = sum_vectors(source_cache_.parts, trial_field_.size());
     }
 }
 
@@ -140,24 +140,24 @@ MechanicsAssembly::State MechanicsAssembly::update(const PropertiesFieldData& pr
 {
     stiffness_manager_.update(properties); // 读取各求积点的弹性矩阵 C，更新管理器中的系数数组，并检查更新 dirty
     thermal_expansion_manager_.update(properties); // 读取当前正式温度场，以及属性中的弹性矩阵、热膨胀系数和参考温度，计算热膨胀系数，并检查更新 dirty
-    body_force_manager_.update(properties); // 更新各求积点点体积力向量，并检查更新 dirty
+    source_manager_.update(properties); // 更新各求积点点体积力向量，并检查更新 dirty
     boundary_manager_.update(properties); // 更新各边界分区的指定面力向量、压力标量或指定位移向量，并检查更新 dirty
     refresh_stiffness(); // 根据 dirty 只重新组装发生变化或尚无缓存的区域刚度矩阵，必要时重新计算总刚度矩阵 并更换 cache_.sum 指针为新对象
     refresh_thermal_expansion(); // 根据 dirty 只重新组装发生变化或尚无缓存的区域热膨胀载荷，必要时重新计算总热膨胀载荷 并更换 cache_.sum 指针为新对象
-    refresh_body_force(); // 根据 dirty 只重新组装发生变化或尚无缓存的区域体积力载荷，必要时重新计算总体积力载荷 并更换 cache_.sum 指针为新对象
+    refresh_source(); // 根据 dirty 只重新组装发生变化或尚无缓存的区域体积力载荷，必要时重新计算总体积力载荷 并更换 cache_.sum 指针为新对象
     refresh_boundary(); // 根据 dirty 只重新组装发生变化或尚无缓存的表面边界表面力载荷，必要时重新计算表面边界表面力载荷 并更换 cache_.sum 指针为新对象
 
     state_.stiffness = stiffness_cache_.sum; // 让 state_.stiffness 与 stiffness_cache_.sum 共同持有同一张矩阵，不复制矩阵数值
     if (last_thermal_expansion_cache_sum_ != thermal_expansion_cache_.sum // 若总热膨胀载荷指针发生更换
-        || last_body_force_cache_sum_ != body_force_cache_.sum // 或总体积力载荷指针发生更换
+        || last_source_cache_sum_ != source_cache_.sum // 或总体积力载荷指针发生更换
         || last_boundary_load_cache_sum_ != boundary_load_cache_.sum) // 或总表面力载荷指针发生更换
     {
         auto load = std::make_shared<mfem::Vector>(*thermal_expansion_cache_.sum); // 重新创建新总载荷向量 f = fth + fbody + fboundary
-        *load += *body_force_cache_.sum;
+        *load += *source_cache_.sum;
         *load += *boundary_load_cache_.sum;
         state_.load = std::move(load); // 把这个新向量的共享指针移交给 state_.load
         last_thermal_expansion_cache_sum_ = thermal_expansion_cache_.sum; // 记录本次使用的新缓存指针
-        last_body_force_cache_sum_ = body_force_cache_.sum; // 记录本次使用的新缓存指针
+        last_source_cache_sum_ = source_cache_.sum; // 记录本次使用的新缓存指针
         last_boundary_load_cache_sum_ = boundary_load_cache_.sum; // 记录本次使用的新缓存指针
     }
     return state_; // 更新时替换指针，调用方保留的旧状态不会被改写

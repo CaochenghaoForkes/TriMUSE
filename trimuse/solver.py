@@ -4,12 +4,13 @@ from typing import TYPE_CHECKING
 from _core import SolverSystem # type: ignore
 
 if TYPE_CHECKING:
-    from .input.simulation.config import SimulationCard
+    from .input.xml_loader import InputCards
 
 class SolverManager:
     """按场整理求解配置并创建 C++ 求解系统"""
 
-    def __init__(self, config: SimulationCard.Solver) -> None:
+    def __init__(self, input_cards: InputCards) -> None:
+        config = input_cards.simulation.solver
         entries = [
             (
                 field.name,

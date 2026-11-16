@@ -27,15 +27,21 @@ class MechanicsCard:
         interface: list[Interface] = field(default_factory=list)
 
     @dataclass
-    class BodyForce:
-        region: str
-        model: str
-        parameters: dict[str, float | list[float]] = field(default_factory=dict)
+    class Source:
+        """按材料区域配置体积力"""
+
+        @dataclass
+        class Region:
+            name: str
+            model: str
+            parameters: dict[str, float | list[float]] = field(default_factory=dict)
+
+        region: list[Region] = field(default_factory=list)
 
     thermal_expansion_reference_temperature: float
     boundary: list[Boundary] = field(default_factory=list)
     interfaces: Interfaces = field(default_factory=Interfaces)
-    body_force: list[BodyForce] = field(default_factory=list)
+    source: Source = field(default_factory=Source)
 
 class MechanicsCardLoader:
     @classmethod
@@ -51,9 +57,8 @@ class MechanicsCardLoader:
         boundaries = XmlUtils.read_child(root, "boundaries", required=False)
         boundary = [cls.read_boundary(element) for element in XmlUtils.read_children(boundaries, "boundary")] if boundaries is not None else []
         interfaces = cls.read_interfaces(XmlUtils.read_child(root, "interfaces", required=False))
-        body_forces = XmlUtils.read_child(root, "body_forces", required=False)
-        body_force = [cls.read_body_force(element) for element in XmlUtils.read_children(body_forces, "body_force")] if body_forces is not None else []
-        return MechanicsCard(thermal_expansion_reference_temperature=temperature, boundary=boundary, interfaces=interfaces, body_force=body_force)
+        source = cls.read_source(root)
+        return MechanicsCard(thermal_expansion_reference_temperature=temperature, boundary=boundary, interfaces=interfaces, source=source)
 
     @staticmethod
     def read_boundary(element: ET.Element) -> MechanicsCard.Boundary:
@@ -72,8 +77,22 @@ class MechanicsCardLoader:
         model_config = XmlUtils.read_model(element, context=f"interfaces.{name}")
         return MechanicsCard.Interfaces.Interface(name=name, **model_config)
 
+    @classmethod
+    def read_source(cls, root: ET.Element) -> MechanicsCard.Source:
+        source = XmlUtils.read_child(root, "source", required=False)
+        legacy = XmlUtils.read_child(root, "body_forces", required=False)
+        if source is not None and legacy is not None:
+            raise ValueError("mechanics: 请仅使用 <source> 或旧版 <body_forces> 中的一种")
+        if source is not None:
+            regions = [cls.read_source_region(element) for element in XmlUtils.read_children(source, "region")]
+        elif legacy is not None:
+            regions = [cls.read_source_region(element, "region") for element in XmlUtils.read_children(legacy, "body_force")]
+        else:
+            regions = []
+        return MechanicsCard.Source(region=regions)
+
     @staticmethod
-    def read_body_force(element: ET.Element) -> MechanicsCard.BodyForce:
-        region = XmlUtils.read_attribute(element, "region", required=True)
-        model_config = XmlUtils.read_model(element, context=f"body_forces.{region}")
-        return MechanicsCard.BodyForce(region=region, **model_config)
+    def read_source_region(element: ET.Element, name_attribute: str = "name") -> MechanicsCard.Source.Region:
+        name = XmlUtils.read_attribute(element, name_attribute, required=True)
+        model_config = XmlUtils.read_model(element, context=f"source.{name}")
+        return MechanicsCard.Source.Region(name=name, **model_config)

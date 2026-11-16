@@ -7,7 +7,6 @@ from dataclasses import replace
 import gmsh
 from math import atan2, cos, pi, sin, sqrt
 
-
 class FlatMultilayerParticleBuilder:
     """截平多层颗粒: 由底部直线、相切圆角和原球圆弧构造截面及旋转体"""
 

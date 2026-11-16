@@ -71,6 +71,21 @@ class ThermalProblem:
 
     def solve(self, time_step: float = 0.0, theta: float = 1.0) -> None: ...
 
+class MechanicsProblem:
+    """求解准静态力学平衡并输出应力结果"""
+
+    def __init__(self, fem_system: FemSystem, properties_system: PropertiesSystem,
+                 solver_system: SolverSystem, output_manager: OutputManager,
+                 source_configs: list[ProblemConfigEntry] = ...,
+                 boundary_configs: list[ProblemConfigEntry] = ...,
+                 interface_configs: list[ProblemConfigEntry] = ...) -> None: ...
+
+    def solve(self) -> None: ...
+
+    def save_output(self, cycle: int, time: float, time_step: float) -> None: ...
+
+    def assembly_counts(self) -> dict[str, int]: ...
+
 class RadioactivityProblem:
     """初始化核素浓度并统一调度扩散与衰变求解"""
 

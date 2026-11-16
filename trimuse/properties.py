@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 from _core import PropertiesSystem # type: ignore
 
 if TYPE_CHECKING:
-    from _core import FemSystem # pyright: ignore[reportMissingImports]
+    from .fem import FemManager
     from .geometry.topology import MeshInfo
     from .input.xml_loader import InputCards
     from .input.material.config import MaterialCard
@@ -15,9 +15,11 @@ if TYPE_CHECKING:
 class PropertiesManager:
     """管理 C++ 属性系统的模型配置与更新"""
 
-    def __init__(self, input_cards: InputCards, mesh_info: MeshInfo, fem: FemSystem, field_names: set[str]) -> None:
+    def __init__(self, input_cards: InputCards, fem_manager: FemManager) -> None:
         """创建属性系统, 按材料区域或边界分区编号安排模型"""
-        self.properties_system = PropertiesSystem(fem, sorted(field_names))
+        mesh_info = fem_manager.mesh_info
+        field_names = sorted({field.name for field in input_cards.simulation.problem.field})
+        self.properties_system = PropertiesSystem(fem_manager.fem_system, field_names)
         self.assign_mechanics_card(input_cards.mechanics)
         self.assign_radioactivity_card(input_cards.radioactivity)
         self.assign_properties_card(input_cards.properties, mesh_info)
