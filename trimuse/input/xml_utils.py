@@ -100,6 +100,36 @@ class XmlUtils:
         return model_config
 
     @staticmethod
+    def read_problem_parameters(root: ET.Element, quantities: dict[str, str | None]) -> dict[str, str | float] | None:
+        """读取物理卡的固定参数 None 类型的量表示单位为 [1] 的文本"""
+        context = f"{root.tag}.parameters"
+        group = XmlUtils.read_child(root, "parameters", required=False)
+        if group is None:
+            return None
+        XmlUtils.check_children(group, ("parameter",), context=context)
+        parameters: dict[str, str | float] = {}
+        for element in XmlUtils.read_children(group, "parameter"):
+            XmlUtils.check_attributes(element, ("name", "value", "unit"), context=context)
+            name = XmlUtils.read_attribute(element, "name", required=True, context=context)
+            location = f"{context}.{name}"
+            if name not in quantities:
+                raise ValueError(f"{location}: 未知参数")
+            if name in parameters:
+                raise ValueError(f"{location}: 参数名重复")
+            quantity = quantities[name]
+            if quantity is None:
+                unit = XmlUtils.read_attribute(element, "unit", required=True, context=location)
+                if unit != "[1]":
+                    raise ValueError(f"{location}: 文本参数单位必须为 [1]")
+                parameters[name] = XmlUtils.read_attribute(element, "value", required=True, context=location)
+            else:
+                parameters[name] = XmlUtils.read_attribute(element, "value", float, required=True, quantity=quantity, context=location)
+        missing = quantities.keys() - parameters.keys()
+        if missing:
+            raise ValueError(f"{context}: 缺少必填参数: {', '.join(sorted(missing))}")
+        return parameters
+
+    @staticmethod
     def read_child(
         element: ET.Element,
         name: str,

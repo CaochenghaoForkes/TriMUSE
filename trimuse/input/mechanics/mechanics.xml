@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <mechanics>
-    <thermal_expansion_reference_temperature value="273.15" unit="[K]"/>
+    <parameters>
+        <parameter name="thermal_expansion_reference_temperature" value="273.15" unit="[K]"/>
+    </parameters>
     <!-- 边界值配置在属性卡中，未指定的外表面默认为零面力 -->
     <boundaries>
         <!-- 读取同名分区的 external.surface_pressure，正压力沿表面内法向加载 -->

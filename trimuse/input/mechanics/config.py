@@ -1,6 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import cast
 from xml.etree import ElementTree as ET
 import sys
 
@@ -43,6 +44,9 @@ class MechanicsCard:
     interfaces: Interfaces = field(default_factory=Interfaces)
     source: Source = field(default_factory=Source)
 
+    def precomputed_parameters(self) -> dict[str, str | float]:
+        return {"thermal_expansion_reference_temperature": self.thermal_expansion_reference_temperature}
+
 class MechanicsCardLoader:
     @classmethod
     def load(cls, path: str | Path | None = None) -> MechanicsCard:
@@ -52,13 +56,23 @@ class MechanicsCardLoader:
             print(f"力学模板输入卡已生成: {template_path}")
             sys.exit()
         root = XmlUtils.get_root(path, "mechanics")
-        reference = XmlUtils.read_child(root, "thermal_expansion_reference_temperature")
-        temperature = XmlUtils.read_attribute(reference, "value", float, required=True, quantity="temperature")
+        temperature = cls.read_reference_temperature(root)
         boundaries = XmlUtils.read_child(root, "boundaries", required=False)
         boundary = [cls.read_boundary(element) for element in XmlUtils.read_children(boundaries, "boundary")] if boundaries is not None else []
         interfaces = cls.read_interfaces(XmlUtils.read_child(root, "interfaces", required=False))
         source = cls.read_source(root)
         return MechanicsCard(thermal_expansion_reference_temperature=temperature, boundary=boundary, interfaces=interfaces, source=source)
+
+    @staticmethod
+    def read_reference_temperature(root: ET.Element) -> float:
+        name = "thermal_expansion_reference_temperature"
+        parameters = XmlUtils.read_problem_parameters(root, {name: "temperature"})
+        if parameters is not None:
+            if XmlUtils.read_child(root, name, required=False) is not None:
+                raise ValueError(f"mechanics: 请仅使用 <parameters> 或旧版 <{name}> 中的一种")
+            return cast(float, parameters[name])
+        legacy = XmlUtils.read_child(root, name)
+        return cast(float, XmlUtils.read_attribute(legacy, "value", float, required=True, quantity="temperature"))
 
     @staticmethod
     def read_boundary(element: ET.Element) -> MechanicsCard.Boundary:

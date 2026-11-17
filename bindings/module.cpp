@@ -81,8 +81,9 @@ PYBIND11_MODULE(_core, module)
         .def("solve_information", &trimuse::OutputManager::solve_information, py::arg("field_name"));
 
     py::class_<trimuse::PropertiesSystem>(module, "PropertiesSystem")
-        .def(py::init<const trimuse::FemSystem&, const std::vector<std::string>&>(),
-             py::arg("fem_system"), py::arg("field_names") = std::vector<std::string>{}, py::keep_alive<1, 2>())
+        .def(py::init<const trimuse::FemSystem&, const std::vector<std::string>&, const trimuse::ModelParameterMap&>(),
+             py::arg("fem_system"), py::arg("field_names") = std::vector<std::string>{},
+             py::arg("precomputed_parameters") = trimuse::ModelParameterMap{}, py::keep_alive<1, 2>())
         .def("set_precomputed", &trimuse::PropertiesSystem::set_precomputed, py::arg("name"), py::arg("value"))
         .def(
             "assign",

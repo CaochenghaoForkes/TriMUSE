@@ -2,6 +2,7 @@
 <!-- 填写占位符后使用；boundary 名称引用几何卡的外表面 zone 或 residual_zone -->
 <!-- si_unit 必须符合模型的内部单位, 参数数组使用空格分隔 -->
 <thermal>
+    <!-- 当前热问题没有专属参数，可省略 parameters -->
     <initial>
         <!-- temperature 可重复, region 引用几何区域, 每个区域填写一次 -->
         <temperature region="[str]" model="uniform">

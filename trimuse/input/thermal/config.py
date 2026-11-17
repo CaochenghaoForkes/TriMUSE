@@ -76,6 +76,7 @@ class ThermalCardLoader:
             print(f"热模板输入卡已生成: {template_path}")
             sys.exit()
         root = XmlUtils.get_root(path, "thermal")
+        XmlUtils.read_problem_parameters(root, {})
         initial = cls.read_initial(XmlUtils.read_child(root, "initial"))
         boundaries = XmlUtils.read_child(root, "boundaries", required=False)
         boundary = [cls.read_boundary(element) for element in XmlUtils.read_children(boundaries, "boundary")] if boundaries is not None else []

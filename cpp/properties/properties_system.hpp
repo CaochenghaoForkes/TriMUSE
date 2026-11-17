@@ -21,7 +21,7 @@ class PropertiesSystem
 public:
     using FieldMap = std::unordered_map<std::string, FieldView>; // 场名 -> 连续场或分域场的只读视图, 用于传入试探场
 
-    explicit PropertiesSystem(const FemSystem& fem_system, const std::vector<std::string>& field_names = {}); // 初始化属性存储，并按启用场填入体积及所需的坐标转换缓存
+    explicit PropertiesSystem(const FemSystem& fem_system, const std::vector<std::string>& field_names = {}, const ModelParameterMap& precomputed_parameters = {}); // 初始化属性存储并填入物理卡参数及几何缓存
 
     void set_precomputed(const std::string& name, const ModelParameterValue& value); // assign 前填写已声明的全局预计算属性 precomputed.name, 并以 name 作为公共构造参数键
 
@@ -98,6 +98,7 @@ private:
         {"precomputed.tensor_transform_inverse", PropertyType::Precomputed, PropertyScope::IntegrationPoint}, // 六分量张量 global -> local 的 T^{-1}
         {"precomputed.nuclide_name", PropertyType::Precomputed, PropertyScope::Global}, // 核素名称, 如 Cs137
         {"precomputed.nuclide_symbol", PropertyType::Precomputed, PropertyScope::Global}, // 元素符号, 如 Cs
+        {"precomputed.half_life", PropertyType::Precomputed, PropertyScope::Global}, // s, 核素半衰期
         {"external.time", PropertyType::External, PropertyScope::Global},
         {"external.time_step", PropertyType::External, PropertyScope::Global}, // s, 本次推进的时间增量
         {"external.environment_temperature", PropertyType::External, PropertyScope::Zone},

@@ -1,5 +1,5 @@
 #include "properties/properties_system.hpp"
-#include "properties/precomputed/precomputed.hpp"
+#include "properties/precomputed/precomputed_manager.hpp"
 
 #include <algorithm>
 #include <stdexcept>
@@ -8,7 +8,7 @@
 namespace trimuse
 {
 
-PropertiesSystem::PropertiesSystem(const FemSystem& fem_system, const std::vector<std::string>& field_names) // 初始化属性存储，并填入固定几何的预计算属性
+PropertiesSystem::PropertiesSystem(const FemSystem& fem_system, const std::vector<std::string>& field_names, const ModelParameterMap& precomputed_parameters)
     : fem_system_(fem_system), field_names_(field_names)
 {
     for (const PropertyInfo& property : properties_)
@@ -37,7 +37,7 @@ PropertiesSystem::PropertiesSystem(const FemSystem& fem_system, const std::vecto
     {
         required_properties.emplace(field, field_required_properties_.at(field));
     }
-    initialize_precomputed(properties_field_data_, fem_system_, required_properties);
+    PrecomputedManager::initialize_precomputed(*this, fem_system_, required_properties, precomputed_parameters);
 }
 
 void PropertiesSystem::set_precomputed(const std::string& name, const ModelParameterValue& value) // 为已声明的全局预计算属性填写值，并把它保存为所有模型共用的构造参数

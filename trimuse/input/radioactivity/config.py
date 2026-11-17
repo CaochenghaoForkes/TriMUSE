@@ -1,6 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import cast
 from xml.etree import ElementTree as ET
 import math
 import re
@@ -71,6 +72,13 @@ class RadioactivityCard:
     interfaces: Interfaces = field(default_factory=Interfaces)
     source: Source = field(default_factory=Source)
 
+    def precomputed_parameters(self) -> dict[str, str | float]:
+        return {
+            "nuclide_name": self.nuclide.name,
+            "half_life": self.nuclide.half_life,
+            "nuclide_symbol": self.nuclide.element_symbol,
+        }
+
 class RadioactivityCardLoader:
     """读取单核素配置, 盘存量按 si_unit 转换为模型所需的原子数单位"""
 
@@ -82,7 +90,7 @@ class RadioactivityCardLoader:
             print(f"放射性模板输入卡已生成: {template_path}")
             sys.exit()
         root = XmlUtils.get_root(path, "radioactivity")
-        nuclide = cls.read_nuclide(XmlUtils.read_child(root, "nuclide"))
+        nuclide = cls.read_nuclide(root)
         initial = cls.read_initial(XmlUtils.read_child(root, "initial"))
         boundaries = XmlUtils.read_child(root, "boundaries", required=False)
         boundary = []
@@ -94,9 +102,18 @@ class RadioactivityCardLoader:
         return radioactivity_card
 
     @staticmethod
-    def read_nuclide(element: ET.Element) -> RadioactivityCard.Nuclide:
-        name = XmlUtils.read_attribute(element, "name", required=True)
-        half_life = XmlUtils.read_attribute(XmlUtils.read_child(element, "half_life"), "value", float, required=True, quantity="time")
+    def read_nuclide(root: ET.Element) -> RadioactivityCard.Nuclide:
+        parameters = XmlUtils.read_problem_parameters(root, {"nuclide_name": None, "half_life": "time"})
+        if parameters is not None:
+            if XmlUtils.read_child(root, "nuclide", required=False) is not None:
+                raise ValueError("radioactivity: 请仅使用 <parameters> 或旧版 <nuclide> 中的一种")
+            return RadioactivityCard.Nuclide(
+                name=cast(str, parameters["nuclide_name"]),
+                half_life=cast(float, parameters["half_life"]),
+            )
+        legacy = XmlUtils.read_child(root, "nuclide")
+        name = XmlUtils.read_attribute(legacy, "name", required=True)
+        half_life = XmlUtils.read_attribute(XmlUtils.read_child(legacy, "half_life"), "value", float, required=True, quantity="time")
         nuclide = RadioactivityCard.Nuclide(name=name, half_life=half_life)
         return nuclide
 

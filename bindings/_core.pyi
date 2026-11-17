@@ -36,7 +36,8 @@ class OutputManager:
 class PropertiesSystem:
     """外部 派生与材料属性的统一配置及更新接口"""
 
-    def __init__(self, fem_system: FemSystem, field_names: list[str] = ...) -> None: ...
+    def __init__(self, fem_system: FemSystem, field_names: list[str] = ...,
+                 precomputed_parameters: dict[str, float | list[float] | str] = ...) -> None: ...
 
     def set_precomputed(self, name: str, value: float | list[float] | str) -> None: ...
 
