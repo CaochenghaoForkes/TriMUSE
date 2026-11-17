@@ -16,7 +16,6 @@ from .boundary_geometry import BoundaryGeometry
 from .animation_writer import save_gif
 from .plot_style import BOUNDARY_COLORS, coordinate_labels, direction_labels
 
-
 class PostprocessManager:
     """接收已读取的输入卡, 调度点、线和截面后处理, 不依赖有限元内核对象"""
 

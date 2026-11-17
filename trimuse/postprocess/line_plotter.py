@@ -14,7 +14,6 @@ from .plot_style import plot_style, annotate_time, property_label, BOUNDARY_COLO
 if TYPE_CHECKING:
     from vtkmodules.vtkCommonDataModel import vtkStaticCellLocator, vtkUnstructuredGrid
 
-
 class LinePlotter:
     """复用点插值, 分别处理线采样、逐帧提取、保存和绘图"""
 

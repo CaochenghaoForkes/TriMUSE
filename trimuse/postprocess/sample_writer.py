@@ -1,7 +1,5 @@
 from pathlib import Path
-
 import numpy as np
-
 
 def save_sample_csv(path: Path, data: np.ndarray, property_name: str) -> None:
     """保存编号、xyz、r、值; 保持原 CSV 格式, 分块写入以控制临时内存。"""

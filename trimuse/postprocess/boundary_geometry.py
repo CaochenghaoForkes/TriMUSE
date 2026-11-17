@@ -1,14 +1,12 @@
 from pathlib import Path
 import shlex
 import numpy as np
-
 from vtkmodules.util.numpy_support import vtk_to_numpy
 from vtkmodules.vtkCommonCore import vtkIdList, reference
 from vtkmodules.vtkCommonDataModel import vtkPlane, vtkStaticCellLocator, vtkGenericCell
 from vtkmodules.vtkFiltersCore import vtkCutter, vtkExtractCells
 from vtkmodules.vtkFiltersGeometry import vtkDataSetSurfaceFilter
 from vtkmodules.vtkIOLegacy import vtkUnstructuredGridReader
-
 
 class BoundaryGeometry:
     """从原始网格读取命名界面和边界, 缓存它们在各个截面上的曲线"""

@@ -1,7 +1,5 @@
 from pathlib import Path
-
 from PIL import GifImagePlugin, Image
-
 
 def save_gif(frame_paths: list[Path], path: Path, duration: int = 120) -> Path:
     """按时间顺序编码已有 PNG, 共用调色板; 逐帧写入, 不把整段动画加载到内存"""

@@ -16,7 +16,6 @@ from .plot_style import plot_style, annotate_time, property_label, BOUNDARY_COLO
 if TYPE_CHECKING:
     from vtkmodules.vtkCommonDataModel import vtkPolyData, vtkUnstructuredGrid
 
-
 class SectionPlotter:
     """二维取整个计算截面, 三维按平面切片; 提取、保存与云图分别处理"""
 

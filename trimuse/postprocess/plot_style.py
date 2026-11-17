@@ -3,7 +3,6 @@ from math import degrees
 
 BOUNDARY_COLORS = ["#E64B35", "#00A087", "#3C5488", "#F39B7F", "#DC00FF", "#333333", "#7E6148", "#4DBBD5"]
 
-
 def plot_style(method):
     """统一论文绘图风格, 仅在当前绘图期间生效, 不修改全局 Matplotlib 配置"""
     @wraps(method)
