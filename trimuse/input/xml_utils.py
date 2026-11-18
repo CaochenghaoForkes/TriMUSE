@@ -100,31 +100,36 @@ class XmlUtils:
         return model_config
 
     @staticmethod
-    def read_problem_parameters(root: ET.Element, quantities: dict[str, str | None]) -> dict[str, str | float] | None:
-        """读取物理卡的固定参数 None 类型的量表示单位为 [1] 的文本"""
+    def read_problem_parameters(root: ET.Element, legacy_quantities: dict[str, str | None]) -> dict[str, str | float | list[float]] | None:
+        """按显式 si_unit 换算问题参数，旧卡按已登记的物理量取默认单位"""
         context = f"{root.tag}.parameters"
         group = XmlUtils.read_child(root, "parameters", required=False)
         if group is None:
             return None
         XmlUtils.check_children(group, ("parameter",), context=context)
-        parameters: dict[str, str | float] = {}
+        parameters: dict[str, str | float | list[float]] = {}
         for element in XmlUtils.read_children(group, "parameter"):
-            XmlUtils.check_attributes(element, ("name", "value", "unit"), context=context)
+            XmlUtils.check_attributes(element, ("name", "value", "unit", "si_unit"), context=context)
             name = XmlUtils.read_attribute(element, "name", required=True, context=context)
             location = f"{context}.{name}"
-            if name not in quantities:
-                raise ValueError(f"{location}: 未知参数")
             if name in parameters:
                 raise ValueError(f"{location}: 参数名重复")
-            quantity = quantities[name]
-            if quantity is None:
-                unit = XmlUtils.read_attribute(element, "unit", required=True, context=location)
-                if unit != "[1]":
-                    raise ValueError(f"{location}: 文本参数单位必须为 [1]")
+            registered = name in legacy_quantities
+            quantity = legacy_quantities.get(name)
+            default_unit = Units.SI_UNITS[quantity] if quantity is not None else "[1]"
+            unit = XmlUtils.read_attribute(element, "unit", required=True, context=location)
+            si_unit = XmlUtils.read_attribute(element, "si_unit", required=not registered, default=default_unit, context=location)
+            if registered and quantity is None:
+                if unit != "[1]" or si_unit != "[1]":
+                    raise ValueError(f"{location}: 文本参数的 unit 和 si_unit 必须为 [1]")
                 parameters[name] = XmlUtils.read_attribute(element, "value", required=True, context=location)
             else:
-                parameters[name] = XmlUtils.read_attribute(element, "value", float, required=True, quantity=quantity, context=location)
-        missing = quantities.keys() - parameters.keys()
+                value_type = float if registered else list[float]
+                value = XmlUtils.read_attribute(element, "value", value_type, required=True, context=location)
+                if isinstance(value, list) and len(value) == 1:
+                    value = value[0]
+                parameters[name] = Units.convert(value, unit, si_unit, context=location)
+        missing = legacy_quantities.keys() - parameters.keys()
         if missing:
             raise ValueError(f"{context}: 缺少必填参数: {', '.join(sorted(missing))}")
         return parameters

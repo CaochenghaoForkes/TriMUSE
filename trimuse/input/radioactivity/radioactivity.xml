@@ -2,8 +2,8 @@
 <radioactivity>
     <!-- 一张卡只处理一个核素; 半衰期换算为 s, 不考虑衰变链 -->
     <parameters>
-        <parameter name="nuclide_name" value="Cs137" unit="[1]"/>
-        <parameter name="half_life" value="30.05" unit="[year]"/>
+        <parameter name="nuclide_name" value="Cs137" unit="[1]" si_unit="[1]"/>
+        <parameter name="half_life" value="30.05" unit="[year]" si_unit="[s]"/>
     </parameters>
     <initial>
         <!-- 每个几何 region 填写一次; inventory 是该区域总盘存, 初始化时除以区域体积 -->

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <mechanics>
     <parameters>
-        <parameter name="thermal_expansion_reference_temperature" value="273.15" unit="[K]"/>
+        <parameter name="thermal_expansion_reference_temperature" value="273.15" unit="[K]" si_unit="[K]"/>
     </parameters>
     <!-- 边界值配置在属性卡中，未指定的外表面默认为零面力 -->
     <boundaries>
