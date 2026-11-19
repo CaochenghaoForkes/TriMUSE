@@ -9,6 +9,7 @@ class PropertiesCardExamine:
         "assembly.interface_pressure": {"common.uniform_from_constant_value", "common.local_from_constant_value"},
         "assembly.interface_thermal_resistance": {"common.uniform_from_constant_value", "common.local_from_constant_value"},
         "external.power": COMMON_MODELS,
+        "external.energy_per_fission": {"common.constant"},
         "derived.burnup_fima_fraction": COMMON_MODELS,
         "external.uranium_fraction": COMMON_MODELS,
         "external.nuclide_birth_rate": COMMON_MODELS,
@@ -86,6 +87,13 @@ class PropertiesCardExamine:
         zone_names = [zone.name for zone in property_config.zone]
         if len(zone_names) != len(set(zone_names)):
             raise ValueError(f"{location}: 外表面分区名称不能重复")
+        if location == "external.energy_per_fission":
+            if property_config.global_ is None or property_config.region or property_config.zone:
+                raise ValueError(f"{location}: 请按 global 配置单次裂变释热能量")
+            cls.check_time_model(property_config.global_, location)
+            if property_config.global_.parameters["constant_value"] <= 0.0:
+                raise ValueError(f"{location}: 单次裂变释热能量必须为正数")
+            return
         if property_config.name in cls.MECHANICS_PROPERTIES:
             if property_config.region or property_config.global_ is not None:
                 raise ValueError(f"{location}: 请按 zone 配置边界属性")

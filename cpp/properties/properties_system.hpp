@@ -109,6 +109,7 @@ private:
         {"external.surface_pressure", PropertyType::External, PropertyScope::Zone}, // Pa, 正值沿表面内法向加载
         {"external.heat_flux", PropertyType::External, PropertyScope::Zone}, // W/m², 外流为正、流入为负
         {"external.power", PropertyType::External, PropertyScope::Region},
+        {"external.energy_per_fission", PropertyType::External, PropertyScope::Global}, // J，每次裂变的释热能量
         {"external.nuclide_birth_rate", PropertyType::External, PropertyScope::Global}, // atom/s, 全局核素产生率
         {"external.fast_neutron_flux", PropertyType::External, PropertyScope::Global}, // 1/(m²·s), 全局快中子通量
         {"external.uranium_fraction", PropertyType::External, PropertyScope::Region}, // 各区域占全局产生率的份额
