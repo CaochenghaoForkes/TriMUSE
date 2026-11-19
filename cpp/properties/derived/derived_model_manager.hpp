@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 
+#include "properties/derived/burnup_fima_fraction/burnup_fima_fraction_model_manager.hpp"
 #include "properties/derived/heat_transfer_coef/heat_transfer_coef_model_manager.hpp"
 #include "properties/derived/mass_transfer_coef/mass_transfer_coef_model_manager.hpp"
 #include "properties/derived/volumetric_power/volumetric_power_model_manager.hpp"
@@ -22,6 +23,7 @@ public:
     const std::vector<std::string>& required_states(const std::string& name, const std::string& model_name) const;
 
 private:
+    BurnupFimaFractionModelManager burnup_fima_fraction_model_manager_;
     VolumetricPowerModelManager volumetric_power_model_manager_;
     HeatTransferCoefModelManager heat_transfer_coef_model_manager_;
     MassTransferCoefModelManager mass_transfer_coef_model_manager_;

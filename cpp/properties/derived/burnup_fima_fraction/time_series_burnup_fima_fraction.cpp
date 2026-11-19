@@ -1,4 +1,4 @@
-#include "properties/external/burnup_fima_fraction/time_series_burnup_fima_fraction.hpp"
+#include "properties/derived/burnup_fima_fraction/time_series_burnup_fima_fraction.hpp"
 
 namespace trimuse
 {

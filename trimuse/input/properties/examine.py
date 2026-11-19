@@ -9,7 +9,7 @@ class PropertiesCardExamine:
         "assembly.interface_pressure": {"common.uniform_from_constant_value", "common.local_from_constant_value"},
         "assembly.interface_thermal_resistance": {"common.uniform_from_constant_value", "common.local_from_constant_value"},
         "external.power": COMMON_MODELS,
-        "external.burnup_fima_fraction": COMMON_MODELS,
+        "derived.burnup_fima_fraction": COMMON_MODELS,
         "external.uranium_fraction": COMMON_MODELS,
         "external.nuclide_birth_rate": COMMON_MODELS,
         "external.fast_neutron_flux": COMMON_MODELS,
@@ -111,7 +111,7 @@ class PropertiesCardExamine:
                     raise ValueError(f"{location}.global: 参数值必须有限")
             if global_config.model == "common.constant" and not isinstance(global_config.parameters.get("constant_value"), float):
                 raise ValueError(f"{location}.global: constant_value 必须为标量")
-            if category == "external_property" and property_config.name == "external.burnup_fima_fraction":
+            if category == "derived_property" and property_config.name == "derived.burnup_fima_fraction":
                 cls.check_burnup(global_config, f"{location}.global")
         for region in property_config.region:
             region_location = f"{location}.{region.name}"

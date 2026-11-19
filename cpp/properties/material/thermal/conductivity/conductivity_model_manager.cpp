@@ -28,7 +28,7 @@ void ConductivityModelManager::register_models()
     registry_.register_model<ConstantConductivity>("common.constant");
     registry_.register_model<TimeSeriesConductivity>("common.time_series", {"external.time"});
     registry_.register_model<Bison2021UcoKernelConductivity>("kernel.bison_2021_uco", {"temperature"});
-    registry_.register_model<Ineri2004Uo2KernelConductivity>("kernel.ineri_2004_uo2", {"temperature", "external.burnup_fima_fraction", "material.general.porosity"});
+    registry_.register_model<Ineri2004Uo2KernelConductivity>("kernel.ineri_2004_uo2", {"temperature", "derived.burnup_fima_fraction", "material.general.porosity"});
     registry_.register_model<Bison2021BufferConductivity>("buffer.bison_2021", {"material.general.mass_density"});
     registry_.register_model<Uk2004BufferConductivity>("buffer.uk_2004", {"material.general.porosity"});
     registry_.register_model<MillerSicConductivity>("sic.miller", {"temperature"});

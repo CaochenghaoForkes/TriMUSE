@@ -73,7 +73,7 @@
         -->
     </external_property>
     <!-- burnup_fima_fraction 使用 0 到 1 的 FIMA 份额, 例如 0.2 表示 20% FIMA -->
-    <external_property name="burnup_fima_fraction">
+    <derived_property name="burnup_fima_fraction">
         <global model="common.constant">
             <parameter name="constant_value" value="[float]" unit="[1]" si_unit="[1]"/>
         </global>
@@ -83,7 +83,7 @@
             <parameter name="values" value="[float] [float]" unit="[1]" si_unit="[1]"/>
         </global>
         -->
-    </external_property>
+    </derived_property>
     <derived_property name="volumetric_power">
         <!-- 可选 common.constant、common.time_series、common.uniform_from_power -->
         <!-- 仅 common.uniform_from_power 需要同一区域的 external.power 和 precomputed.region_volume -->

@@ -3,7 +3,6 @@
 #include <string>
 #include <vector>
 
-#include "properties/external/burnup_fima_fraction/burnup_fima_fraction_model_manager.hpp"
 #include "properties/external/environment_temperature/environment_temperature_model_manager.hpp"
 #include "properties/external/environment_nuclide_concentration/environment_nuclide_concentration_model_manager.hpp"
 #include "properties/external/fast_neutron_flux/fast_neutron_flux_model_manager.hpp"
@@ -41,7 +40,6 @@ private:
     SurfaceNuclideConcentrationModelManager surface_nuclide_concentration_model_manager_;
     HeatFluxModelManager heat_flux_model_manager_;
     NuclideFluxModelManager nuclide_flux_model_manager_;
-    BurnupFimaFractionModelManager burnup_fima_fraction_model_manager_;
     UraniumFractionModelManager uranium_fraction_model_manager_;
     NuclideBirthRateModelManager nuclide_birth_rate_model_manager_;
     FastNeutronFluxModelManager fast_neutron_flux_model_manager_;

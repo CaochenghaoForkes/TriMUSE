@@ -12,6 +12,7 @@ DerivedModelManager::DerivedModelManager()
 
 void DerivedModelManager::register_models()
 {
+    burnup_fima_fraction_model_manager_.register_models();
     volumetric_power_model_manager_.register_models();
     heat_transfer_coef_model_manager_.register_models();
     mass_transfer_coef_model_manager_.register_models();
@@ -21,6 +22,11 @@ void DerivedModelManager::register_models()
 
 void DerivedModelManager::assign(const std::string& name, int attribute, const std::string& model_name, const ModelParameterMap& parameters)
 {
+    if (name == "derived.burnup_fima_fraction")
+    {
+        burnup_fima_fraction_model_manager_.assign(model_name, parameters, "scalar");
+        return;
+    }
     if (name == "derived.volumetric_power")
     {
         volumetric_power_model_manager_.assign(attribute, model_name, parameters);
@@ -51,6 +57,10 @@ void DerivedModelManager::assign(const std::string& name, int attribute, const s
 
 StateValue DerivedModelManager::evaluate(const std::string& name, const PropertiesStatePoint& point) const
 {
+    if (name == "derived.burnup_fima_fraction")
+    {
+        return burnup_fima_fraction_model_manager_.evaluate(point);
+    }
     if (name == "derived.volumetric_power")
     {
         return volumetric_power_model_manager_.evaluate(point);
@@ -76,6 +86,10 @@ StateValue DerivedModelManager::evaluate(const std::string& name, const Properti
 
 const std::vector<std::string>& DerivedModelManager::required_states(const std::string& name, const std::string& model_name) const
 {
+    if (name == "derived.burnup_fima_fraction")
+    {
+        return burnup_fima_fraction_model_manager_.required_states(model_name);
+    }
     if (name == "derived.volumetric_power")
     {
         return volumetric_power_model_manager_.required_states(model_name);

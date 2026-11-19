@@ -1,6 +1,6 @@
 #pragma once
 
-#include "properties/external/burnup_fima_fraction/burnup_fima_fraction_model_manager.hpp"
+#include "properties/derived/burnup_fima_fraction/burnup_fima_fraction_model_manager.hpp"
 #include "properties/common/time_series.hpp"
 
 namespace trimuse

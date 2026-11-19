@@ -22,7 +22,6 @@ void ExternalModelManager::register_models()
     surface_nuclide_concentration_model_manager_.register_models();
     heat_flux_model_manager_.register_models();
     nuclide_flux_model_manager_.register_models();
-    burnup_fima_fraction_model_manager_.register_models();
     uranium_fraction_model_manager_.register_models();
     nuclide_birth_rate_model_manager_.register_models();
     fast_neutron_flux_model_manager_.register_models();
@@ -48,11 +47,6 @@ void ExternalModelManager::assign(const std::string& name, int attribute, const 
     if (name == "external.surface_temperature")
     {
         surface_temperature_model_manager_.assign(attribute, model_name, parameters, value_type);
-        return;
-    }
-    if (name == "external.burnup_fima_fraction")
-    {
-        burnup_fima_fraction_model_manager_.assign(model_name, parameters, value_type);
         return;
     }
     if (name == "external.uranium_fraction")
@@ -121,10 +115,6 @@ StateValue ExternalModelManager::evaluate(const std::string& name, const Propert
     {
         return surface_temperature_model_manager_.evaluate(point);
     }
-    if (name == "external.burnup_fima_fraction")
-    {
-        return burnup_fima_fraction_model_manager_.evaluate(point);
-    }
     if (name == "external.uranium_fraction")
     {
         return uranium_fraction_model_manager_.evaluate(point);
@@ -181,10 +171,6 @@ const std::vector<std::string>& ExternalModelManager::required_states(const std:
     if (name == "external.surface_temperature")
     {
         return surface_temperature_model_manager_.required_states(model_name);
-    }
-    if (name == "external.burnup_fima_fraction")
-    {
-        return burnup_fima_fraction_model_manager_.required_states(model_name);
     }
     if (name == "external.uranium_fraction")
     {

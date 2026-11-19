@@ -1,6 +1,6 @@
-#include "properties/external/burnup_fima_fraction/burnup_fima_fraction_model_manager.hpp"
-#include "properties/external/burnup_fima_fraction/constant_burnup_fima_fraction.hpp"
-#include "properties/external/burnup_fima_fraction/time_series_burnup_fima_fraction.hpp"
+#include "properties/derived/burnup_fima_fraction/burnup_fima_fraction_model_manager.hpp"
+#include "properties/derived/burnup_fima_fraction/constant_burnup_fima_fraction.hpp"
+#include "properties/derived/burnup_fima_fraction/time_series_burnup_fima_fraction.hpp"
 
 #include <stdexcept>
 
