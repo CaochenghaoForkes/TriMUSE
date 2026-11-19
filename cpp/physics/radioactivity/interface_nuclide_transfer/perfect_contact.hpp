@@ -1,11 +1,11 @@
 #pragma once
-#include "physics/radioactivity/interface/radioactivity_interface_model.hpp"
+#include "physics/radioactivity/interface_nuclide_transfer/radioactivity_interface_nuclide_transfer_model.hpp"
 
 namespace trimuse
 {
 
 // 连续场已经共享界面自由度；分域场登记两侧浓度相等的约束。
-class RadioactivityPerfectContact final : public RadioactivityInterfaceModel
+class RadioactivityPerfectContact final : public RadioactivityInterfaceNuclideTransferModel
 {
 public:
     explicit RadioactivityPerfectContact(const ModelParameterMap&) {}

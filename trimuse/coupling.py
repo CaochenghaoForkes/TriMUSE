@@ -74,6 +74,7 @@ class CouplingManager:
         self.properties_manager.update_external(self.time, self.time_step)
         self.properties_manager.update_derived()
         self.properties_manager.update_material()
+        self.properties_manager.update_assembly()
         for step in self.steps:
             for field_name in step.fields:
                 problem = self.problems[field_name]
@@ -81,4 +82,5 @@ class CouplingManager:
                 problem.solve(self.time_step, 1.0 if theta is None else theta)
                 self.output_manager.save_solve_information(field_name, self.cycle, self.time, self.time_step)
                 self.properties_manager.update_field_dependent_materials(problem.field_state)
+                self.properties_manager.update_field_dependent_assembly(problem.field_state)
         self.properties_manager.accept_current_state()

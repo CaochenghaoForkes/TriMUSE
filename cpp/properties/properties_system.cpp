@@ -27,6 +27,10 @@ PropertiesSystem::PropertiesSystem(const FemSystem& fem_system, const std::vecto
                 values.emplace(attribute, std::nullopt); // 初始化各 Region/Zone 在各个区域的属性值为 std::nullopt
             }
         }
+        else if (property.scope == PropertyScope::Interface)
+        {
+            properties_field_data_.interface_values.try_emplace(property.name); // 为该属性创建的是一张空的面片值表
+        }
         else
         {
             properties_field_data_.integration_point_values.emplace(property.name, PropertiesFieldData::IntegrationPointValues{}); // 初始化各 integrationPoint 属性在的积分点值列表为空
@@ -38,6 +42,7 @@ PropertiesSystem::PropertiesSystem(const FemSystem& fem_system, const std::vecto
         required_properties.emplace(field, field_required_properties_.at(field));
     }
     PrecomputedManager::initialize_precomputed(*this, fem_system_, required_properties, precomputed_parameters);
+    required_state_snapshots_.global_values = properties_field_data_.global_values; // 记录初始化时已填入的全局依赖值
 }
 
 void PropertiesSystem::set_precomputed(const std::string& name, const ModelParameterValue& value) // 为已声明的全局预计算属性填写值，并把它保存为所有模型共用的构造参数
@@ -88,6 +93,10 @@ const std::vector<std::string>& PropertiesSystem::model_required_states(const Pr
     {
         return derived_model_manager_.required_states(property.name, model_name);
     }
+    if (property.type == PropertyType::Assembly)
+    {
+        return assembly_model_manager_.required_states(property.name, model_name);
+    }
     return material_model_manager_.required_states(property.name, model_name);
 }
 
@@ -119,6 +128,10 @@ void PropertiesSystem::assign(int attribute, const std::string& model_name, cons
     else if (property.type == PropertyType::Material)
     {
         material_model_manager_.assign(attribute, property_name, specific_model_name, model_parameters);
+    }
+    else if (property.type == PropertyType::Assembly)
+    {
+        assembly_model_manager_.assign(property_name, attribute, specific_model_name, model_parameters);
     }
     else
     {
@@ -171,9 +184,9 @@ void PropertiesSystem::prepare_dependencies() // 标记各个属性在各个区�
                 }
                 if (field_state_owners_.count(required_name) != 0) // 检查依赖是否为求解场或由求解场恢复的状态量
                 {
-                    if (property.type != PropertyType::Material) // 只有材料属性允许依赖求解场 外部属性或派生属性如果声明依赖温度、浓度等求解场，就报错
+                    if (property.type != PropertyType::Material && !(property.type == PropertyType::Assembly && property.scope == PropertyScope::IntegrationPoint))
                     {
-                        throw std::logic_error("外部量和派生量不能依赖求解场: " + property.name);
+                        throw std::logic_error("该属性的求值位置不支持直接读取求解场: " + property.name);
                     }
                     property.field_regions[field_state_owners_.at(required_name)].insert(location); // 按所属求解场登记依赖，stress 和 strain 随 displacement 更新
                     continue;
@@ -182,7 +195,7 @@ void PropertiesSystem::prepare_dependencies() // 标记各个属性在各个区�
                 const PropertyInfo& upstream = properties_[upstream_index]; // 取得上游属性的说明记录
                 if (upstream.type > property.type || (upstream.type == property.type && upstream_index >= index)) // 检查依赖方向是否合法 1.枚举默认按声明顺序编号 Precomputed=0 External=1 Derived=2 Material=3 2.如果两个属性属于同一类别，那么上游属性必须排在当前属性之前
                 {
-                    throw std::logic_error("属性依赖必须遵守 external → derived → material 及类内先后顺序: " + property.name);
+                    throw std::logic_error("属性依赖必须遵守 external → derived → material → assembly 及类内先后顺序: " + property.name);
                 }
                 const int upstream_location = upstream.scope == PropertyScope::Global ? 0 : region_attribute; // 上游若是全局属性就检查位置0 否则检查与当前模型配置编号相同的位置
                 for (const auto& [field_name, regions] : upstream.field_regions) // 遍历上游属性已经整理好的场依赖记录
@@ -262,7 +275,7 @@ PropertiesStatePoint PropertiesSystem::make_state_point(PropertyScope scope, int
 template <typename Manager>
 void PropertiesSystem::evaluate_and_store(const Manager& manager, const std::string& name, const PropertiesStatePoint& point) // 调用管理器计算某项属性，把结果存到对应位置，并标记该位置已经计算完成 (这个方法只用于 Global、Region、Zone 属性)
 {
-    StateValue value = manager.evaluate(name, point); // 管理器根据属性名和状态点，找到对应模型并执行计算，返回 StateValue
+    auto value = manager.evaluate(name, point); // 在状态点上求值
     const PropertyScope scope = property_info(name).scope; // 查询存储范围
     if (scope == PropertyScope::Global)
     {
@@ -335,6 +348,10 @@ void PropertiesSystem::load_required_states(PropertiesStatePoint& point, const s
         {
             point.values[name] = properties_field_data_.zone_values.at(name).at(point.zone_attribute).value();
         }
+        else if (scope == PropertyScope::Interface)
+        {
+            point.values[name] = properties_field_data_.interface_values.at(name).at(point_index.value()).value();
+        }
         else
         {
             point.values[name] = properties_field_data_.integration_point_values.at(name)[point_index.value()].value();
@@ -342,14 +359,14 @@ void PropertiesSystem::load_required_states(PropertiesStatePoint& point, const s
     }
 }
 
-void PropertiesSystem::load_model_states(PropertiesStatePoint& point, const PropertyInfo& property, int attribute, const std::vector<std::string>& required) const // 为 point 加载模型计算依赖的属性，包括可能的历史值
+void PropertiesSystem::load_model_states(PropertiesStatePoint& point, const PropertyInfo& property, int attribute, const std::vector<std::string>& required, std::optional<std::size_t> point_index) const // 为 point 加载模型计算依赖的属性，包括可能的历史值
 {
     if (std::find(required.begin(), required.end(), property.name) == required.end()) // 如果不包含历史值
     {
-        load_required_states(point, required);
+        load_required_states(point, required, point_index);
         return;
     }
-    load_previous_value(point, property, attribute); // 从旧属性表查找历史值并添加到 point 中
+    load_previous_value(point, property, attribute, point_index); // 从旧属性表查找历史值并添加到 point 中
     std::vector<std::string> current_required;
     current_required.reserve(required.size() - 1);
     for (const std::string& name : required)
@@ -359,7 +376,7 @@ void PropertiesSystem::load_model_states(PropertiesStatePoint& point, const Prop
             current_required.push_back(name);
         }
     }
-    load_required_states(point, current_required);
+    load_required_states(point, current_required, point_index);
 }
 
 void PropertiesSystem::load_previous_value(PropertiesStatePoint& point, const PropertyInfo& property, int attribute, std::optional<std::size_t> point_index) const // 从已接受快照读取同一属性、同一位置的旧值
@@ -371,6 +388,18 @@ void PropertiesSystem::load_previous_value(PropertiesStatePoint& point, const Pr
         if (value != previous_field_data_.global_values.end())
         {
             point.previous_value = value->second;
+        }
+    }
+    else if (property.scope == PropertyScope::Interface)
+    {
+        const auto values = previous_field_data_.interface_values.find(name);
+        if (values != previous_field_data_.interface_values.end())
+        {
+            const auto value = values->second.find(point_index.value());
+            if (value != values->second.end())
+            {
+                point.previous_value = value->second;
+            }
         }
     }
     else if (property.scope == PropertyScope::Region || property.scope == PropertyScope::Zone)
@@ -427,6 +456,24 @@ bool PropertiesSystem::required_states_changed(int attribute, const std::vector<
             if (old_value == old_property->second.end() || new_value == new_property->second.end() || old_value->second != new_value->second)
             {
                 return true; // 指定位置缺少数据，或者新旧值不同，都返回 true
+            }
+        }
+        else if (scope == PropertyScope::Interface)
+        {
+            const auto& old_values = previous.interface_values.at(name);
+            const auto& new_values = current.interface_values.at(name);
+            for (const auto& interface : fem_system_.mesh_data().interfaces())
+            {
+                if (interface.boundary_attribute != attribute)
+                {
+                    continue;
+                }
+                const auto old_value = old_values.find(interface.face);
+                const auto new_value = new_values.find(interface.face);
+                if (old_value == old_values.end() || new_value == new_values.end() || old_value->second != new_value->second)
+                {
+                    return true;
+                }
             }
         }
         else // 积分点属性: 比较指定区域内所有积分点
@@ -545,7 +592,7 @@ void PropertiesSystem::update_derived() // 按已接受状态计算本步派生�
     }
 }
 
-void PropertiesSystem::update_material() // 检查各个不依赖场的材料属性，只在“尚未计算”或“依赖发生变化”时重新计算它们
+void PropertiesSystem::update_material() // 更新不依赖场的材料属性
 {
     for (const PropertyInfo& property : properties_)
     {
@@ -586,10 +633,9 @@ void PropertiesSystem::update_material() // 检查各个不依赖场的材料属
             evaluate_and_store_points(material_model_manager_, property, attribute, required);
         }
     }
-    required_state_snapshots_ = properties_field_data_;
 }
 
-void PropertiesSystem::update_field_dependent_materials(const std::string& field_name, const FieldMap& trial_fields, bool coupled_only) // 更新各个依赖场的材料属性
+void PropertiesSystem::update_field_dependent_materials(const std::string& field_name, const FieldMap& trial_fields, bool coupled_only) // 更新依赖该场的材料属性
 {
     for (const PropertyInfo& property : properties_)
     {
@@ -604,8 +650,8 @@ void PropertiesSystem::update_field_dependent_materials(const std::string& field
         }
         for (const auto& [region_attribute, model_name] : assigned->second)
         {
-            if (!depends_on_field(property.name, region_attribute, field_name) ||
-                (coupled_only && !coupled_with_field(property.name, region_attribute, field_name)))
+            const int location = property.scope == PropertyScope::Global ? 0 : region_attribute;
+            if (!depends_on_field(property.name, location, field_name) || (coupled_only && !coupled_with_field(property.name, location, field_name)))
             {
                 continue;
             }
@@ -614,7 +660,69 @@ void PropertiesSystem::update_field_dependent_materials(const std::string& field
         }
     }
 }
- 
+
+void PropertiesSystem::update_assembly() // 更新不依赖场的组装属性
+{
+    for (const PropertyInfo& property : properties_)
+    {
+        if (property.type != PropertyType::Assembly)
+        {
+            continue;
+        }
+        const std::string& name = property.name;
+        const auto assigned = assigned_models_.find(name);
+        if (assigned == assigned_models_.end())
+        {
+            continue;
+        }
+        for (const auto& [attribute, model_name] : assigned->second)
+        {
+            const int location = property.scope == PropertyScope::Global ? 0 : attribute;
+            if (std::any_of(property.field_regions.begin(), property.field_regions.end(), [location](const auto& item)
+            {
+                return item.second.count(location) != 0;
+            }))
+            {
+                continue;
+            }
+            const auto& required = assembly_model_manager_.required_states(name, model_name);
+            const bool uses_history = std::find(required.begin(), required.end(), name) != required.end();
+            if (!uses_history && computed_locations_[name].count(location) != 0 && !required_states_changed(attribute, required))
+            {
+                continue;
+            }
+            evaluate_assembly(property, location, required);
+        }
+    }
+    required_state_snapshots_ = properties_field_data_; // 两类不依赖场的属性都更新完后，再提交整表快照
+}
+
+void PropertiesSystem::update_field_dependent_assembly(const std::string& field_name, const FieldMap& trial_fields, bool coupled_only) // 更新依赖该场的组装属性
+{
+    for (const PropertyInfo& property : properties_)
+    {
+        if (property.type != PropertyType::Assembly)
+        {
+            continue;
+        }
+        const auto assigned = assigned_models_.find(property.name);
+        if (assigned == assigned_models_.end())
+        {
+            continue;
+        }
+        for (const auto& [region_attribute, model_name] : assigned->second)
+        {
+            const int location = property.scope == PropertyScope::Global ? 0 : region_attribute;
+            if (!depends_on_field(property.name, location, field_name) || (coupled_only && !coupled_with_field(property.name, location, field_name)))
+            {
+                continue;
+            }
+            const auto& required = assembly_model_manager_.required_states(property.name, model_name);
+            evaluate_assembly(property, location, required, trial_fields);
+        }
+    }
+}
+
 bool PropertiesSystem::depends_on_field(const std::string& property_name, int region_attribute, const std::string& field_name) const // 判断: 某个属性在指定区域，是否依赖求解场
 {
     const auto& tags = property_info(property_name).field_regions; // 判断: 某个属性在指定区域，是否已被标记为参与指定求解场的依赖更新
@@ -627,6 +735,50 @@ bool PropertiesSystem::coupled_with_field(const std::string& property_name, int 
     const auto& tags = property_info(property_name).coupled_regions; // 取的 场名称 -> 参与该场耦合更新的区域编号集合
     const auto field = tags.find(field_name); // 取参与该场耦合更新的区域编号集合
     return field != tags.end() && field->second.count(region_attribute) != 0; // 若不存在该场或该区域没有被标记参与耦合该场 则返回 False 
+}
+
+void PropertiesSystem::evaluate_and_store_interface(const PropertyInfo& property, int attribute, const std::vector<std::string>& required) // 按网格面片计算并保存界面属性
+{
+    const auto& mesh_data = fem_system_.mesh_data();
+    const auto& mesh = mesh_data.mfem_mesh();
+    auto& values = properties_field_data_.interface_values.at(property.name); // 准备这项属性的面片值表 网格面编号 -> 界面属性值
+    mfem::IsoparametricTransformation transformation; // 准备转换
+    mfem::Vector position(mesh.SpaceDimension());
+    for (const auto& interface : mesh_data.interfaces()) // 访问内部界面面片列表
+    {
+        if (interface.boundary_attribute != attribute) // 如果这个面片不属于当前 attribute 对应的界面则跳过
+        {
+            continue;
+        }
+        mesh.GetFaceTransformation(interface.face, &transformation); // 取得当前这块面片从参考面到物理空间的几何映射
+        transformation.Transform(mfem::Geometries.GetCenter(transformation.GetGeometryType()), position); // 把参考单元的中心代入这个映射，得到面片中心的物理坐标填入 position
+        PropertiesStatePoint point;
+        point.interface_attribute = attribute;
+        point.x = position[0];
+        point.y = position.Size() > 1 ? position[1] : 0.0;
+        point.z = position.Size() > 2 ? position[2] : 0.0;
+        load_model_states(point, property, attribute, required, interface.face);
+        values[interface.face] = assembly_model_manager_.evaluate(property.name, point); // 用面片中心求值，再按面片编号存起来； interface.face 是单块网格面片的编号，用作结果的存储键，对于角域外存 std::nullopt
+    }
+    computed_locations_[property.name].insert(attribute); // 该界面的所有面片都处理完后把这个界面标记为已计算
+}
+
+void PropertiesSystem::evaluate_assembly(const PropertyInfo& property, int location, const std::vector<std::string>& required, const FieldMap& trial_fields) // 调用它时，外层已经决定了这项属性需要重算 这里根据 scope 决定在哪些点求值、结果存到哪里
+{
+    if (property.scope == PropertyScope::Interface)
+    {
+        evaluate_and_store_interface(property, location, required);
+    }
+    else if (property.scope == PropertyScope::IntegrationPoint)
+    {
+        evaluate_and_store_points(assembly_model_manager_, property, location, required, trial_fields);
+    }
+    else
+    {
+        auto point = make_state_point(property.scope, location);
+        load_model_states(point, property, location, required);
+        evaluate_and_store(assembly_model_manager_, property.name, point);
+    }
 }
 
 void PropertiesSystem::accept_current_state() // 把当前全部属性数据复制一份，保存为“已接受状态”的快照

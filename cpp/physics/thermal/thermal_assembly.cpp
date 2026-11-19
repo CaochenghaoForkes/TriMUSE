@@ -5,9 +5,17 @@
 
 namespace trimuse
 {
-ThermalAssembly::ThermalAssembly(FemSystem& fem, TrialField& trial_field, const std::vector<ThermalDomainConfig>& sources, const std::vector<ThermalBoundaryConfig>& boundaries, const std::vector<ThermalInterfaceConfig>& interfaces) // 初始化各物理贡献管理器，并建立已配置外边界的单元索引表
-    : fem_(fem), trial_field_(trial_field), integrator_(fem, trial_field), conduction_manager_(fem), capacity_manager_(fem), source_manager_(fem, sources),
-      boundary_manager_(boundaries), constraints_(fem, trial_field), interface_manager_(fem, trial_field, constraints_, interfaces) // 分别传入有限元系统、试探场，以及热源、外边界和内部界面的模型配置
+ThermalAssembly::ThermalAssembly(FemSystem& fem, TrialField& trial_field, const ThermalRegionConfigs& regions, const ThermalBoundaryConfigs& boundaries, const ThermalInterfaceConfigs& interfaces) // 初始化各物理贡献管理器，并建立已配置外边界的单元索引表
+    : 
+    fem_(fem), 
+    trial_field_(trial_field), 
+    integrator_(fem, trial_field), 
+    constraints_(fem, trial_field), 
+    conduction_manager_(fem, regions.at("conduction")),
+    capacity_manager_(fem, regions.at("capacity")), 
+    source_manager_(fem, regions.at("source")),
+    boundary_manager_(boundaries.at("heat_boundary")), 
+    interface_heat_transfer_manager_(fem, trial_field, constraints_, interfaces.at("interface_heat_transfer")) // 分别传入有限元系统、试探场，以及热源、外边界和内部界面的模型配置
 {
     constraints_.finalize(); // 全部界面相等关系已登记，构建 P，供后续初值投影、约化求解及恢复共用
     const auto& mesh = fem.mesh_data().mfem_mesh(); // 取得原始网格
@@ -113,6 +121,26 @@ void ThermalAssembly::refresh_boundary() // 根据 boundary_manager_ 各 zone �
     }
 }
 
+void ThermalAssembly::refresh_interface_heat_transfer()
+{
+    bool changed = false;
+    for (int attribute : interface_heat_transfer_manager_.interface_heat_transfer_attributes())
+    {
+        if (interface_heat_transfer_matrix_cache_.parts.count(attribute) && interface_heat_transfer_manager_.required_no_change(attribute))
+        {
+            continue;
+        }
+        interface_heat_transfer_matrix_cache_.parts[attribute] = interface_heat_transfer_manager_.assemble_matrix(attribute, fem_, trial_field_, constraints_);
+        interface_heat_transfer_manager_.assembled(attribute);
+        ++counts_["interface_heat_transfer_matrix"];
+        changed = true;
+    }
+    if (changed)
+    {
+        interface_heat_transfer_matrix_cache_.sum = sum_matrices(interface_heat_transfer_matrix_cache_.parts, trial_field_.size());
+    }
+}
+
 ThermalAssembly::State ThermalAssembly::update(const PropertiesFieldData& properties, bool capacity) // 热方程组装层的总入口: 更新系数，按需刷新各部分缓存，再返回当前的 M、K、F
 {
     if (capacity) // 本次是否需要更新热容矩阵 (不是热容的值)
@@ -123,22 +151,25 @@ ThermalAssembly::State ThermalAssembly::update(const PropertiesFieldData& proper
     conduction_manager_.update(properties); // 更新导热系数及变化标记
     source_manager_.update(properties); // 更新体积热源及变化标记
     boundary_manager_.update(properties); // 更新外边界系数及变化标记
+    interface_heat_transfer_manager_.update(properties); // 更新面片热阻及各界面的变化标记
     refresh_matrix(conduction_manager_, conduction_cache_, true, "conduction"); // 按变化标记刷新域内导热系数矩阵缓存
     refresh_source(); // 按变化标记刷新体积热源向量缓存
     refresh_boundary(); // 按变化标记刷新外边界矩阵和右端向量缓存
-    if (last_conduction_cache_sum_ != conduction_cache_.sum || last_boundary_matrix_cache_sum_ != boundary_matrix_cache_.sum) // 比较共享指针是否指向同一个对象,并非逐项比较矩阵数值 前面的刷新操作只在贡献发生变化时创建新的总矩阵并持有新矩阵的共享指针 所以指针变化意味着需要重新组合
+    refresh_interface_heat_transfer(); // 按变化标记刷新界面矩阵缓存
+    if (last_conduction_cache_sum_ != conduction_cache_.sum || last_boundary_matrix_cache_sum_ != boundary_matrix_cache_.sum || last_interface_heat_transfer_matrix_cache_sum_ != interface_heat_transfer_matrix_cache_.sum)
     {
-        // 如果导热/Robin矩阵有一个发生了变化，则要重新组装完整总体矩阵
-        std::unique_ptr<mfem::SparseMatrix> conduction(mfem::Add(1.0, *conduction_cache_.sum, 1.0, *boundary_matrix_cache_.sum)); // 创建新矩阵 K临时 = K域内 + KRobin mfem::Add() 返回新矩阵指针，由 unique_ptr 接管
-        if (const auto* interface_matrix = interface_manager_.matrix()) // 取得界面传热矩阵指针，并判断是否存在热阻贡献 
+        std::unique_ptr<mfem::SparseMatrix> conduction(mfem::Add(1.0, *conduction_cache_.sum, 1.0, *boundary_matrix_cache_.sum));
+        if (interface_heat_transfer_matrix_cache_.sum)
         {
-            state_.conduction.reset(mfem::Add(1.0, *conduction, 1.0, *interface_matrix)); // 存在时相加得: K = K临时 + K界面 reset() 让 state_.conduction 改为持有新矩阵
+            state_.conduction.reset(mfem::Add(1.0, *conduction, 1.0, *interface_heat_transfer_matrix_cache_.sum));
         }
-        else 
-        { 
-            state_.conduction = std::move(conduction); // 没有界面传热矩阵时，直接将临时矩阵的所有权转交给状态
+        else
+        {
+            state_.conduction = std::move(conduction);
         }
-        last_conduction_cache_sum_ = conduction_cache_.sum; last_boundary_matrix_cache_sum_ = boundary_matrix_cache_.sum; // 记录本次组合使用的两个缓存指针，供下次比较
+        last_conduction_cache_sum_ = conduction_cache_.sum;
+        last_boundary_matrix_cache_sum_ = boundary_matrix_cache_.sum;
+        last_interface_heat_transfer_matrix_cache_sum_ = interface_heat_transfer_matrix_cache_.sum;
     }
     if (last_source_cache_sum_ != source_cache_.sum || last_boundary_load_cache_sum_ != boundary_load_cache_.sum) // 通过指针判断体积源或外边界右端是否更新
     {

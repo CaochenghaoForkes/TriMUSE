@@ -25,6 +25,8 @@ public:
 
     std::unordered_map<std::string, AttributeValues> zone_values; // 属性名 -> 边界分区编号 -> 一个值
 
+    std::unordered_map<std::string, AttributeValues> interface_values; // 属性名 -> 网格面编号 -> 界面属性值
+
     std::unordered_map<std::string, IntegrationPointValues> integration_point_values; // 属性名 -> 全域积分点数组
 };
 

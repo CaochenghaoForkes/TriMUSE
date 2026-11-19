@@ -1,5 +1,6 @@
 #pragma once
 
+#include <unordered_map>
 #include "physics/common/assembly/assembly_cache.hpp"
 #include "physics/common/constraint/dof_constraints.hpp"
 #include "physics/mechanics/assembly/mechanics_integrator.hpp"
@@ -11,6 +12,10 @@
 
 namespace trimuse
 {
+
+using MechanicsRegionConfigs = std::unordered_map<std::string, std::vector<MechanicsDomainConfig>>;
+using MechanicsBoundaryConfigs = std::unordered_map<std::string, std::vector<MechanicsBoundaryConfig>>;
+using MechanicsInterfaceConfigs = std::unordered_map<std::string, std::vector<MechanicsInterfaceConfig>>;
 
 class MechanicsState;
 
@@ -25,10 +30,7 @@ public:
 
     using Counts = std::map<std::string, int>;
 
-    MechanicsAssembly(FemSystem& fem, TrialField& trial_field,
-        const std::vector<MechanicsDomainConfig>& sources = {},
-        const std::vector<MechanicsBoundaryConfig>& boundaries = {},
-        const std::vector<MechanicsInterfaceConfig>& interfaces = {});
+    MechanicsAssembly(FemSystem& fem, TrialField& trial_field, const MechanicsRegionConfigs& regions, const MechanicsBoundaryConfigs& boundaries, const MechanicsInterfaceConfigs& interfaces);
 
     void mark_coupled(PropertiesSystem& properties) const; // 标记位移场依赖各个管理器依赖的属性
 

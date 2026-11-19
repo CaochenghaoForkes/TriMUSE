@@ -13,15 +13,15 @@ class ThermalProblem
 public:
     ThermalProblem(FemSystem& fem, FieldData& accepted_temperature, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output, const std::string& problem_type,
                    const std::vector<ThermalInitialConfig>& initial,
-                   const std::vector<ThermalDomainConfig>& sources,
-                   const std::vector<ThermalBoundaryConfig>& boundaries,
-                   const std::vector<ThermalInterfaceConfig>& interfaces = {});
+                   const ThermalRegionConfigs& regions,
+                   const ThermalBoundaryConfigs& boundaries,
+                   const ThermalInterfaceConfigs& interfaces);
     
     ThermalProblem(FemSystem& fem, RegionFieldData& accepted_temperature, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output, const std::string& problem_type,
-                    const std::vector<ThermalInitialConfig>& initial,
-                    const std::vector<ThermalDomainConfig>& sources,
-                    const std::vector<ThermalBoundaryConfig>& boundaries,
-                    const std::vector<ThermalInterfaceConfig>& interfaces = {});
+                   const std::vector<ThermalInitialConfig>& initial,
+                   const ThermalRegionConfigs& regions,
+                   const ThermalBoundaryConfigs& boundaries,
+                   const ThermalInterfaceConfigs& interfaces);
 
     void solve(double time_step = 0.0, double theta = 1.0); // // 热问题的统一求解入口: 准备试探场、区分初始时刻与正常求解，并记录本次耗时和组装次数
 
@@ -32,9 +32,9 @@ public:
 private:
     ThermalProblem(FemSystem& fem, TrialField trial_temperature, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output, const std::string& problem_type,
                    const std::vector<ThermalInitialConfig>& initial,
-                   const std::vector<ThermalDomainConfig>& sources,
-                   const std::vector<ThermalBoundaryConfig>& boundaries,
-                   const std::vector<ThermalInterfaceConfig>& interfaces);
+                   const ThermalRegionConfigs& regions,
+                   const ThermalBoundaryConfigs& boundaries,
+                   const ThermalInterfaceConfigs& interfaces);
 
     void iterate(double time_step, double theta); // // 准备旧时刻贡献，更新当前温度相关属性，形成方程并求解，直到 Picard 迭代收敛 处理 M\dot{T} + KT =F
 

@@ -1,4 +1,4 @@
-#include "physics/thermal/interface/thermal_interface_assembly.hpp"
+#include "physics/thermal/interface_heat_transfer/thermal_interface_heat_transfer_assembly.hpp"
 
 namespace trimuse
 {

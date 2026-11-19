@@ -109,9 +109,9 @@ class XmlLoader:
 
     @staticmethod
     def _load_mechanics(path: str | None) -> MechanicsCard:
-        card = MechanicsCardLoader.load(path)
-        MechanicsCardExamine.examine(card)
-        return card
+        mechanics = MechanicsCardLoader.load(path)
+        MechanicsCardExamine.examine(mechanics)
+        return mechanics
 
 def load_input_cards(chief_path: str | Path | None = None) -> InputCards:
     """对外的输入加载入口"""

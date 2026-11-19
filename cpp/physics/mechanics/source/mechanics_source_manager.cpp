@@ -7,7 +7,7 @@ namespace trimuse
 MechanicsSourceManager::MechanicsSourceManager(const FemSystem& fem, const std::vector<MechanicsDomainConfig>& configs)
     : fem_(fem), values_(fem.domain_quadrature_point_count(), VectorValue(fem.mesh_data().dimension(), 0.0))
 {
-    registry_.register_model<GravitySource>("gravity", {"material.general.mass_density"}); // 注册
+    registry_.register_model<GravitySource>("gravity", {"material.general.mass_density", "precomputed.gravity_acceleration"}); // 注册
     for (const auto& config : configs)
     {
         const auto& entry = registry_.registration(config.model_name);

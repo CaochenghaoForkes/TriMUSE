@@ -15,6 +15,7 @@ struct PropertiesStatePoint
 {
     int region_attribute = 0;
     int zone_attribute = 0; // 边界物理组编号，与材料区域编号分别使用
+    int interface_attribute = 0; // 内部界面物理组编号
     double x = 0.0;
     double y = 0.0;
     double z = 0.0;

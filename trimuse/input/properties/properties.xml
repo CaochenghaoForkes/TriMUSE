@@ -233,4 +233,25 @@
         </zone>
         -->
     </external_property>
+    <!-- 按同名内部界面配置单位面积热阻，角域外采用完美接触 -->
+    <assembly_property name="interface_thermal_resistance">
+        <interface name="[str]" model="common.uniform_from_constant_value">
+            <parameter name="constant_value" value="[float]" unit="[m]^2[K]/[W]" si_unit="[m]^2[K]/[W]"/>
+        </interface>
+        <!-- 2D 从上极点起算，热阻与角度区间列表逐项对应 -->
+        <interface name="[str]" model="common.local_from_constant_value">
+            <parameter name="constant_value" value="[float] [float]" unit="[m]^2[K]/[W]" si_unit="[m]^2[K]/[W]"/>
+            <parameter name="theta_mins" value="10 60" unit="[degree]" si_unit="[rad]"/>
+            <parameter name="theta_maxs" value="15 65" unit="[degree]" si_unit="[rad]"/>
+        </interface>
+        <!-- 3D 写法，thetas 和 phis 给出中心方向，角距离相对该方向计算
+        <interface name="[str]" model="common.local_from_constant_value">
+            <parameter name="constant_value" value="[float] [float]" unit="[m]^2[K]/[W]" si_unit="[m]^2[K]/[W]"/>
+            <parameter name="thetas" value="30 90" unit="[degree]" si_unit="[rad]"/>
+            <parameter name="phis" value="0 180" unit="[degree]" si_unit="[rad]"/>
+            <parameter name="angular_distance_mins" value="0 10" unit="[degree]" si_unit="[rad]"/>
+            <parameter name="angular_distance_maxs" value="15 20" unit="[degree]" si_unit="[rad]"/>
+        </interface>
+        -->
+    </assembly_property>
 </properties>

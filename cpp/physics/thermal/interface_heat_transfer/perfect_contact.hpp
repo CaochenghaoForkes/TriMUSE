@@ -1,6 +1,6 @@
 #pragma once
 
-#include "physics/thermal/interface/thermal_interface_model.hpp"
+#include "physics/thermal/interface_heat_transfer/thermal_interface_heat_transfer_model.hpp"
 
 namespace trimuse
 {
@@ -12,7 +12,7 @@ public:
 
     bool requires_region_field() const override { return false; } // 判断该模型是否强制要求有限元空间使用分域场,该模型对连续域自然成立,因此不要求
     
-    void assemble(const InterfaceContext& context, ThermalInterfaceAssembly& assembly) const override; // 分域场：配对当前界面片两侧自由度，并在 representative_ 中合并分组 连续场：已共享界面自由度，无需额外连接
+    bool is_perfect_contact(const InterfaceContext&) const override { return true; }
 };
 
 }

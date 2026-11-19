@@ -11,17 +11,9 @@ namespace trimuse
 class MechanicsProblem // 调度当前线弹性与热膨胀模型的准静态平衡求解，每次求解一次线性方程
 {
 public:
-    MechanicsProblem(FemSystem& fem, FieldData& accepted_displacement, PropertiesSystem& properties,
-        SolverSystem& solver, OutputManager& output,
-        const std::vector<MechanicsDomainConfig>& sources = {},
-        const std::vector<MechanicsBoundaryConfig>& boundaries = {},
-        const std::vector<MechanicsInterfaceConfig>& interfaces = {});
+    MechanicsProblem(FemSystem& fem, FieldData& accepted_displacement, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output, const MechanicsRegionConfigs& regions, const MechanicsBoundaryConfigs& boundaries, const MechanicsInterfaceConfigs& interfaces);
 
-    MechanicsProblem(FemSystem& fem, RegionFieldData& accepted_displacement, PropertiesSystem& properties,
-        SolverSystem& solver, OutputManager& output,
-        const std::vector<MechanicsDomainConfig>& sources = {},
-        const std::vector<MechanicsBoundaryConfig>& boundaries = {},
-        const std::vector<MechanicsInterfaceConfig>& interfaces = {});
+    MechanicsProblem(FemSystem& fem, RegionFieldData& accepted_displacement, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output, const MechanicsRegionConfigs& regions, const MechanicsBoundaryConfigs& boundaries, const MechanicsInterfaceConfigs& interfaces);
 
     void solve(); // 按当前温度、属性和载荷求解平衡，提交位移与求积点状态，并记录求解信息
 
@@ -32,11 +24,7 @@ public:
     const MechanicsAssembly::Counts& assembly_counts() const;
 
 private:
-    MechanicsProblem(FemSystem& fem, TrialField trial_displacement, PropertiesSystem& properties,
-        SolverSystem& solver, OutputManager& output,
-        const std::vector<MechanicsDomainConfig>& sources,
-        const std::vector<MechanicsBoundaryConfig>& boundaries,
-        const std::vector<MechanicsInterfaceConfig>& interfaces);
+    MechanicsProblem(FemSystem& fem, TrialField trial_displacement, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output, const MechanicsRegionConfigs& regions, const MechanicsBoundaryConfigs& boundaries, const MechanicsInterfaceConfigs& interfaces);
 
     TrialField trial_displacement_; // 本次求解的独立试探位移，求解成功后才写回正式场
     PropertiesSystem& properties_;

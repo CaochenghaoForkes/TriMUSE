@@ -21,26 +21,29 @@ class PropertiesManager:
         self.properties_system = PropertiesSystem(fem_manager.fem_system, field_names, precomputed_parameters)
         self.assign_properties_card(input_cards.properties, mesh_info)
         self.assign_material_card(input_cards.material, mesh_info)
-        self.properties_system.prepare_dependencies() # 补齐启用场所需的固定关系属性，并准备依赖
+        self.properties_system.prepare_dependencies() # 补齐固定关系属性并准备依赖
 
-    def prepare_precomputed_parameters(self,input_cards: InputCards):
-        """准备与计算属性"""
-        precomputed_parameters: dict[str, str | float] = {}
-        for card in (input_cards.mechanics, input_cards.radioactivity):
+    @staticmethod
+    def prepare_precomputed_parameters(input_cards: InputCards) -> dict[str, str | float | list[float]]:
+        """汇总各物理问题卡的 parameters"""
+        parameters = {}
+        for card in (input_cards.thermal, input_cards.mechanics, input_cards.radioactivity):
             if card is not None:
-                precomputed_parameters.update(card.precomputed_parameters())
-        return precomputed_parameters
+                parameters.update(card.parameters)
+        return parameters
 
     def assign_properties_card(self, properties: PropertiesCard, mesh_info: MeshInfo) -> None:
         """分配属性卡中的外部量和派生量"""
         region_attributes = mesh_info.region_attributes
         zone_attributes = mesh_info.boundary_attributes
-        for configs in (properties.external_property, properties.derived_property):
+        for configs in (properties.external_property, properties.derived_property, properties.assembly_property):
             for property_config in configs:
                 for region in property_config.region:
                     self.properties_system.assign(region_attributes[region.name], f"{property_config.name}.{region.model}", region.parameters)
                 for zone in property_config.zone:
                     self.properties_system.assign(zone_attributes[zone.name], f"{property_config.name}.{zone.model}", zone.parameters)
+                for interface in property_config.interface:
+                    self.properties_system.assign(zone_attributes[interface.name], f"{property_config.name}.{interface.model}", interface.parameters)
                 if property_config.global_ is not None:
                     global_config = property_config.global_
                     self.properties_system.assign(0, f"{property_config.name}.{global_config.model}", global_config.parameters)
@@ -64,9 +67,17 @@ class PropertiesManager:
         """更新当前可计算的材料属性"""
         self.properties_system.update_material()
 
+    def update_assembly(self) -> None:
+        """更新不依赖场的组装属性并保存依赖快照"""
+        self.properties_system.update_assembly()
+
     def update_field_dependent_materials(self, field_name: str) -> None:
         """根据指定场的当前解更新依赖它的材料属性"""
         self.properties_system.update_field_dependent_materials(field_name)
+
+    def update_field_dependent_assembly(self, field_name: str) -> None:
+        """根据指定场的当前解更新依赖它的组装属性"""
+        self.properties_system.update_field_dependent_assembly(field_name)
 
     def accept_current_state(self) -> None:
         """保存已接受时刻的完整属性快照"""

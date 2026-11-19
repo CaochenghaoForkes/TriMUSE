@@ -8,28 +8,18 @@ namespace trimuse
 {
 
 
-ThermalProblem::ThermalProblem(FemSystem& fem, FieldData& accepted_temperature, PropertiesSystem& properties,
-    SolverSystem& solver, OutputManager& output, const std::string& problem_type,
-    const std::vector<ThermalInitialConfig>& initial, const std::vector<ThermalDomainConfig>& sources,
-    const std::vector<ThermalBoundaryConfig>& boundaries, const std::vector<ThermalInterfaceConfig>& interfaces) // 接收连续场
-    : ThermalProblem(fem, TrialField(fem, accepted_temperature), properties, solver, output, problem_type, initial, sources, boundaries, interfaces) // 包装成 TrialField 调用第三个构造函数进行委托构造
+ThermalProblem::ThermalProblem(FemSystem& fem, FieldData& accepted_temperature, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output, const std::string& problem_type, const std::vector<ThermalInitialConfig>& initial, const ThermalRegionConfigs& regions, const ThermalBoundaryConfigs& boundaries, const ThermalInterfaceConfigs& interfaces) // 接收连续场
+    : ThermalProblem(fem, TrialField(fem, accepted_temperature), properties, solver, output, problem_type, initial, regions, boundaries, interfaces) // 包装成 TrialField 调用第三个构造函数进行委托构造
 {
 }
 
-ThermalProblem::ThermalProblem(FemSystem& fem, RegionFieldData& accepted_temperature, PropertiesSystem& properties,
-    SolverSystem& solver, OutputManager& output, const std::string& problem_type,
-    const std::vector<ThermalInitialConfig>& initial, const std::vector<ThermalDomainConfig>& sources,
-    const std::vector<ThermalBoundaryConfig>& boundaries, const std::vector<ThermalInterfaceConfig>& interfaces) // 接收分域场
-    : ThermalProblem(fem, TrialField(fem, accepted_temperature), properties, solver, output, problem_type, initial, sources, boundaries, interfaces) // 包装成 TrialField 调用第三个构造函数进行委托构造
+ThermalProblem::ThermalProblem(FemSystem& fem, RegionFieldData& accepted_temperature, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output, const std::string& problem_type, const std::vector<ThermalInitialConfig>& initial, const ThermalRegionConfigs& regions, const ThermalBoundaryConfigs& boundaries, const ThermalInterfaceConfigs& interfaces) // 接收分域场
+    : ThermalProblem(fem, TrialField(fem, accepted_temperature), properties, solver, output, problem_type, initial, regions, boundaries, interfaces) // 包装成 TrialField 调用第三个构造函数进行委托构造
 {
 }
 
-ThermalProblem::ThermalProblem(FemSystem& fem, TrialField trial_temperature, PropertiesSystem& properties,
-    SolverSystem& solver, OutputManager& output, const std::string& problem_type,
-    const std::vector<ThermalInitialConfig>& initial, const std::vector<ThermalDomainConfig>& sources,
-    const std::vector<ThermalBoundaryConfig>& boundaries, const std::vector<ThermalInterfaceConfig>& interfaces)
-    : trial_temperature_(std::move(trial_temperature)), properties_(properties), solver_(solver), output_(output),
-      transient_(problem_type == "transient"), assembly_(fem, trial_temperature_, sources, boundaries, interfaces) // trial_temperature_(std::move(trial_temperature)) 把传入试探场的资源移动给成员 trial_temperature_ assembly_(fem, trial_temperature_, sources, boundaries, interfaces) 创建组装器 让它使用成员试探场及模型配置
+ThermalProblem::ThermalProblem(FemSystem& fem, TrialField trial_temperature, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output, const std::string& problem_type, const std::vector<ThermalInitialConfig>& initial, const ThermalRegionConfigs& regions, const ThermalBoundaryConfigs& boundaries, const ThermalInterfaceConfigs& interfaces)
+    : trial_temperature_(std::move(trial_temperature)), properties_(properties), solver_(solver), output_(output), transient_(problem_type == "transient"), assembly_(fem, trial_temperature_, regions, boundaries, interfaces) // trial_temperature_(std::move(trial_temperature)) 把传入试探场的资源移动给成员 trial_temperature_ assembly_(fem, trial_temperature_, regions, boundaries, interfaces) 创建组装器 让它使用成员试探场及模型配置
 {
     assembly_.mark_coupled(properties_, transient_); // 登记热方程所需属性与温度之间的耦合关系
     if (trial_temperature_.regional())
@@ -49,7 +39,9 @@ ThermalProblem::ThermalProblem(FemSystem& fem, TrialField trial_temperature, Pro
 void ThermalProblem::accept_temperature() // 收敛后的属性与最终温度同步; 上一时间步快照仍由外部调度统一提交
 {
     trial_temperature_.accept(); // 把当前试探场的场值复制回正式场，接受本次求解结果
-    properties_.update_field_dependent_materials("temperature", {{"temperature", trial_temperature_.view()}}, true);
+    const PropertiesSystem::FieldMap trial_fields{{"temperature", trial_temperature_.view()}};
+    properties_.update_field_dependent_materials("temperature", trial_fields, true);
+    properties_.update_field_dependent_assembly("temperature", trial_fields, true);
 }
 
 void ThermalProblem::solve(double time_step, double theta) // 热问题的统一求解入口: 准备试探场、区分初始时刻与正常求解，并记录本次耗时和组装次数
@@ -103,7 +95,9 @@ void ThermalProblem::iterate(double time_step, double theta) // 准备旧时刻�
         ThermalAssembly::State current; // 新状态(稳态或theta>0)
         if (!transient_ || theta > 0.0) // 如果需要当前属性(稳态或瞬态theta>0)
         {
-            properties_.update_field_dependent_materials("temperature", {{"temperature", trial_temperature_.view()}}, true); // 用当前试探温度更新与温度相互耦合的材料属性
+            const PropertiesSystem::FieldMap trial_fields{{"temperature", trial_temperature_.view()}};
+            properties_.update_field_dependent_materials("temperature", trial_fields, true); // 用当前试探温度更新与温度相互耦合的材料属性
+            properties_.update_field_dependent_assembly("temperature", trial_fields, true);
             current = assembly_.update(properties_.field_data(), transient_); // 取得本轮的 M,K,F，仅重组发生变化的贡献 稳态不需要容量项
         }
         std::unique_ptr<mfem::SparseMatrix> matrix;

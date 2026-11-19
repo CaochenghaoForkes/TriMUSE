@@ -18,6 +18,7 @@ namespace
 {
 
 using ProblemConfigEntry = std::tuple<int, std::string, trimuse::ModelParameterMap>;
+using ProblemModelEntries = std::unordered_map<std::string, std::vector<ProblemConfigEntry>>;
 using LinearSolverEntry = std::tuple<std::string, std::string, double, int>;
 using NonlinearSolverEntry = std::tuple<std::string, double, double, int>;
 using FieldSolverEntry = std::tuple<std::string, LinearSolverEntry, NonlinearSolverEntry>;
@@ -33,6 +34,8 @@ std::vector<Config> problem_configs(const std::vector<ProblemConfigEntry>& entri
     }
     return configs;
 }
+
+
 
 }
 
@@ -96,9 +99,14 @@ PYBIND11_MODULE(_core, module)
         .def("update_external", &trimuse::PropertiesSystem::update_external, py::arg("time"), py::arg("time_step"))
         .def("update_derived", &trimuse::PropertiesSystem::update_derived)
         .def("update_material", &trimuse::PropertiesSystem::update_material)
+        .def("update_assembly", &trimuse::PropertiesSystem::update_assembly)
         .def("update_field_dependent_materials", [](trimuse::PropertiesSystem& system, const std::string& field_name)
         {
             system.update_field_dependent_materials(field_name);
+        }, py::arg("field_name"))
+        .def("update_field_dependent_assembly", [](trimuse::PropertiesSystem& system, const std::string& field_name)
+        {
+            system.update_field_dependent_assembly(field_name);
         }, py::arg("field_name"))
         .def("accept_current_state", &trimuse::PropertiesSystem::accept_current_state);
 
@@ -122,25 +130,35 @@ PYBIND11_MODULE(_core, module)
         .def(py::init([](trimuse::FemSystem& fem, trimuse::PropertiesSystem& properties,
                          trimuse::SolverSystem& solver, trimuse::OutputManager& output, const std::string& problem_type,
                          const std::vector<ProblemConfigEntry>& initial_configs,
-                         const std::vector<ProblemConfigEntry>& source_configs,
-                         const std::vector<ProblemConfigEntry>& boundary_configs,
-                         const std::vector<ProblemConfigEntry>& interface_configs)
+                         const ProblemModelEntries& region_entries,
+                         const ProblemModelEntries& boundary_entries,
+                         const ProblemModelEntries& interface_entries)
         {
-            const auto interfaces = problem_configs<trimuse::ThermalInterfaceConfig>(interface_configs);
+            const auto initial = problem_configs<trimuse::ThermalInitialConfig>(initial_configs);
+            trimuse::ThermalRegionConfigs regions;
+            for (const auto& [term, entries] : region_entries)
+            {
+                regions.emplace(term, problem_configs<trimuse::ThermalDomainConfig>(entries));
+            }
+            trimuse::ThermalBoundaryConfigs boundaries;
+            for (const auto& [term, entries] : boundary_entries)
+            {
+                boundaries.emplace(term, problem_configs<trimuse::ThermalBoundaryConfig>(entries));
+            }
+            trimuse::ThermalInterfaceConfigs interfaces;
+            for (const auto& [term, entries] : interface_entries)
+            {
+                interfaces.emplace(term, problem_configs<trimuse::ThermalInterfaceConfig>(entries));
+            }
             if (fem.has_region_field("temperature"))
             {
-                return std::make_unique<trimuse::ThermalProblem>(fem, fem.region_field("temperature"), properties, solver, output, problem_type,
-                    problem_configs<trimuse::ThermalInitialConfig>(initial_configs),
-                    problem_configs<trimuse::ThermalDomainConfig>(source_configs),
-                    problem_configs<trimuse::ThermalBoundaryConfig>(boundary_configs), interfaces);
+                return std::make_unique<trimuse::ThermalProblem>(fem, fem.region_field("temperature"), properties,
+                    solver, output, problem_type, initial, regions, boundaries, interfaces);
             }
-            return std::make_unique<trimuse::ThermalProblem>(fem, fem.field_data("temperature"), properties, solver, output, problem_type,
-                problem_configs<trimuse::ThermalInitialConfig>(initial_configs),
-                problem_configs<trimuse::ThermalDomainConfig>(source_configs),
-                problem_configs<trimuse::ThermalBoundaryConfig>(boundary_configs), interfaces);
+            return std::make_unique<trimuse::ThermalProblem>(fem, fem.field_data("temperature"), properties,
+                solver, output, problem_type, initial, regions, boundaries, interfaces);
         }), py::arg("fem_system"), py::arg("properties_system"), py::arg("solver_system"), py::arg("output_manager"), py::arg("problem_type"),
-            py::arg("initial_configs"), py::arg("source_configs"), py::arg("boundary_configs"),
-            py::arg("interface_configs") = std::vector<ProblemConfigEntry>{},
+            py::arg("initial_configs"), py::arg("regions"), py::arg("boundaries"), py::arg("interfaces"),
             py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::keep_alive<1, 4>(), py::keep_alive<1, 5>())
         .def("save_output", &trimuse::ThermalProblem::save_output,
              py::arg("cycle"), py::arg("time"), py::arg("time_step"))
@@ -150,24 +168,34 @@ PYBIND11_MODULE(_core, module)
     py::class_<trimuse::MechanicsProblem>(module, "MechanicsProblem")
         .def(py::init([](trimuse::FemSystem& fem, trimuse::PropertiesSystem& properties,
                          trimuse::SolverSystem& solver, trimuse::OutputManager& output,
-                         const std::vector<ProblemConfigEntry>& source_configs,
-                         const std::vector<ProblemConfigEntry>& boundary_configs,
-                         const std::vector<ProblemConfigEntry>& interface_configs)
+                         const ProblemModelEntries& region_entries,
+                         const ProblemModelEntries& boundary_entries,
+                         const ProblemModelEntries& interface_entries)
         {
-            const auto sources = problem_configs<trimuse::MechanicsDomainConfig>(source_configs);
-            const auto boundaries = problem_configs<trimuse::MechanicsBoundaryConfig>(boundary_configs);
-            const auto interfaces = problem_configs<trimuse::MechanicsInterfaceConfig>(interface_configs);
+            trimuse::MechanicsRegionConfigs regions;
+            for (const auto& [term, entries] : region_entries)
+            {
+                regions.emplace(term, problem_configs<trimuse::MechanicsDomainConfig>(entries));
+            }
+            trimuse::MechanicsBoundaryConfigs boundaries;
+            for (const auto& [term, entries] : boundary_entries)
+            {
+                boundaries.emplace(term, problem_configs<trimuse::MechanicsBoundaryConfig>(entries));
+            }
+            trimuse::MechanicsInterfaceConfigs interfaces;
+            for (const auto& [term, entries] : interface_entries)
+            {
+                interfaces.emplace(term, problem_configs<trimuse::MechanicsInterfaceConfig>(entries));
+            }
             if (fem.has_region_field("displacement"))
             {
-                return std::make_unique<trimuse::MechanicsProblem>(fem, fem.region_field("displacement"),
-                    properties, solver, output, sources, boundaries, interfaces);
+                return std::make_unique<trimuse::MechanicsProblem>(fem, fem.region_field("displacement"), properties,
+                    solver, output, regions, boundaries, interfaces);
             }
-            return std::make_unique<trimuse::MechanicsProblem>(fem, fem.field_data("displacement"),
-                properties, solver, output, sources, boundaries, interfaces);
+            return std::make_unique<trimuse::MechanicsProblem>(fem, fem.field_data("displacement"), properties,
+                solver, output, regions, boundaries, interfaces);
         }), py::arg("fem_system"), py::arg("properties_system"), py::arg("solver_system"), py::arg("output_manager"),
-            py::arg("source_configs") = std::vector<ProblemConfigEntry>{},
-            py::arg("boundary_configs") = std::vector<ProblemConfigEntry>{},
-            py::arg("interface_configs") = std::vector<ProblemConfigEntry>{},
+            py::arg("regions"), py::arg("boundaries"), py::arg("interfaces"),
             py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::keep_alive<1, 4>(), py::keep_alive<1, 5>())
         .def("solve", &trimuse::MechanicsProblem::solve)
         .def("save_output", &trimuse::MechanicsProblem::save_output,
@@ -176,28 +204,37 @@ PYBIND11_MODULE(_core, module)
 
     py::class_<trimuse::RadioactivityProblem>(module, "RadioactivityProblem")
         .def(py::init([](trimuse::FemSystem& fem, trimuse::PropertiesSystem& properties,
-                         trimuse::SolverSystem& solver, trimuse::OutputManager& output,
-                         const std::string& problem_type, double decay_constant,
+                         trimuse::SolverSystem& solver, trimuse::OutputManager& output, const std::string& problem_type,
                          const std::vector<ProblemConfigEntry>& initial_configs,
-                         const std::vector<ProblemConfigEntry>& source_configs,
-                         const std::vector<ProblemConfigEntry>& boundary_configs,
-                         const std::vector<ProblemConfigEntry>& interface_configs)
+                         const ProblemModelEntries& region_entries,
+                         const ProblemModelEntries& boundary_entries,
+                         const ProblemModelEntries& interface_entries)
         {
             const auto initial = problem_configs<trimuse::RadioactivityInitialConfig>(initial_configs);
-            const auto sources = problem_configs<trimuse::RadioactivityDomainConfig>(source_configs);
-            const auto boundaries = problem_configs<trimuse::RadioactivityBoundaryConfig>(boundary_configs);
-            const auto interfaces = problem_configs<trimuse::RadioactivityInterfaceConfig>(interface_configs);
+            trimuse::RadioactivityRegionConfigs regions;
+            for (const auto& [term, entries] : region_entries)
+            {
+                regions.emplace(term, problem_configs<trimuse::RadioactivityDomainConfig>(entries));
+            }
+            trimuse::RadioactivityBoundaryConfigs boundaries;
+            for (const auto& [term, entries] : boundary_entries)
+            {
+                boundaries.emplace(term, problem_configs<trimuse::RadioactivityBoundaryConfig>(entries));
+            }
+            trimuse::RadioactivityInterfaceConfigs interfaces;
+            for (const auto& [term, entries] : interface_entries)
+            {
+                interfaces.emplace(term, problem_configs<trimuse::RadioactivityInterfaceNuclideTransferConfig>(entries));
+            }
             if (fem.has_region_field("concentration"))
             {
-                return std::make_unique<trimuse::RadioactivityProblem>(fem, fem.region_field("concentration"),
-                    properties, solver, output, problem_type, decay_constant, initial, sources, boundaries, interfaces);
+                return std::make_unique<trimuse::RadioactivityProblem>(fem, fem.region_field("concentration"), properties,
+                    solver, output, problem_type, initial, regions, boundaries, interfaces);
             }
-            return std::make_unique<trimuse::RadioactivityProblem>(fem, fem.field_data("concentration"),
-                properties, solver, output, problem_type, decay_constant, initial, sources, boundaries, interfaces);
-        }), py::arg("fem_system"), py::arg("properties_system"), py::arg("solver_system"), py::arg("output_manager"),
-            py::arg("problem_type"), py::arg("decay_constant"),
-            py::arg("initial_configs"), py::arg("source_configs"), py::arg("boundary_configs"),
-            py::arg("interface_configs") = std::vector<ProblemConfigEntry>{},
+            return std::make_unique<trimuse::RadioactivityProblem>(fem, fem.field_data("concentration"), properties,
+                solver, output, problem_type, initial, regions, boundaries, interfaces);
+        }), py::arg("fem_system"), py::arg("properties_system"), py::arg("solver_system"), py::arg("output_manager"), py::arg("problem_type"),
+            py::arg("initial_configs"), py::arg("regions"), py::arg("boundaries"), py::arg("interfaces"),
             py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::keep_alive<1, 4>(), py::keep_alive<1, 5>())
         .def("save_output", &trimuse::RadioactivityProblem::save_output,
              py::arg("cycle"), py::arg("time"), py::arg("time_step"))

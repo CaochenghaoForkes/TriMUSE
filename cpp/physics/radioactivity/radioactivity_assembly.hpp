@@ -1,5 +1,6 @@
 #pragma once
 
+#include <unordered_map>
 #include "physics/common/assembly/assembly_cache.hpp"
 #include "physics/common/assembly/scalar_integrator.hpp"
 
@@ -7,10 +8,14 @@
 #include "physics/radioactivity/capacity/radioactivity_capacity_manager.hpp"
 #include "physics/radioactivity/source/radioactivity_source_manager.hpp"
 #include "physics/radioactivity/boundary/radioactivity_boundary_manager.hpp"
-#include "physics/radioactivity/interface/radioactivity_interface_manager.hpp"
+#include "physics/radioactivity/interface_nuclide_transfer/radioactivity_interface_nuclide_transfer_manager.hpp"
 
 namespace trimuse
 {
+using RadioactivityRegionConfigs = std::unordered_map<std::string, std::vector<RadioactivityDomainConfig>>;
+using RadioactivityBoundaryConfigs = std::unordered_map<std::string, std::vector<RadioactivityBoundaryConfig>>;
+using RadioactivityInterfaceConfigs = std::unordered_map<std::string, std::vector<RadioactivityInterfaceNuclideTransferConfig>>;
+
 class RadioactivityAssembly // 汇总扩散、衰变、源与外边界贡献，并处理完美接触和 Dirichlet 约束
 {
 public:
@@ -21,7 +26,7 @@ public:
     };
     using Counts = std::map<std::string, int>; // 贡献名称 -> 已组装区域或边界的次数
 
-    RadioactivityAssembly(FemSystem& fem, TrialField& trial_field, double decay_constant, const std::vector<RadioactivityDomainConfig>& sources, const std::vector<RadioactivityBoundaryConfig>& boundaries, const std::vector<RadioactivityInterfaceConfig>& interfaces); // 配置贡献管理器、界面约束和外边界索引，预组装固定的 M
+    RadioactivityAssembly(FemSystem& fem, TrialField& trial_field, double decay_constant, const RadioactivityRegionConfigs& regions, const RadioactivityBoundaryConfigs& boundaries, const RadioactivityInterfaceConfigs& interfaces); // 配置贡献管理器、界面约束和外边界索引，预组装固定的 M
     void mark_coupled(PropertiesSystem& properties) const; // 登记本方程所需属性与浓度场的耦合关系
     bool coupled(const PropertiesSystem& properties) const; // 判断是否需要浓度 Picard 迭代
     State update(const PropertiesFieldData& properties); // 按需更新系数与缓存，返回 M、K、F
@@ -46,7 +51,7 @@ private:
     RadioactivityCapacityManager capacity_; // 恒为 1 的时间导数系数
     RadioactivitySourceManager source_; // 体积核素产生率
     RadioactivityBoundaryManager boundary_; // 外边界矩阵、载荷及指定浓度
-    RadioactivityInterfaceManager interface_; // 完美接触约束与映射 P
+    RadioactivityInterfaceNuclideTransferManager interface_nuclide_transfer_manager_; // 完美接触约束与映射 P
     std::map<int, std::vector<int>> boundary_elements_; // 边界属性编号 -> 原网格外边界单元编号列表
     std::shared_ptr<const mfem::SparseMatrix> mass_; // 固定网格、空间下只组装一次的单位容量矩阵
     AssemblyCache<mfem::SparseMatrix> diffusion_cache_, boundary_matrix_cache_; // 按区域或分区缓存扩散矩阵与 Robin 矩阵

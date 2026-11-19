@@ -1,10 +1,12 @@
 import math
 
 from .config import PropertiesCard
+from ..thermal.examine import ThermalCardExamine
 
 class PropertiesCardExamine:
     COMMON_MODELS = {"common.constant", "common.time_series"}
     MODELS = {
+        "assembly.interface_thermal_resistance": {"common.uniform_from_constant_value", "common.local_from_constant_value"},
         "external.power": COMMON_MODELS,
         "external.burnup_fima_fraction": COMMON_MODELS,
         "external.uranium_fraction": COMMON_MODELS,
@@ -43,7 +45,11 @@ class PropertiesCardExamine:
     @classmethod
     def examine(cls, card: PropertiesCard) -> None:
         """检查名称唯一性和当前已实现模型的参数"""
-        for category, properties in (("external_property", card.external_property), ("derived_property", card.derived_property)):
+        for category, properties in (
+            ("external_property", card.external_property),
+            ("derived_property", card.derived_property),
+            ("assembly_property", card.assembly_property),
+        ):
             names = [property_config.name for property_config in properties]
             if len(names) != len(set(names)):
                 raise ValueError(f"{category}: 属性名称不能重复")
@@ -55,6 +61,11 @@ class PropertiesCardExamine:
         location = property_config.name
         if location not in cls.MODELS or not location.startswith(category.removesuffix("_property") + "."):
             raise ValueError(f"{location}: 不支持的 {category} 属性")
+        if location == "assembly.interface_thermal_resistance":
+            cls.check_interface_thermal_resistance(property_config)
+            return
+        if property_config.interface:
+            raise ValueError(f"{location}: 当前属性不支持 interface 配置")
         configs = [*property_config.region, *property_config.zone]
         if property_config.global_ is not None:
             configs.append(property_config.global_)
@@ -115,6 +126,26 @@ class PropertiesCardExamine:
                     raise ValueError(f"{region_location}: common.uniform_from_power 不需要模型参数")
             else:
                 raise ValueError(f"{region_location}: 尚不支持的派生量")
+
+    @classmethod
+    def check_interface_thermal_resistance(cls, property_config: PropertiesCard.Property) -> None:
+        location = property_config.name
+        if not property_config.interface or property_config.region or property_config.zone or property_config.global_ is not None:
+            raise ValueError(f"{location}: 请按 interface 配置界面热阻")
+        names = [item.name for item in property_config.interface]
+        if len(names) != len(set(names)):
+            raise ValueError(f"{location}: 界面名称不能重复")
+        for interface in property_config.interface:
+            context = f"{location}.{interface.name}"
+            model = interface.model
+            parameters = interface.parameters
+            if model not in cls.MODELS[location]:
+                raise ValueError(f"{context}: 不支持的模型 {model}")
+            ThermalCardExamine.check_parameters(parameters, context)
+            if model == "common.local_from_constant_value":
+                ThermalCardExamine.check_local_resistance(parameters, context)
+            elif set(parameters) != {"constant_value"} or not isinstance(parameters["constant_value"], float) or parameters["constant_value"] <= 0:
+                raise ValueError(f"{context}: constant_value 必须为正的标量")
 
     @staticmethod
     def check_radioactivity_property(category: str, property_config: PropertiesCard.Property) -> None:

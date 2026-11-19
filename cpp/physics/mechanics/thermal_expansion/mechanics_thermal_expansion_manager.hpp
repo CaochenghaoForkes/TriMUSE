@@ -14,7 +14,7 @@ namespace trimuse
 class MechanicsThermalExpansionManager // 按区域管理模型，缓存全域积分点上的热膨胀载荷系数 beta及组装变化标记
 {
 public:
-    explicit MechanicsThermalExpansionManager(const FemSystem& fem, const std::vector<MechanicsDomainConfig>& configs = {}); // 注册与安排各个热膨胀模型
+    explicit MechanicsThermalExpansionManager(const FemSystem& fem, const std::vector<MechanicsDomainConfig>& configs); // 注册与安排各个热膨胀模型
 
     void update(const PropertiesFieldData& properties); // 更新热膨胀载荷向量以及对应的 dirty
 

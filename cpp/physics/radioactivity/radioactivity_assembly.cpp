@@ -5,9 +5,17 @@
 
 namespace trimuse
 {
-RadioactivityAssembly::RadioactivityAssembly(FemSystem& fem, TrialField& trial_field, double decay_constant, const std::vector<RadioactivityDomainConfig>& sources, const std::vector<RadioactivityBoundaryConfig>& boundaries, const std::vector<RadioactivityInterfaceConfig>& interfaces)
-    : decay_constant_(decay_constant), fem_(fem), trial_field_(trial_field), integrator_(fem, trial_field), diffusion_(fem), capacity_(fem), source_(fem, sources),
-      boundary_(boundaries), interface_(fem, trial_field, interfaces)
+RadioactivityAssembly::RadioactivityAssembly(FemSystem& fem, TrialField& trial_field, double decay_constant, const RadioactivityRegionConfigs& regions, const RadioactivityBoundaryConfigs& boundaries, const RadioactivityInterfaceConfigs& interfaces)
+    :
+    decay_constant_(decay_constant),
+    fem_(fem),
+    trial_field_(trial_field),
+    integrator_(fem, trial_field),
+    diffusion_(fem, regions.at("diffusion")),
+    capacity_(fem, regions.at("capacity")),
+    source_(fem, regions.at("source")),
+    boundary_(boundaries.at("nuclide_boundary")),
+    interface_nuclide_transfer_manager_(fem, trial_field, interfaces.at("interface_nuclide_transfer"))
 {
     const auto& mesh = fem.mesh_data().mfem_mesh(); // 原网格用于筛选外边界单元
     for (int zone : boundary_.zones()) { boundary_elements_[zone] = {}; }
@@ -150,7 +158,7 @@ void RadioactivityAssembly::update_boundary(const PropertiesFieldData& propertie
 // 收集独立自由度编号 -> 指定浓度，外边界几何仍来自原网格。
 void RadioactivityAssembly::essential_values(std::map<int, double>& values) const
 {
-    const auto& p = interface_.prolongation(); // P 的行是完整自由度，列是完美接触约束后的独立自由度
+    const auto& p = interface_nuclide_transfer_manager_.prolongation(); // P 的行是完整自由度，列是完美接触约束后的独立自由度
     for (int zone : boundary_.zones())
     {
         if (!boundary_.essential(zone))
@@ -178,7 +186,7 @@ void RadioactivityAssembly::essential_values(std::map<int, double>& values) cons
 
 void RadioactivityAssembly::apply_initial_constraints() // 只调整试探浓度值，不修改待求解的矩阵与右端
 {
-    auto reduced_concentration = interface_.constraints().reduced_values(); // 从完整试探场提取独立自由度浓度
+    auto reduced_concentration = interface_nuclide_transfer_manager_.constraints().reduced_values(); // 从完整试探场提取独立自由度浓度
     std::map<int, double> essential;
     essential_values(essential);
     for (const auto& [dof, value] : essential)
@@ -197,20 +205,20 @@ void RadioactivityAssembly::form_system(const mfem::SparseMatrix& matrix, const 
 {
     std::map<int, double> essential;
     essential_values(essential);
-    interface_.constraints().form_system(matrix, rhs, essential, system, load, reduced_concentration); // P^T A P、P^T b，再施加 Dirichlet 消元
+    interface_nuclide_transfer_manager_.constraints().form_system(matrix, rhs, essential, system, load, reduced_concentration); // P^T A P、P^T b，再施加 Dirichlet 消元
 }
 
 void RadioactivityAssembly::recover(const mfem::Vector& reduced_concentration)
 {
-    const auto full = interface_.constraints().recover(reduced_concentration);
+    const auto full = interface_nuclide_transfer_manager_.constraints().recover(reduced_concentration);
     trial_field_.set_values(full); // 仅修改本次求解的试探场，正式场由 accept() 更新
 }
 
 void RadioactivityAssembly::project_initial()
 {
     // 带几何权重的 L2 投影保持总盘存；逐自由度平均不具有这个性质。
-    const auto& p = interface_.prolongation();
-    auto guess = interface_.constraints().reduced_values(); // 独立自由度上的初始猜测
+    const auto& p = interface_nuclide_transfer_manager_.prolongation();
+    auto guess = interface_nuclide_transfer_manager_.constraints().reduced_values(); // 独立自由度上的初始猜测
     mfem::Vector original = trial_field_.values(), projected(trial_field_.size());
     p.Mult(guess, projected); projected -= original; // 已满足连续约束时无须再次投影
     if (projected.Normlinf() <= 1e-12 * original.Normlinf()) { return; }

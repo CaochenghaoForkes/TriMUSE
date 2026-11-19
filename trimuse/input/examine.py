@@ -1,8 +1,9 @@
+import math
+
 from .geometry_mesh.config import GeometryMeshCard
 from .material.config import MaterialCard
 from .material.examine import MaterialCardExamine
 from .mechanics.config import MechanicsCard
-from .mechanics.examine import MechanicsCardExamine
 from .properties.config import PropertiesCard
 from .thermal.config import ThermalCard
 from .radioactivity.config import RadioactivityCard
@@ -15,7 +16,7 @@ class InputCardsExamine:
     @staticmethod
     def check_thermal_space(simulation: SimulationCard, thermal: ThermalCard | None) -> None:
         """有温度跳跃的界面必须使用分域空间"""
-        if thermal is None or all(item.model == "perfect_contact" for item in thermal.interfaces.interface):
+        if thermal is None or all(model.model_name == "perfect_contact" for interface in thermal.interfaces.interface for model in interface.model if model.name == "interface_heat_transfer"):
             return
         temperature = next((item for item in simulation.solver.field if item.name == "temperature"), None)
         if temperature is None or temperature.fem_space.continuity != "region":
@@ -28,22 +29,15 @@ class InputCardsExamine:
         cls.check_properties_references(geometry_mesh, properties)
         cls.check_bacon_anisotropy_factor_dependencies(material, properties)
         cls.check_mechanics_material_dependencies(material, properties, thermal)
-        if thermal is not None:
-            cls.check_thermal_references(geometry_mesh, thermal)
-            cls.check_thermal_boundary_properties(properties, thermal)
-            cls.check_thermal_source_dependencies(properties, thermal)
         if mechanics is not None:
-            cls.check_mechanics_references(geometry_mesh, mechanics)
-            cls.check_mechanics_boundary_properties(properties, mechanics)
-            cls.check_mechanics_sources(geometry_mesh, material, mechanics)
+            cls.check_mechanics_sources(geometry_mesh, mechanics)
         cls.check_postprocess_geometry(geometry_mesh, postprocess)
         if radioactivity is None and any(
-            item.property_name == "material.radioactivity.nuclide_diffusion_coef" and item.model in MaterialCardExamine.TECDOC978_SYMBOLS
+            item.property_name == "material.radioactivity.nuclide_diffusion_coef" and item.model in MaterialCardExamine.TECDOC978_MODELS
             for mat in material.mat for item in mat.properties
         ):
             raise ValueError("TECDOC-978 扩散系数模型需要 radioactivity 输入卡中的核素名称")
         if radioactivity is not None:
-            cls.check_radioactivity_references(geometry_mesh, radioactivity)
             cls.check_radioactivity_dependencies(material, properties, radioactivity, thermal)
 
     @staticmethod
@@ -55,14 +49,26 @@ class InputCardsExamine:
         for name, card in (("temperature", thermal), ("concentration", radioactivity), ("displacement", mechanics)):
             if name in fields and card is None:
                 raise ValueError(f"求解 {name} 必须提供对应的物理输入卡")
+        if thermal is not None and any(
+            field.name == "temperature" and field.model == "transient" for field in simulation.problem.field
+        ):
+            missing = {region.name for region in thermal.regions.region
+                       if "capacity" not in {model.name for model in region.model}}
+            if missing:
+                raise ValueError(f"以下区域缺少瞬态热容组装项: {', '.join(sorted(missing))}")
         if "displacement" in fields:
-            if "temperature" not in fields:
-                raise ValueError("当前力学热膨胀模型需要启用 temperature 场")
-            assigned = {item.mat for item in material.assign.region}
-            required = {"material.mechanics." + name for name in ("young_modulus", "poisson_ratio", "shear_modulus", "thermal_expansion_coef")}
-            for mat in material.mat:
-                if mat.name not in assigned:
-                    continue
+            expansion_enabled = any(model.name == "thermal_expansion" for region in mechanics.regions.region for model in region.model)
+            if expansion_enabled:
+                if "temperature" not in fields:
+                    raise ValueError("当前力学热膨胀模型需要启用 temperature 场")
+                reference = mechanics.parameters.get("thermal_expansion_reference_temperature")
+                if not isinstance(reference, float) or not math.isfinite(reference) or reference < 0:
+                    raise ValueError("热膨胀模型需要有限且不低于 0 K 的 thermal_expansion_reference_temperature")
+            materials = {item.name: item for item in material.mat}
+            elastic = {"material.mechanics." + name for name in ("young_modulus", "poisson_ratio", "shear_modulus")}
+            for assignment in material.assign.region:
+                required = elastic
+                mat = materials[assignment.mat]
                 missing = required - {item.property_name for item in mat.properties}
                 if missing:
                     raise ValueError(f"力学材料 {mat.name} 缺少属性: {', '.join(sorted(missing))}")
@@ -100,59 +106,19 @@ class InputCardsExamine:
 
     @staticmethod
     def check_radioactivity_dependencies(material: MaterialCard, properties: PropertiesCard, radioactivity: RadioactivityCard, thermal: ThermalCard | None) -> None:
-        """核素源、各类边界与各区域扩散系数的必要依赖"""
-        source_regions = {region.name for item in properties.derived_property if item.name == "derived.volumetric_nuclide_birth_rate" for region in item.region}
-        missing = {region.name for region in radioactivity.source.region} - source_regions
-        if missing:
-            raise ValueError(f"核素源区域缺少派生 volumetric_nuclide_birth_rate: {', '.join(sorted(missing))}")
-        for boundary in radioactivity.boundary:
-            if boundary.model == "robin":
-                required = (("external.environment_nuclide_concentration", properties.external_property), ("derived.mass_transfer_coef", properties.derived_property))
-            elif boundary.model == "dirichlet":
-                required = (("external.surface_nuclide_concentration", properties.external_property),)
-            else:  # neumann
-                required = (("external.nuclide_flux", properties.external_property),)
-            for name, configs in required:
-                zones = {zone.name for item in configs if item.name == name for zone in item.zone}
-                if boundary.name not in zones:
-                    raise ValueError(f"核素 {boundary.model} 边界 {boundary.name} 缺少 {name} 属性")
+        """检查核素扩散模型的材料与全局依赖"""
         materials = {mat.name: mat for mat in material.mat}
         for assignment in material.assign.region:
             diffusion = next((item for item in materials[assignment.mat].properties if item.property_name == "material.radioactivity.nuclide_diffusion_coef"), None)
             if diffusion is None:
                 raise ValueError(f"区域 {assignment.name} 的材料缺少核素扩散系数")
-            if thermal is None and (diffusion.model == "common.arrhenius" or diffusion.model in MaterialCardExamine.TECDOC978_SYMBOLS):
+            if thermal is None and (diffusion.model == "common.arrhenius" or diffusion.model in MaterialCardExamine.TECDOC978_MODELS):
                 raise ValueError(f"区域 {assignment.name}: {diffusion.model} 依赖温度场, 必须提供 thermal 输入卡")
             if diffusion.model == "sic.tecdoc978_frg" and not any(
                 item.name == "derived.fast_neutron_fluence" and item.global_ is not None
                 for item in properties.derived_property
             ):
                 raise ValueError(f"区域 {assignment.name}: sic.tecdoc978_frg 缺少全局 fast_neutron_fluence")
-            supported = MaterialCardExamine.TECDOC978_SYMBOLS.get(diffusion.model)
-            if supported is not None and radioactivity.nuclide.element_symbol not in supported:
-                raise ValueError(f"{diffusion.model} 不支持核素 {radioactivity.nuclide.name}")
-
-    @staticmethod
-    def check_radioactivity_references(geometry_mesh: GeometryMeshCard, radioactivity: RadioactivityCard) -> None:
-        """核对核素初值、源、边界和界面的几何引用"""
-        geometry = getattr(geometry_mesh.geometry, geometry_mesh.geometry.source)
-        regions = geometry.regions.region
-        region_names = {region.name for region in regions}
-        initial_regions = {item.region for item in radioactivity.initial.concentration}
-        if initial_regions != region_names:
-            raise ValueError("radioactivity.initial: 初始浓度区域必须与几何区域逐一对应")
-        zone_names = InputCardsExamine.outer_boundary_names(geometry_mesh)
-        boundary_names = zone_names | ({"particle_center"} if geometry_mesh.model.dimension == 1 else set())
-        references = ((radioactivity.source.region, region_names, "源区域"),
-                      (radioactivity.boundary, boundary_names, "边界"),
-                      (radioactivity.interfaces.interface, {region.outer_boundary.name for region in regions[:-1]}, "界面"))
-        for items, allowed, location in references:
-            unknown = {item.name for item in items} - allowed
-            if unknown:
-                raise ValueError(f"radioactivity.{location} 引用了不存在的几何名称: {', '.join(sorted(unknown))}")
-        missing = zone_names - {item.name for item in radioactivity.boundary}
-        if missing:
-            raise ValueError(f"外表面分区缺少核素边界配置: {', '.join(sorted(missing))}")
 
     @staticmethod
     def check_postprocess_geometry(geometry_mesh: GeometryMeshCard, postprocess: PostprocessCard) -> None:
@@ -186,6 +152,16 @@ class InputCardsExamine:
         geometry = getattr(geometry_mesh.geometry, geometry_mesh.geometry.source)
         region_names = {region.name for region in geometry.regions.region}
         zone_names = InputCardsExamine.outer_boundary_names(geometry_mesh)
+        interface_names = {region.outer_boundary.name for region in geometry.regions.region[:-1]}
+        for property_config in properties.assembly_property:
+            for interface in property_config.interface:
+                location = f"{property_config.name}.{interface.name}"
+                if interface.name not in interface_names:
+                    raise ValueError(f"{location}: 不存在的内部界面")
+                if interface.model == "common.local_from_constant_value":
+                    dimension = 2 if "theta_mins" in interface.parameters else 3
+                    if geometry_mesh.model.dimension != dimension:
+                        raise ValueError(f"{location}: 局部热阻角度参数与 2D/3D 几何维数不一致")
         power_regions = {region.name for property_config in properties.external_property if property_config.name == "external.power" for region in property_config.region}
         birth_rate = next((item for item in properties.external_property if item.name == "external.nuclide_birth_rate"), None)
         fast_neutron_flux = next((item for item in properties.external_property if item.name == "external.fast_neutron_flux"), None)
@@ -223,75 +199,22 @@ class InputCardsExamine:
                 raise ValueError("accumulate_from_fast_neutron_flux 缺少全局 fast_neutron_flux")
 
     @staticmethod
-    def check_mechanics_references(geometry_mesh: GeometryMeshCard, mechanics: MechanicsCard) -> None:
-        """力学外边界引用外表面分区，内部界面引用材料层之间的边界"""
-        geometry = getattr(geometry_mesh.geometry, geometry_mesh.geometry.source)
-        interface_names = {region.outer_boundary.name for region in geometry.regions.region[:-1]}
-        for items, allowed, location in (
-            (mechanics.boundary, InputCardsExamine.outer_boundary_names(geometry_mesh), "力学外边界"),
-            (mechanics.interfaces.interface, interface_names, "力学界面"),
-        ):
-            unknown = {item.name for item in items} - allowed
-            if unknown:
-                raise ValueError(f"{location}引用了不存在的几何名称: {', '.join(sorted(unknown))}")
-
-    @staticmethod
-    def check_mechanics_sources(geometry_mesh: GeometryMeshCard, material: MaterialCard, mechanics: MechanicsCard) -> None:
-        """检查体积力的区域、维数、对称性和材料密度依赖"""
-        geometry = getattr(geometry_mesh.geometry, geometry_mesh.geometry.source)
-        region_names = {region.name for region in geometry.regions.region}
-        unknown = {item.name for item in mechanics.source.region} - region_names
-        if unknown:
-            raise ValueError(f"力学体积力引用了不存在的区域: {', '.join(sorted(unknown))}")
+    def check_mechanics_sources(geometry_mesh: GeometryMeshCard, mechanics: MechanicsCard) -> None:
+        """检查重力加速度的维数与轴对称要求"""
+        uses_gravity = any(model.name == "source" and model.model_name == "gravity"
+                           for region in mechanics.regions.region for model in region.model)
         dimension = geometry_mesh.model.dimension
-        materials = {item.name: item for item in material.mat}
-        region_materials = {item.name: materials[item.mat] for item in material.assign.region}
-        for item in mechanics.source.region:
-            location = f"mechanics.source.{item.name}"
+        if uses_gravity:
+            location = "mechanics.parameters.gravity_acceleration"
+            acceleration = mechanics.parameters.get("gravity_acceleration")
+            if not isinstance(acceleration, list) or not all(math.isfinite(value) for value in acceleration):
+                raise ValueError(f"{location}: gravity 需要有限数值向量")
             if dimension == 1:
                 raise ValueError(f"{location}: 1D 球对称模型不支持固定方向重力")
-            acceleration = item.parameters["acceleration"]
             if len(acceleration) != dimension:
-                raise ValueError(f"{location}: acceleration 分量数必须等于问题维数 {dimension}")
+                raise ValueError(f"{location}: 分量数必须等于问题维数 {dimension}")
             if dimension == 2 and acceleration[0] != 0.0:
                 raise ValueError(f"{location}: 2D 轴对称模型的重力只能沿轴向，径向加速度必须为 0")
-            if not any(prop.property_name == "material.general.mass_density" for prop in region_materials[item.name].properties):
-                raise ValueError(f"{location}: gravity 需要该区域材料的 mass_density 属性")
-
-    @staticmethod
-    def check_mechanics_boundary_properties(properties: PropertiesCard, mechanics: MechanicsCard) -> None:
-        """每个边界模型必须在同名外表面分区配置对应的外部属性"""
-        property_zones = {item.name: {zone.name for zone in item.zone} for item in properties.external_property}
-        for boundary in mechanics.boundary:
-            name = MechanicsCardExamine.BOUNDARY_PROPERTIES[boundary.model]
-            if boundary.name not in property_zones.get(name, set()):
-                raise ValueError(f"力学 {boundary.model} 边界 {boundary.name} 缺少 {name} 属性")
-
-    @staticmethod
-    def check_thermal_boundary_properties(properties: PropertiesCard, thermal: ThermalCard) -> None:
-        """按边界类型检查同名分区所需的属性"""
-        for boundary in thermal.boundary:
-            if boundary.model == "robin":
-                required = (("external.environment_temperature", properties.external_property), ("derived.heat_transfer_coef", properties.derived_property))
-            elif boundary.model == "neumann":
-                required = (("external.heat_flux", properties.external_property),)
-            elif boundary.model == "dirichlet":
-                required = (("external.surface_temperature", properties.external_property),)
-            else:
-                continue
-            for property_name, configs in required:
-                property_config = next((item for item in configs if item.name == property_name), None)
-                if property_config is None or boundary.name not in {zone.name for zone in property_config.zone}:
-                    raise ValueError(f"{boundary.model} 边界 {boundary.name} 缺少 {property_name} 属性")
-
-    @staticmethod
-    def check_thermal_source_dependencies(properties: PropertiesCard, thermal: ThermalCard) -> None:
-        """已实现的体积功率热源必须有同区域派生量"""
-        volumetric_power_regions = {region.name for property_config in properties.derived_property if property_config.name == "derived.volumetric_power" for region in property_config.region}
-        missing = {region.name for region in thermal.source.region if region.model == "volumetric_power"} - volumetric_power_regions
-        if missing:
-            raise ValueError(f"热源区域缺少派生 volumetric_power: {', '.join(sorted(missing))}")
-
     @staticmethod
     def check_material_assignments(geometry_mesh: GeometryMeshCard, material: MaterialCard) -> None:
         """每个几何层都必须分配材料, 分配区域必须存在于几何中"""
@@ -304,38 +227,3 @@ class InputCardsExamine:
         unknown = assigned_names - layer_names
         if unknown:
             raise ValueError(f"材料分配引用了不存在的几何区域: {', '.join(sorted(unknown))}")
-
-    @staticmethod
-    def check_thermal_references(geometry_mesh: GeometryMeshCard, thermal: ThermalCard) -> None:
-        """核对初始温度区域, 热源区域, 外边界及内界面名称"""
-        geometry = getattr(geometry_mesh.geometry, geometry_mesh.geometry.source)
-        regions = geometry.regions.region
-        region_names = {region.name for region in regions}
-        initial_regions = {temperature.region for temperature in thermal.initial.temperature}
-        unknown = initial_regions - region_names
-        if unknown:
-            raise ValueError(f"初始温度引用了不存在的区域: {', '.join(sorted(unknown))}")
-        missing = region_names - initial_regions
-        if missing:
-            raise ValueError(f"以下区域未配置初始温度: {', '.join(sorted(missing))}")
-        for interface in thermal.interfaces.interface:
-            if interface.model == "local_from_constant_resistance":
-                dimension = 2 if "theta_mins" in interface.parameters else 3
-                if geometry_mesh.model.dimension != dimension:
-                    raise ValueError(f"热界面 {interface.name}: 局部热阻角度参数与几何维数不一致，仅支持 2D/3D")
-        interface_names = {region.outer_boundary.name for region in regions[:-1]}
-        boundary_names = InputCardsExamine.outer_boundary_names(geometry_mesh)
-        if geometry_mesh.model.dimension == 1:
-            boundary_names.add("particle_center")
-        references = (
-            (thermal.source.region, region_names, "热源区域"),
-            (thermal.boundary, boundary_names, "热边界"),
-            (thermal.interfaces.interface, interface_names, "热界面")
-        )
-        for items, allowed_names, location in references:
-            unknown = {item.name for item in items} - allowed_names
-            if unknown:
-                raise ValueError(f"{location}引用了不存在的几何名称: {', '.join(sorted(unknown))}")
-        missing = InputCardsExamine.outer_boundary_names(geometry_mesh) - {boundary.name for boundary in thermal.boundary}
-        if missing:
-            raise ValueError(f"外表面分区缺少热边界配置: {', '.join(sorted(missing))}")

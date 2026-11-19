@@ -1,5 +1,6 @@
 #pragma once
 
+#include <unordered_map>
 #include "physics/common/assembly/assembly_cache.hpp"
 #include "physics/common/assembly/scalar_integrator.hpp"
 #include "physics/common/constraint/dof_constraints.hpp"
@@ -8,10 +9,14 @@
 #include "physics/thermal/capacity/thermal_capacity_manager.hpp"
 #include "physics/thermal/source/thermal_source_manager.hpp"
 #include "physics/thermal/boundary/thermal_boundary_manager.hpp"
-#include "physics/thermal/interface/thermal_interface_manager.hpp"
+#include "physics/thermal/interface_heat_transfer/thermal_interface_heat_transfer_manager.hpp"
 
 namespace trimuse
 {
+using ThermalRegionConfigs = std::unordered_map<std::string, std::vector<ThermalDomainConfig>>;
+using ThermalBoundaryConfigs = std::unordered_map<std::string, std::vector<ThermalBoundaryConfig>>;
+using ThermalInterfaceConfigs = std::unordered_map<std::string, std::vector<ThermalInterfaceConfig>>;
+
 class ThermalAssembly
 {
 public:
@@ -23,7 +28,7 @@ public:
 
     using Counts = std::map<std::string, int>; // 组装次数统计 如 "conduction" -> 域内导热贡献组装次数
 
-    ThermalAssembly(FemSystem& fem, TrialField& trial_field, const std::vector<ThermalDomainConfig>& sources, const std::vector<ThermalBoundaryConfig>& boundaries, const std::vector<ThermalInterfaceConfig>& interfaces); // 初始化各物理贡献管理器，并建立已配置外边界的单元索引表
+    ThermalAssembly(FemSystem& fem, TrialField& trial_field, const ThermalRegionConfigs& regions, const ThermalBoundaryConfigs& boundaries, const ThermalInterfaceConfigs& interfaces); // 初始化各物理贡献管理器，并建立已配置外边界的单元索引表
 
     void mark_coupled(PropertiesSystem& properties, bool transient) const; // 登记热方程实际用到的属性与温度场之间的耦合关系
 
@@ -50,6 +55,8 @@ private:
 
     void refresh_boundary(); // 分别更新外边界矩阵和右端向量的缓存 两部分独立判断，因此可以只重组发生变化的部分
 
+    void refresh_interface_heat_transfer(); // 按材料界面的 dirty 标记更新界面传热矩阵缓存
+
     void essential_values(std::map<int, double>& values) const; // 收集 Dirichlet 边界的指定温度，并把边界自由度编号转换为约束后独立空间中的编号
 
     FemSystem& fem_; // 有限元系统
@@ -68,18 +75,20 @@ private:
 
     DofConstraints constraints_; // 持有约束映射 P，统一完成自由度约化与恢复；界面组装只登记相等关系
 
-    ThermalInterfaceManager interface_manager_; // 界面模型管理及热阻界面矩阵 KI
+    ThermalInterfaceManager interface_heat_transfer_manager_; // 界面约束及各界面的面片热阻
 
     std::map<int, std::vector<int>> boundary_elements_; // 外边界单元索引表: 边界物理属性编号 → 该分区包含的原网格边界单元编号列表
 
     AssemblyCache<mfem::SparseMatrix> mass_cache_, conduction_cache_, boundary_matrix_cache_; // 组装结果的缓存 域内热容矩阵 M 域内导热矩阵 Kdomian 外边界 Robin 矩阵 KR
+
+    AssemblyCache<mfem::SparseMatrix> interface_heat_transfer_matrix_cache_; // 界面传热矩阵 KI
 
     AssemblyCache<mfem::Vector> source_cache_, boundary_load_cache_; // 右端项的缓存 体积热源向量 FQ Neumann 和 Robin 外边界右端向量 Fgamma
 
     State state_; // 当前汇总后的组装状态 
 
     // std::shared_ptr<T> 是 C++ 的共享所有权智能指针：多个指针可以共同拥有同一个对象，最后一个拥有者释放它时，对象会自动销毁
-    std::shared_ptr<const mfem::SparseMatrix> last_conduction_cache_sum_, last_boundary_matrix_cache_sum_; // 上次汇总时使用的缓存指针 用于比较指针是否被替换 last_conduction_cache_sum_ -> conduction_cache_.sum last_boundary_matrix_cache_sum_ -> boundary_matrix_cache_.sum
+    std::shared_ptr<const mfem::SparseMatrix> last_conduction_cache_sum_, last_boundary_matrix_cache_sum_, last_interface_heat_transfer_matrix_cache_sum_; // 上次汇总时使用的矩阵缓存指针
 
     std::shared_ptr<const mfem::Vector> last_source_cache_sum_, last_boundary_load_cache_sum_; // 记录上次形成总右端向量时使用的 用于比较指针是否被替换 last_source_cache_sum_ -> source_cache_.sum last_boundary_load_cache_sum_ -> boundary_load_cache_.sum
 

@@ -6,31 +6,43 @@
 
 namespace trimuse
 {
+namespace
+{
 
-RadioactivityProblem::RadioactivityProblem(FemSystem& fem, FieldData& accepted_concentration, PropertiesSystem& properties,
-    SolverSystem& solver, OutputManager& output, const std::string& problem_type, double decay_constant,
-    const std::vector<RadioactivityInitialConfig>& initial, const std::vector<RadioactivityDomainConfig>& sources,
-    const std::vector<RadioactivityBoundaryConfig>& boundaries, const std::vector<RadioactivityInterfaceConfig>& interfaces)
-    : RadioactivityProblem(fem, TrialField(fem, accepted_concentration), properties, solver, output, problem_type, decay_constant, initial, sources, boundaries, interfaces) // 连续正式场包装为独立试探场，再交给统一构造函数
+double nuclide_decay_constant(const PropertiesFieldData& properties)
+{
+    const auto& value = properties.global_values.at("precomputed.half_life");
+    const auto* half_life = value ? std::get_if<double>(&*value) : nullptr;
+    if (!half_life || !std::isfinite(*half_life) || *half_life <= 0.0)
+    {
+        throw std::invalid_argument("核素衰变需要有限的正半衰期 precomputed.half_life");
+    }
+    return std::log(2.0) / *half_life;
+}
+
+}
+
+
+RadioactivityProblem::RadioactivityProblem(FemSystem& fem, FieldData& accepted_concentration, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output, const std::string& problem_type, const std::vector<RadioactivityInitialConfig>& initial, const RadioactivityRegionConfigs& regions, const RadioactivityBoundaryConfigs& boundaries, const RadioactivityInterfaceConfigs& interfaces)
+    : RadioactivityProblem(fem, TrialField(fem, accepted_concentration), properties, solver, output, problem_type, initial, regions, boundaries, interfaces) // 连续正式场包装为独立试探场，再交给统一构造函数
 {
 }
-RadioactivityProblem::RadioactivityProblem(FemSystem& fem, RegionFieldData& accepted_concentration, PropertiesSystem& properties,
-    SolverSystem& solver, OutputManager& output, const std::string& problem_type, double decay_constant,
-    const std::vector<RadioactivityInitialConfig>& initial, const std::vector<RadioactivityDomainConfig>& sources,
-    const std::vector<RadioactivityBoundaryConfig>& boundaries, const std::vector<RadioactivityInterfaceConfig>& interfaces)
-    : RadioactivityProblem(fem, TrialField(fem, accepted_concentration), properties, solver, output, problem_type, decay_constant, initial, sources, boundaries, interfaces) // 分域正式场同样包装为试探场
+RadioactivityProblem::RadioactivityProblem(FemSystem& fem, RegionFieldData& accepted_concentration, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output, const std::string& problem_type, const std::vector<RadioactivityInitialConfig>& initial, const RadioactivityRegionConfigs& regions, const RadioactivityBoundaryConfigs& boundaries, const RadioactivityInterfaceConfigs& interfaces)
+    : RadioactivityProblem(fem, TrialField(fem, accepted_concentration), properties, solver, output, problem_type, initial, regions, boundaries, interfaces) // 分域正式场同样包装为试探场
 {
 }
-RadioactivityProblem::RadioactivityProblem(FemSystem& fem, TrialField trial_concentration, PropertiesSystem& properties,
-    SolverSystem& solver, OutputManager& output, const std::string& problem_type, double decay_constant,
-    const std::vector<RadioactivityInitialConfig>& initial, const std::vector<RadioactivityDomainConfig>& sources,
-    const std::vector<RadioactivityBoundaryConfig>& boundaries, const std::vector<RadioactivityInterfaceConfig>& interfaces)
-    : trial_concentration_(std::move(trial_concentration)), properties_(properties), solver_(solver), output_(output),
-      transient_(problem_type == "transient"), assembly_(fem, trial_concentration_, decay_constant, sources, boundaries, interfaces)
+RadioactivityProblem::RadioactivityProblem(FemSystem& fem, TrialField trial_concentration, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output, const std::string& problem_type, const std::vector<RadioactivityInitialConfig>& initial, const RadioactivityRegionConfigs& regions, const RadioactivityBoundaryConfigs& boundaries, const RadioactivityInterfaceConfigs& interfaces)
+    : trial_concentration_(std::move(trial_concentration)), properties_(properties), solver_(solver), output_(output), transient_(problem_type == "transient"), assembly_(fem, trial_concentration_, nuclide_decay_constant(properties.field_data()), regions, boundaries, interfaces)
 {
     assembly_.mark_coupled(properties_); // 登记扩散、源和边界所需属性与浓度场的耦合关系
-    if (trial_concentration_.regional()) { initialize_concentration(fem, *trial_concentration_.accepted_region_field(), initial); }
-    else { initialize_concentration(fem, *trial_concentration_.accepted_continuous_field(), initial); }
+    if (trial_concentration_.regional()) 
+    { 
+        initialize_concentration(fem, *trial_concentration_.accepted_region_field(), initial); 
+    }
+    else 
+    { 
+        initialize_concentration(fem, *trial_concentration_.accepted_continuous_field(), initial); 
+    }
     trial_concentration_.load(); // 正式场初值复制到试探场
     assembly_.project_initial(); // 必要时将区域初始阶跃投影到完美接触约束空间
     trial_concentration_.accept(); // 将投影后的初值写回正式场
@@ -41,7 +53,9 @@ void RadioactivityProblem::accept_concentration()
 {
     trial_concentration_.accept(); // 当前试探解写入 FemSystem 所持有的正式浓度场
     // 收敛后的属性与最终浓度同步; 上一时间步快照仍由外部调度统一提交。
-    properties_.update_field_dependent_materials("concentration", {{"concentration", trial_concentration_.view()}}, true);
+    const PropertiesSystem::FieldMap trial_fields{{"concentration", trial_concentration_.view()}};
+    properties_.update_field_dependent_materials("concentration", trial_fields, true);
+    properties_.update_field_dependent_assembly("concentration", trial_fields, true);
 }
 
 void RadioactivityProblem::solve(double time_step, double theta) // 每个时刻的统一入口，负责初始状态、正常求解与组装统计
@@ -98,7 +112,9 @@ void RadioactivityProblem::iterate(double time_step, double theta) // 在完整�
         RadioactivityAssembly::State current; // 当前时刻的只读 M、K、F
         if (!transient_ || theta > 0.0) // 稳态或隐式比例非零时才需要当前时刻贡献
         {
-            properties_.update_field_dependent_materials("concentration", {{"concentration", trial_concentration_.view()}}, true); // 用当前试探浓度更新耦合材料属性
+            const PropertiesSystem::FieldMap trial_fields{{"concentration", trial_concentration_.view()}};
+            properties_.update_field_dependent_materials("concentration", trial_fields, true); // 用当前试探浓度更新耦合材料属性
+            properties_.update_field_dependent_assembly("concentration", trial_fields, true);
             current = assembly_.update(properties_.field_data()); // 按需重组变化区域，形成当前 M、K、F
         }
         std::unique_ptr<mfem::SparseMatrix> matrix;

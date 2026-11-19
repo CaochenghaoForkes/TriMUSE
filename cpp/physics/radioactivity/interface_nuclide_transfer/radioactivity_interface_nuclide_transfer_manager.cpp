@@ -1,11 +1,11 @@
-#include "physics/radioactivity/interface/radioactivity_interface_manager.hpp"
-#include "physics/radioactivity/interface/perfect_contact.hpp"
+#include "physics/radioactivity/interface_nuclide_transfer/radioactivity_interface_nuclide_transfer_manager.hpp"
+#include "physics/radioactivity/interface_nuclide_transfer/perfect_contact.hpp"
 
 namespace trimuse
 {
 
-RadioactivityInterfaceManager::RadioactivityInterfaceManager(FemSystem& fem, const TrialField& trial_field,
-    const std::vector<RadioactivityInterfaceConfig>& configs) // 按界面标识选择模型，未配置的界面默认完美接触
+RadioactivityInterfaceNuclideTransferManager::RadioactivityInterfaceNuclideTransferManager(FemSystem& fem, const TrialField& trial_field,
+    const std::vector<RadioactivityInterfaceNuclideTransferConfig>& configs) // 按界面标识选择模型，未配置的界面默认完美接触
     : constraints_(fem, trial_field)
 {
     registry_.register_model<RadioactivityPerfectContact>("perfect_contact");

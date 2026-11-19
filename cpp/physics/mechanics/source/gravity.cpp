@@ -3,15 +3,14 @@
 namespace trimuse
 {
 
-GravitySource::GravitySource(const ModelParameterMap& parameters)
+GravitySource::GravitySource(const ModelParameterMap&)
 {
-    acceleration_ = std::get<VectorValue>(parameters.at("acceleration"));
 }
 
 VectorValue GravitySource::evaluate(const PropertiesFieldData& properties, std::size_t point) const
 {
     const double density = std::get<double>(properties.integration_point_values.at("material.general.mass_density")[point].value());
-    VectorValue force = acceleration_;
+    VectorValue force = std::get<VectorValue>(properties.global_values.at("precomputed.gravity_acceleration").value());
     for (double& component : force) 
     { 
         component *= density; 

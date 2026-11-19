@@ -8,15 +8,7 @@ MechanicsThermalExpansionManager::MechanicsThermalExpansionManager(const FemSyst
     : fem_(fem), values_(fem.domain_quadrature_point_count(), VectorValue(6, 0.0))
 {
     registry_.register_model<LinearThermalExpansion>("linear", {"material.mechanics.elasticity_tensor", "material.mechanics.thermal_expansion_coef", "precomputed.thermal_expansion_reference_temperature", "precomputed.tensor_transform"});
-    auto assignments = configs;
-    if (assignments.empty())
-    {
-        for (int region : fem_.mesh_data().region_attributes()) 
-        { 
-            assignments.push_back({region, "linear", {}}); // 默认安排各个区域的热膨胀模型为线性热膨胀模型
-        }
-    }
-    for (const auto& config : assignments)
+    for (const auto& config : configs)
     {
         const auto& entry = registry_.registration(config.model_name); // 取得各个已安排区域的热膨胀模型的记录
         models_.emplace(config.region_attribute, Assignment{entry.factory(config.parameters), entry.required_states}); // 为各区域安排具体的热膨胀模型
@@ -25,6 +17,10 @@ MechanicsThermalExpansionManager::MechanicsThermalExpansionManager(const FemSyst
 
 void MechanicsThermalExpansionManager::update(const PropertiesFieldData& properties) // 更新热膨胀载荷向量以及对应的 dirty
 {
+    if (models_.empty())
+    {
+        return;
+    }
     const auto temperature = fem_.field_view("temperature");
     const auto& mesh = fem_.mesh_data().mfem_mesh();
     for (auto& [region, assignment] : models_) // 遍历各个区域的编号与安排好的热碰撞模型

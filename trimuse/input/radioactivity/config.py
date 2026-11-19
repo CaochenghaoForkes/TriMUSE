@@ -1,34 +1,14 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import cast
 from xml.etree import ElementTree as ET
-import math
-import re
 import sys
 
-from ..xml_utils import XmlUtils
-
+from ..xml_utils import ProblemParameters, XmlUtils
 
 @dataclass
 class RadioactivityCard:
-    """单核素扩散与衰变的初值、边界、界面和源配置"""
-
-    @dataclass
-    class Nuclide:
-        name: str
-        half_life: float  # s
-
-        @property
-        def decay_constant(self) -> float:
-            """衰变常数, s⁻¹"""
-            return math.log(2.0) / self.half_life
-
-        @property
-        def element_symbol(self) -> str:
-            """从 Cs137、Cs-137 等核素名取得元素符号"""
-            match = re.match(r"^[A-Z][a-z]?", self.name)
-            return match.group() if match else ""
+    """按 XML 层级保存放射性问题配置，位置名称保持原始字符串"""
 
     @dataclass
     class Initial:
@@ -41,81 +21,59 @@ class RadioactivityCard:
         concentration: list[Concentration] = field(default_factory=list)
 
     @dataclass
-    class Boundary:
+    class Model:
         name: str
-        model: str
-        parameters: dict[str, float | list[float]] = field(default_factory=dict)
+        model_name: str
+
+    @dataclass
+    class Regions:
+        @dataclass
+        class Region:
+            name: str
+            model: list[RadioactivityCard.Model] = field(default_factory=list)
+
+        region: list[Region] = field(default_factory=list)
+
+    @dataclass
+    class Boundaries:
+        @dataclass
+        class Boundary:
+            name: str
+            model: list[RadioactivityCard.Model] = field(default_factory=list)
+
+        boundary: list[Boundary] = field(default_factory=list)
 
     @dataclass
     class Interfaces:
         @dataclass
         class Interface:
             name: str
-            model: str
-            parameters: dict[str, float | list[float]] = field(default_factory=dict)
+            model: list[RadioactivityCard.Model] = field(default_factory=list)
 
         interface: list[Interface] = field(default_factory=list)
 
-    @dataclass
-    class Source:
-        @dataclass
-        class Region:
-            name: str
-            model: str
-            parameters: dict[str, float | list[float]] = field(default_factory=dict)
-
-        region: list[Region] = field(default_factory=list)
-
-    nuclide: Nuclide
+    parameters: ProblemParameters
     initial: Initial
-    boundary: list[Boundary] = field(default_factory=list)
+    regions: Regions = field(default_factory=Regions)
+    boundaries: Boundaries = field(default_factory=Boundaries)
     interfaces: Interfaces = field(default_factory=Interfaces)
-    source: Source = field(default_factory=Source)
-
-    def precomputed_parameters(self) -> dict[str, str | float]:
-        return {
-            "nuclide_name": self.nuclide.name,
-            "half_life": self.nuclide.half_life,
-            "nuclide_symbol": self.nuclide.element_symbol,
-        }
 
 class RadioactivityCardLoader:
-    """读取单核素配置, 盘存量按 si_unit 转换为模型所需的原子数单位"""
-
     @classmethod
     def load(cls, path: str | Path | None = None) -> RadioactivityCard:
-        """空路径生成模板并退出, 否则读取放射性输入卡"""
+        """读取原始输入结构，空路径生成模板并退出"""
         if path is None or isinstance(path, str) and not path.strip():
             template_path = XmlUtils.write_template(Path(__file__).with_name("radioactivity.xml"), "radioactivity_empty.xml")
             print(f"放射性模板输入卡已生成: {template_path}")
             sys.exit()
         root = XmlUtils.get_root(path, "radioactivity")
-        nuclide = cls.read_nuclide(root)
+        XmlUtils.check_children(root, ('parameters', 'initial', 'regions', 'boundaries', 'interfaces'), context="radioactivity")
+        parameters = XmlUtils.read_problem_parameters(root)
         initial = cls.read_initial(XmlUtils.read_child(root, "initial"))
-        boundaries = XmlUtils.read_child(root, "boundaries", required=False)
-        boundary = []
-        if boundaries is not None:
-            boundary = [cls.read_boundary(child) for child in XmlUtils.read_children(boundaries, "boundary")]
+        regions = cls.read_regions(XmlUtils.read_child(root, "regions"))
+        boundaries = cls.read_boundaries(XmlUtils.read_child(root, "boundaries", required=False))
         interfaces = cls.read_interfaces(XmlUtils.read_child(root, "interfaces", required=False))
-        source = cls.read_source(XmlUtils.read_child(root, "source", required=False))
-        radioactivity_card = RadioactivityCard(nuclide=nuclide, initial=initial, boundary=boundary, interfaces=interfaces, source=source)
-        return radioactivity_card
-
-    @staticmethod
-    def read_nuclide(root: ET.Element) -> RadioactivityCard.Nuclide:
-        parameters = XmlUtils.read_problem_parameters(root, {"nuclide_name": None, "half_life": "time"})
-        if parameters is not None:
-            if XmlUtils.read_child(root, "nuclide", required=False) is not None:
-                raise ValueError("radioactivity: 请仅使用 <parameters> 或旧版 <nuclide> 中的一种")
-            return RadioactivityCard.Nuclide(
-                name=cast(str, parameters["nuclide_name"]),
-                half_life=cast(float, parameters["half_life"]),
-            )
-        legacy = XmlUtils.read_child(root, "nuclide")
-        name = XmlUtils.read_attribute(legacy, "name", required=True)
-        half_life = XmlUtils.read_attribute(XmlUtils.read_child(legacy, "half_life"), "value", float, required=True, quantity="time")
-        nuclide = RadioactivityCard.Nuclide(name=name, half_life=half_life)
-        return nuclide
+        return RadioactivityCard(parameters, initial, regions, boundaries, interfaces)
 
     @classmethod
     def read_initial(cls, element: ET.Element) -> RadioactivityCard.Initial:
@@ -130,28 +88,48 @@ class RadioactivityCardLoader:
         concentration = RadioactivityCard.Initial.Concentration(region=region, **model_config)
         return concentration
 
-    @staticmethod
-    def read_boundary(element: ET.Element) -> RadioactivityCard.Boundary:
-        name = XmlUtils.read_attribute(element, "name", required=True)
-        boundary = RadioactivityCard.Boundary(name=name, **XmlUtils.read_model(element, context=name))
-        return boundary
+    @classmethod
+    def read_regions(cls, element: ET.Element) -> RadioactivityCard.Regions:
+        regions = RadioactivityCard.Regions()
+        XmlUtils.check_children(element, ("region",), context="radioactivity.regions")
+        for child in XmlUtils.read_children(element, "region", required=True):
+            XmlUtils.check_attributes(child, ("name",))
+            name = XmlUtils.read_attribute(child, "name", required=True)
+            regions.region.append(RadioactivityCard.Regions.Region(name=name, model=cls.read_models(child)))
+        return regions
 
-    @staticmethod
-    def read_interfaces(element: ET.Element | None) -> RadioactivityCard.Interfaces:
-        interface = []
-        if element is not None:
-            for child in XmlUtils.read_children(element, "interface"):
-                name = XmlUtils.read_attribute(child, "name", required=True)
-                interface.append(RadioactivityCard.Interfaces.Interface(name=name, **XmlUtils.read_model(child, context=name)))
-        interfaces = RadioactivityCard.Interfaces(interface=interface)
+    @classmethod
+    def read_boundaries(cls, element: ET.Element | None) -> RadioactivityCard.Boundaries:
+        boundaries = RadioactivityCard.Boundaries()
+        if element is None:
+            return boundaries
+        XmlUtils.check_children(element, ("boundary",), context="radioactivity.boundaries")
+        for child in XmlUtils.read_children(element, "boundary", required=False):
+            XmlUtils.check_attributes(child, ("name",))
+            name = XmlUtils.read_attribute(child, "name", required=True)
+            boundaries.boundary.append(RadioactivityCard.Boundaries.Boundary(name=name, model=cls.read_models(child)))
+        return boundaries
+
+    @classmethod
+    def read_interfaces(cls, element: ET.Element | None) -> RadioactivityCard.Interfaces:
+        interfaces = RadioactivityCard.Interfaces()
+        if element is None:
+            return interfaces
+        XmlUtils.check_children(element, ("interface",), context="radioactivity.interfaces")
+        for child in XmlUtils.read_children(element, "interface", required=False):
+            XmlUtils.check_attributes(child, ("name",))
+            name = XmlUtils.read_attribute(child, "name", required=True)
+            interfaces.interface.append(RadioactivityCard.Interfaces.Interface(name=name, model=cls.read_models(child)))
         return interfaces
 
     @staticmethod
-    def read_source(element: ET.Element | None) -> RadioactivityCard.Source:
-        region = []
-        if element is not None:
-            for child in XmlUtils.read_children(element, "region"):
-                name = XmlUtils.read_attribute(child, "name", required=True)
-                region.append(RadioactivityCard.Source.Region(name=name, **XmlUtils.read_model(child, context=name)))
-        source = RadioactivityCard.Source(region=region)
-        return source
+    def read_models(element: ET.Element) -> list[RadioactivityCard.Model]:
+        XmlUtils.check_children(element, ("model",))
+        models = []
+        for child in XmlUtils.read_children(element, "model", required=False):
+            XmlUtils.check_attributes(child, ("name", "model_name"))
+            XmlUtils.check_children(child, ())
+            name = XmlUtils.read_attribute(child, "name", required=True)
+            model_name = XmlUtils.read_attribute(child, "model_name", required=True)
+            models.append(RadioactivityCard.Model(name=name, model_name=model_name))
+        return models

@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "fem/fem_system.hpp"
+#include "properties/assembly/assembly_model_manager.hpp"
 #include "properties/derived/derived_model_manager.hpp"
 #include "properties/external/external_model_manager.hpp"
 #include "properties/material/material_model_manager.hpp"
@@ -27,7 +28,7 @@ public:
 
     void assign(int attribute, const std::string& model_name, const ModelParameterMap& parameters); // 为某个属性在指定 体积域/边界域 上配置一个计算模型 并把该位置已有的“计算完成”标记清掉
 
-    void prepare_dependencies(); // 按启用场补齐固定关系属性，再标记各个属性在各个区域依赖的场有哪些
+    void prepare_dependencies(); // 补齐固定关系属性并标记场依赖
 
     void mark_coupled(const std::string& field_name, const std::vector<std::string>& property_names); // 把指定属性中依赖某个求解场的位置标记为“参与耦合更新”，并沿依赖关系向上游传递这个标记
 
@@ -35,9 +36,13 @@ public:
  
     void update_derived(); // 更新派生属性；累积模型使用上一个已接受值和 external.time_step
 
-    void update_material(); // 检查各个不依赖场的材料属性，只在“尚未计算”或“依赖发生变化”时重新计算它们
+    void update_material(); // 更新不依赖场的材料属性
 
-    void update_field_dependent_materials(const std::string& field_name, const FieldMap& trial_fields = {}, bool coupled_only = false); // 更新各个依赖场的材料属性
+    void update_assembly(); // 更新不依赖场的组装属性，随后保存整表依赖快照
+
+    void update_field_dependent_materials(const std::string& field_name, const FieldMap& trial_fields = {}, bool coupled_only = false); // 更新依赖该场的材料属性
+
+    void update_field_dependent_assembly(const std::string& field_name, const FieldMap& trial_fields = {}, bool coupled_only = false); // 更新依赖该场的组装属性
 
     void accept_current_state(); // 把当前全部属性数据复制一份，保存为“已接受状态”的快照
 
@@ -50,8 +55,8 @@ public:
     const PropertiesFieldData& field_data() const;
 
 private:
-    enum class PropertyType { Precomputed, External, Derived, Material }; // 属性属于哪一类 强类型枚举，可选值只有这四种
-    enum class PropertyScope { Global, Region, Zone, IntegrationPoint }; // 属性在哪些位置存值 强类型枚举，可选值只有这四种
+    enum class PropertyType { Precomputed, External, Derived, Material, Assembly }; // 属性类型
+    enum class PropertyScope { Global, Region, Zone, Interface, IntegrationPoint }; // 属性的作用位置
 
     struct PropertyInfo // 一项属性的说明记录
     {
@@ -83,9 +88,13 @@ private:
     template <typename Manager>
     void evaluate_and_store_points(const Manager& manager, const PropertyInfo& property, int region_attribute, const std::vector<std::string>& required, const FieldMap& trial_fields = {}); // 计算某个属性在指定区域内全部积分点上的值，存入全域积分点数组，最后标记该区域已计算
 
+    void evaluate_assembly(const PropertyInfo& property, int location, const std::vector<std::string>& required, const FieldMap& trial_fields = {});
+
+    void evaluate_and_store_interface(const PropertyInfo& property, int attribute, const std::vector<std::string>& required);
+
     void load_required_states(PropertiesStatePoint& point, const std::vector<std::string>& names, std::optional<std::size_t> point_index = std::nullopt) const; // 给 point 装配需要的属性
 
-    void load_model_states(PropertiesStatePoint& point, const PropertyInfo& property, int attribute, const std::vector<std::string>& required) const; // 加载当前依赖；若模型声明依赖自身，则改为加载已接受的旧值
+    void load_model_states(PropertiesStatePoint& point, const PropertyInfo& property, int attribute, const std::vector<std::string>& required, std::optional<std::size_t> point_index = std::nullopt) const; // 加载当前依赖；若模型声明依赖自身，则改为加载已接受的旧值
 
     void load_previous_value(PropertiesStatePoint& point, const PropertyInfo& property, int attribute, std::optional<std::size_t> point_index = std::nullopt) const; // 读取同一位置上一个已接受时刻的属性值
 
@@ -93,9 +102,11 @@ private:
 
     std::vector<PropertyInfo> properties_ = {
         {"precomputed.region_volume", PropertyType::Precomputed, PropertyScope::Region},
+        {"precomputed.geometry_center", PropertyType::Precomputed, PropertyScope::Global}, // m，颗粒中心坐标
         {"precomputed.thermal_expansion_reference_temperature", PropertyType::Precomputed, PropertyScope::Global}, // K, 来自力学卡的固定热膨胀参考温度
         {"precomputed.tensor_transform", PropertyType::Precomputed, PropertyScope::IntegrationPoint}, // 六分量张量 local -> global 的 T
         {"precomputed.tensor_transform_inverse", PropertyType::Precomputed, PropertyScope::IntegrationPoint}, // 六分量张量 global -> local 的 T^{-1}
+        {"precomputed.gravity_acceleration", PropertyType::Precomputed, PropertyScope::Global}, // m/s²
         {"precomputed.nuclide_name", PropertyType::Precomputed, PropertyScope::Global}, // 核素名称, 如 Cs137
         {"precomputed.nuclide_symbol", PropertyType::Precomputed, PropertyScope::Global}, // 元素符号, 如 Cs
         {"precomputed.half_life", PropertyType::Precomputed, PropertyScope::Global}, // s, 核素半衰期
@@ -132,7 +143,8 @@ private:
         {"material.mechanics.shear_modulus", PropertyType::Material, PropertyScope::IntegrationPoint}, // Pa, 标量 Grt；由用户在材料卡中指定模型
         {"material.mechanics.elasticity_tensor", PropertyType::Material, PropertyScope::IntegrationPoint, "common.from_engineering_constants"}, // Pa
         {"material.mechanics.thermal_expansion_coef", PropertyType::Material, PropertyScope::IntegrationPoint}, // K^-1, [alpha_r, alpha_t]，径向、切向热膨胀系数
-        {"material.radioactivity.nuclide_diffusion_coef", PropertyType::Material, PropertyScope::IntegrationPoint} // m²/s
+        {"material.radioactivity.nuclide_diffusion_coef", PropertyType::Material, PropertyScope::IntegrationPoint}, // m²/s
+        {"assembly.interface_thermal_resistance", PropertyType::Assembly, PropertyScope::Interface} // m²·K/W
     };
 
     // 状态名 -> 负责更新它的求解场，模型取值仍使用原状态名
@@ -153,10 +165,10 @@ private:
     };
 
     const FemSystem& fem_system_;
-
     std::vector<std::string> field_names_; // 本次启用的求解场，由外部传入
     ModelParameterMap build_parameters_; // 初始化阶段设置的公共构造参数, 在最上层 assign 中合并给所有模型
     MaterialModelManager material_model_manager_; // 材料属性模型管理器
+    AssemblyModelManager assembly_model_manager_; // 物理模块模型属性管理器
     ExternalModelManager external_model_manager_; // 外部强制属性模型管理器
     DerivedModelManager derived_model_manager_; // 外部强制属性的派生属性模型管理器
     PropertiesFieldData properties_field_data_;

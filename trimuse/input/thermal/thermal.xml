@@ -1,54 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- 填写占位符后使用；boundary 名称引用几何卡的外表面 zone 或 residual_zone -->
-<!-- si_unit 必须符合模型的内部单位, 参数数组使用空格分隔 -->
 <thermal>
     <!-- 当前热问题没有专属参数，可省略 parameters -->
     <initial>
-        <!-- temperature 可重复, region 引用几何区域, 每个区域填写一次 -->
-        <temperature region="[str]" model="uniform">
+        <temperature region="residual" model="uniform">
             <parameter name="uniform_value" value="[float]" unit="[str]" si_unit="[K]"/>
         </temperature>
     </initial>
-    <!-- 每个外表面分区配置一个边界; robin 使用同名 zone 的 environment_temperature 和 heat_transfer_coef -->
-    <!-- neumann 使用 properties 卡同名 zone 的 heat_flux, 外流为正、流入为负; 此处不重复输入模型参数 -->
-    <!-- dirichlet 使用 properties 卡同名 zone 的 surface_temperature, 指定表面温度 -->
+    <regions>
+        <!-- 单独配置的区域列出其全部组装项，residual 应用于其余区域 -->
+        <!-- source 可省略；volumetric_power 读取属性卡中的派生量；稳态可省略 capacity -->
+        <region name="residual">
+            <model name="conduction" model_name="fourier"/>
+            <model name="capacity" model_name="rho_cp"/>
+        </region>
+    </regions>
     <boundaries>
-        <boundary name="[str]" model="dirichlet"/>
-        <boundary name="[str]" model="neumann"/>
-        <boundary name="[str]" model="robin"/>
+        <!-- 省略的外边界为零热通量 -->
+        <!-- robin 读取同名分区的环境温度与换热系数；另可选 dirichlet 或 neumann -->
+        <boundary name="[str]">
+            <model name="heat_boundary" model_name="robin"/>
+        </boundary>
     </boundaries>
-    <!-- interfaces 可省略, 默认理想接触, interface 可重复 -->
     <interfaces>
-        <interface name="[str]" model="perfect_contact"/>
-        <!-- 热阻界面要求 simulation 卡的 temperature 使用 continuity="region" -->
-        <!-- constant_resistance 为单位面积热阻, 必须为有限正数; 零热阻使用 perfect_contact -->
-        <interface name="[str]" model="uniform_from_constant_resistance">
-            <parameter name="constant_resistance" value="[float]" unit="[str]" si_unit="[m]^2[K]/[W]"/>
+        <!-- 默认完美接触；热阻界面读取属性卡同名界面的热阻，温度场使用 continuity="region" -->
+        <interface name="[str]">
+            <model name="interface_heat_transfer" model_name="interface_thermal_resistance"/>
         </interface>
-        <!-- 局部热阻: 按网格面片中心判定，选中整片为有限热阻，其余整片为完美接触。
-             角度原点自动使用几何卡 center；角度内部统一 rad，热阻为 m²·K/W。
-             列表逐项对应，长度一致；一块区域可只填一个数；重叠时采用第一项。
-             区域边缘为网格尺度近似，窄区域需足够细的界面网格。2D/3D 仅保留对应写法。 -->
-        <!-- 2D 轴对称: theta 从上极点到下极点，0 到 180 度。 -->
-        <interface name="[str]" model="local_from_constant_resistance">
-            <parameter name="constant_resistances" value="[float] [float]" unit="[m]^2[K]/[W]" si_unit="[m]^2[K]/[W]"/>
-            <parameter name="theta_mins" value="10 60" unit="[degree]" si_unit="[rad]"/>
-            <parameter name="theta_maxs" value="15 65" unit="[degree]" si_unit="[rad]"/>
-        </interface>
-        <!-- 3D: thetas/phis 为中心方向；angular_distance_mins/maxs 为相对该方向的角距离。
-             min=0 为球冠，min>0 为环带，约定与几何卡一致。
-        <interface name="[str]" model="local_from_constant_resistance">
-            <parameter name="constant_resistances" value="[float] [float]" unit="[m]^2[K]/[W]" si_unit="[m]^2[K]/[W]"/>
-            <parameter name="thetas" value="30 90" unit="[degree]" si_unit="[rad]"/>
-            <parameter name="phis" value="0 180" unit="[degree]" si_unit="[rad]"/>
-            <parameter name="angular_distance_mins" value="0 10" unit="[degree]" si_unit="[rad]"/>
-            <parameter name="angular_distance_maxs" value="15 20" unit="[degree]" si_unit="[rad]"/>
-        </interface>
-        -->
     </interfaces>
-    <!-- source 可省略, 区域热源模型负责提供 W/m³ -->
-    <source>
-        <!-- 当前 volumetric_power 热源读取 properties 卡中同区域的派生量 -->
-        <region name="[str]" model="volumetric_power"/>
-    </source>
 </thermal>

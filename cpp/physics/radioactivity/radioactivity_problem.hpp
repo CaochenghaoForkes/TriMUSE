@@ -10,18 +10,9 @@ namespace trimuse
 class RadioactivityProblem // 调度单核素浓度场的初值、稳态或瞬态求解及 Picard 迭代
 {
 public:
-    RadioactivityProblem(FemSystem& fem, FieldData& accepted_concentration, PropertiesSystem& properties,
-                   SolverSystem& solver, OutputManager& output, const std::string& problem_type, double decay_constant,
-                   const std::vector<RadioactivityInitialConfig>& initial,
-                   const std::vector<RadioactivityDomainConfig>& sources,
-                   const std::vector<RadioactivityBoundaryConfig>& boundaries,
-                   const std::vector<RadioactivityInterfaceConfig>& interfaces = {});
-    RadioactivityProblem(FemSystem& fem, RegionFieldData& accepted_concentration, PropertiesSystem& properties,
-                   SolverSystem& solver, OutputManager& output, const std::string& problem_type, double decay_constant,
-                   const std::vector<RadioactivityInitialConfig>& initial,
-                   const std::vector<RadioactivityDomainConfig>& sources,
-                   const std::vector<RadioactivityBoundaryConfig>& boundaries,
-                   const std::vector<RadioactivityInterfaceConfig>& interfaces = {});
+    RadioactivityProblem(FemSystem& fem, FieldData& accepted_concentration, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output, const std::string& problem_type, const std::vector<RadioactivityInitialConfig>& initial, const RadioactivityRegionConfigs& regions, const RadioactivityBoundaryConfigs& boundaries, const RadioactivityInterfaceConfigs& interfaces);
+    
+    RadioactivityProblem(FemSystem& fem, RegionFieldData& accepted_concentration, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output, const std::string& problem_type, const std::vector<RadioactivityInitialConfig>& initial, const RadioactivityRegionConfigs& regions, const RadioactivityBoundaryConfigs& boundaries, const RadioactivityInterfaceConfigs& interfaces);
 
     void solve(double time_step = 0.0, double theta = 1.0); // 单步求解入口；零时间步只处理瞬态初始约束
 
@@ -30,13 +21,10 @@ public:
     const RadioactivityAssembly::Counts& assembly_counts() const { return assembly_.counts(); } // 返回各贡献累计组装次数
 
 private:
-    RadioactivityProblem(FemSystem& fem, TrialField trial_concentration, PropertiesSystem& properties,
-                   SolverSystem& solver, OutputManager& output, const std::string& problem_type, double decay_constant,
-                   const std::vector<RadioactivityInitialConfig>& initial,
-                   const std::vector<RadioactivityDomainConfig>& sources,
-                   const std::vector<RadioactivityBoundaryConfig>& boundaries,
-                   const std::vector<RadioactivityInterfaceConfig>& interfaces);
+    RadioactivityProblem(FemSystem& fem, TrialField trial_concentration, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output, const std::string& problem_type, const std::vector<RadioactivityInitialConfig>& initial, const RadioactivityRegionConfigs& regions, const RadioactivityBoundaryConfigs& boundaries, const RadioactivityInterfaceConfigs& interfaces);
+    
     void iterate(double time_step, double theta); // 形成 M c_dot+Kc=F 的稳态或 theta 离散系统并求解
+    
     void accept_concentration(); // 提交试探浓度并同步浓度依赖属性
 
     TrialField trial_concentration_; // 本次求解的试探浓度场，accept() 后才写回正式场

@@ -10,19 +10,19 @@ class MaterialCardExamine:
         "common.isotropy_constant", "common.anisotropy_constant",
         "common.isotropy_time_series", "common.anisotropy_time_series",
     }
-    TECDOC978_SYMBOLS = {
-        "kernel.tecdoc978_frg": {"Cs", "Sr", "Ag", "I", "Kr", "Xe"},
-        "kernel.tecdoc978_japan": {"Cs"},
-        "pyc.tecdoc978_frg": {"Cs", "Sr", "Ag", "Kr", "Xe"},
-        "pyc.tecdoc978_usa": {"Cs", "Sr", "Ag", "Kr", "Xe"},
-        "pyc.tecdoc978_japan": {"Cs"},
-        "pyc.tecdoc978_russian": {"Ag", "Kr"},
-        "sic.tecdoc978_frg": {"Cs", "Sr", "Ag"},
-        "sic.tecdoc978_usa": {"Sr", "Ag"},
-        "sic.tecdoc978_usa_lower": {"Cs"},
-        "sic.tecdoc978_usa_upper": {"Cs"},
-        "sic.tecdoc978_japan": {"Cs", "Sr", "Ag", "Xe"},
-        "sic.tecdoc978_russian": {"Cs", "Ag"},
+    TECDOC978_MODELS = {
+        "kernel.tecdoc978_frg",
+        "kernel.tecdoc978_japan",
+        "pyc.tecdoc978_frg",
+        "pyc.tecdoc978_usa",
+        "pyc.tecdoc978_japan",
+        "pyc.tecdoc978_russian",
+        "sic.tecdoc978_frg",
+        "sic.tecdoc978_usa",
+        "sic.tecdoc978_usa_lower",
+        "sic.tecdoc978_usa_upper",
+        "sic.tecdoc978_japan",
+        "sic.tecdoc978_russian",
     }
     BISON_MODELS = {
         "material.mechanics.young_modulus": {
@@ -54,7 +54,7 @@ class MaterialCardExamine:
         "material.mechanics.poisson_ratio": DIRECTIONAL_MODELS | set(BISON_MODELS["material.mechanics.poisson_ratio"]),
         "material.mechanics.shear_modulus": COMMON_MODELS | {"common.isotropy"},
         "material.mechanics.thermal_expansion_coef": {"common.isotropy_constant", "common.anisotropy_constant"} | set(BISON_MODELS["material.mechanics.thermal_expansion_coef"]),
-        "material.radioactivity.nuclide_diffusion_coef": COMMON_MODELS | {"common.arrhenius"} | set(TECDOC978_SYMBOLS),
+        "material.radioactivity.nuclide_diffusion_coef": COMMON_MODELS | {"common.arrhenius"} | TECDOC978_MODELS,
     }
 
     @classmethod
@@ -116,7 +116,7 @@ class MaterialCardExamine:
         elif property_config.property_name in ("material.general.initial_bacon_anisotropy_factor", "material.general.bacon_anisotropy_factor"):
             MaterialCardExamine.check_bacon_anisotropy_factor(property_config, location)
         elif property_config.property_name == "material.radioactivity.nuclide_diffusion_coef":
-            if property_config.model in MaterialCardExamine.TECDOC978_SYMBOLS:
+            if property_config.model in MaterialCardExamine.TECDOC978_MODELS:
                 if property_config.parameters:
                     raise ValueError(f"{location}: {property_config.model} 不需要构造参数")
             elif property_config.model == "common.arrhenius":

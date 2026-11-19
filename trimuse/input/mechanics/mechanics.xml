@@ -2,25 +2,31 @@
 <mechanics>
     <parameters>
         <parameter name="thermal_expansion_reference_temperature" value="273.15" unit="[K]" si_unit="[K]"/>
+        <parameter name="gravity_acceleration" value="0 -9.81" unit="[m]/[s]^2" si_unit="[m]/[s]^2"/>
     </parameters>
-    <!-- 边界值配置在属性卡中，未指定的外表面默认为零面力 -->
-    <boundaries>
-        <!-- 读取同名分区的 external.surface_pressure，正压力沿表面内法向加载 -->
-        <boundary name="[str]" model="from_surface_pressure"/>
-        <!-- 读取同名分区的 external.surface_displacement，指定全部位移分量 -->
-        <boundary name="[str]" model="from_surface_displacement"/>
-        <!-- 指定面力时用下方节点替换对应边界，读取 external.surface_traction
-        <boundary name="[str]" model="from_surface_traction"/>
-        -->
-    </boundaries>
-    <!-- 名称引用材料层之间的界面，未指定时默认完美粘结 -->
-    <interfaces>
-        <interface name="[str]" model="perfect_contact"/>
-    </interfaces>
-    <!-- 可选体积力源项，未配置区域为零；2D acceleration 为 [r,z] 且径向为 0，3D 为 [x,y,z]，1D 球对称不支持固定方向重力 -->
-    <source>
-        <region name="[str]" model="gravity">
-            <parameter name="acceleration" value="0 -9.81" unit="[m]/[s]^2" si_unit="[m]/[s]^2"/>
+    <regions>
+        <!-- 省略 source 或 thermal_expansion 时，不组装相应项 -->
+        <!-- 2D 重力向量为 [r,z] 且径向为 0；3D 为 [x,y,z]；1D 不支持固定方向重力 -->
+        <region name="residual">
+            <model name="stiffness" model_name="linear_elastic"/>
+            <model name="thermal_expansion" model_name="linear"/>
+            <model name="source" model_name="gravity"/>
         </region>
-    </source>
+    </regions>
+    <boundaries>
+        <!-- 省略的外边界为零面力；边界数值在属性卡中配置 -->
+        <!-- 正压力沿表面内法向，也可选 from_surface_traction 指定面力 -->
+        <boundary name="[str]">
+            <model name="mechanics_boundary" model_name="from_surface_pressure"/>
+        </boundary>
+        <boundary name="[str]">
+            <model name="mechanics_boundary" model_name="from_surface_displacement"/>
+        </boundary>
+    </boundaries>
+    <interfaces>
+        <!-- 省略的内部界面默认完美粘结 -->
+        <interface name="residual">
+            <model name="interface_contact" model_name="perfect_contact"/>
+        </interface>
+    </interfaces>
 </mechanics>

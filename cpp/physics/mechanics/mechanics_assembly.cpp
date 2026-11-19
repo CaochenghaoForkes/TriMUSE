@@ -6,13 +6,17 @@
 namespace trimuse
 {
 
-MechanicsAssembly::MechanicsAssembly(FemSystem& fem, TrialField& trial_field,
-    const std::vector<MechanicsDomainConfig>& sources,
-    const std::vector<MechanicsBoundaryConfig>& boundaries,
-    const std::vector<MechanicsInterfaceConfig>& interfaces) // 初始化对象，登记连接生成界面连续映射 P，建立外边界单元索引表
-    : fem_(fem), trial_field_(trial_field), integrator_(fem, trial_field),
-      stiffness_manager_(fem), thermal_expansion_manager_(fem), source_manager_(fem, sources),
-      boundary_manager_(boundaries), constraints_(fem, trial_field), interface_manager_(fem, constraints_, interfaces)
+MechanicsAssembly::MechanicsAssembly(FemSystem& fem, TrialField& trial_field, const MechanicsRegionConfigs& regions, const MechanicsBoundaryConfigs& boundaries, const MechanicsInterfaceConfigs& interfaces) // 初始化对象，登记连接生成界面连续映射 P，建立外边界单元索引表
+    :
+    fem_(fem),
+    trial_field_(trial_field),
+    integrator_(fem, trial_field),
+    constraints_(fem, trial_field),
+    stiffness_manager_(fem, regions.at("stiffness")),
+    thermal_expansion_manager_(fem, regions.at("thermal_expansion")),
+    source_manager_(fem, regions.at("source")),
+    boundary_manager_(boundaries.at("mechanics_boundary")),
+    interface_manager_(fem, constraints_, interfaces.at("interface_contact"))
 {
     constraints_.finalize(); // 界面管理器已登记全部连接，统一生成 P （生成约束映射，界面连续约束的映射）
     for (int zone : boundary_manager_.zones()) // 为已配置边界建立空列表

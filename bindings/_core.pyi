@@ -51,7 +51,11 @@ class PropertiesSystem:
 
     def update_material(self) -> None: ...
 
+    def update_assembly(self) -> None: ...
+
     def update_field_dependent_materials(self, field_name: str) -> None: ...
+
+    def update_field_dependent_assembly(self, field_name: str) -> None: ...
 
     def accept_current_state(self) -> None: ...
 
@@ -65,8 +69,9 @@ class ThermalProblem:
 
     def __init__(self, fem_system: FemSystem, properties_system: PropertiesSystem,
                  solver_system: SolverSystem, output_manager: OutputManager, problem_type: str,
-                 initial_configs: list[ProblemConfigEntry], source_configs: list[ProblemConfigEntry],
-                 boundary_configs: list[ProblemConfigEntry], interface_configs: list[ProblemConfigEntry] = []) -> None: ...
+                 initial_configs: list[ProblemConfigEntry], regions: dict[str, list[ProblemConfigEntry]],
+                 boundaries: dict[str, list[ProblemConfigEntry]],
+                 interfaces: dict[str, list[ProblemConfigEntry]]) -> None: ...
 
     def assembly_counts(self) -> dict[str, int]: ...
 
@@ -77,9 +82,9 @@ class MechanicsProblem:
 
     def __init__(self, fem_system: FemSystem, properties_system: PropertiesSystem,
                  solver_system: SolverSystem, output_manager: OutputManager,
-                 source_configs: list[ProblemConfigEntry] = ...,
-                 boundary_configs: list[ProblemConfigEntry] = ...,
-                 interface_configs: list[ProblemConfigEntry] = ...) -> None: ...
+                 regions: dict[str, list[ProblemConfigEntry]],
+                 boundaries: dict[str, list[ProblemConfigEntry]],
+                 interfaces: dict[str, list[ProblemConfigEntry]]) -> None: ...
 
     def solve(self) -> None: ...
 
@@ -92,7 +97,8 @@ class RadioactivityProblem:
 
     def __init__(self, fem_system: FemSystem, properties_system: PropertiesSystem,
                  solver_system: SolverSystem, output_manager: OutputManager, problem_type: str,
-                 decay_constant: float, initial_configs: list[ProblemConfigEntry],
-                 source_configs: list[ProblemConfigEntry], boundary_configs: list[ProblemConfigEntry]) -> None: ...
+                 initial_configs: list[ProblemConfigEntry], regions: dict[str, list[ProblemConfigEntry]],
+                 boundaries: dict[str, list[ProblemConfigEntry]],
+                 interfaces: dict[str, list[ProblemConfigEntry]]) -> None: ...
 
     def solve(self, time_step: float = 0.0, theta: float = 1.0) -> None: ...
