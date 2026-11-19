@@ -31,9 +31,7 @@ RadioactivityAssembly::RadioactivityAssembly(FemSystem& fem, TrialField& trial_f
     }
     // 容量恒为 1，M 同时用于时间导数、衰变和初值投影。
     capacity_.update(PropertiesFieldData{}); // 单位容量模型不读取属性，填充全域积分点系数 1
-    AssemblyCache<mfem::SparseMatrix> mass_cache;
-    refresh_matrix(capacity_, mass_cache, false, "capacity");
-    mass_ = mass_cache.sum; // M 与温度、浓度和时间无关，后续直接复用
+    refresh_capacity(); // M 与温度、浓度和时间无关，后续直接复用
 }
 
 void RadioactivityAssembly::mark_coupled(PropertiesSystem& properties) const // 登记扩散、源和边界模型的浓度依赖
@@ -49,23 +47,46 @@ bool RadioactivityAssembly::coupled(const PropertiesSystem& properties) const //
         || boundary_.coupled(properties, "concentration");
 }
 
-void RadioactivityAssembly::refresh_matrix(RadioactivityDomainManager& manager, AssemblyCache<mfem::SparseMatrix>& cache, bool diffusion, const std::string& counter) // 仅重组 dirty 区域，然后对各区域贡献重新求和
+void RadioactivityAssembly::refresh_diffusion() // 按区域变化标记刷新diffusion矩阵
 {
-    bool changed = !cache.sum; // 首次调用必须建立总矩阵
-    for (int region : manager.regions())
+    bool changed = !diffusion_cache_.sum;
+    for (int region : diffusion_.regions())
     {
-        if (cache.parts.count(region) && manager.required_no_change(region)) // 已有贡献且系数未变化时复用
+        if (diffusion_cache_.parts.count(region) && diffusion_.required_no_change(region))
         {
             continue;
         }
-        cache.parts[region] = integrator_.domain_matrix(region, manager.values(), diffusion); // 新矩阵使用完整场自由度编号
-        manager.assembled(region); // 清除该区域的 dirty 标记
-        ++counts_[counter]; changed = true;
+        diffusion_cache_.parts[region] = integrator_.domain_matrix(region, diffusion_.values(), ScalarIntegrator::MatrixForm::Gradient);
+        diffusion_.assembled(region);
+        ++counts_["diffusion"];
+        changed = true;
     }
     if (changed)
     {
-        cache.sum = sum_matrices(cache.parts, trial_field_.size()); // 复用未变化区域的贡献，只重新求和
+        diffusion_cache_.sum = sum_matrices(diffusion_cache_.parts, trial_field_.size());
     }
+}
+
+void RadioactivityAssembly::refresh_capacity() // 按区域变化标记刷新capacity矩阵
+{
+    AssemblyCache<mfem::SparseMatrix> capacity_cache;
+    bool changed = !capacity_cache.sum;
+    for (int region : capacity_.regions())
+    {
+        if (capacity_cache.parts.count(region) && capacity_.required_no_change(region))
+        {
+            continue;
+        }
+        capacity_cache.parts[region] = integrator_.domain_matrix(region, capacity_.values(), ScalarIntegrator::MatrixForm::Mass);
+        capacity_.assembled(region);
+        ++counts_["capacity"];
+        changed = true;
+    }
+    if (changed)
+    {
+        capacity_cache.sum = sum_matrices(capacity_cache.parts, trial_field_.size());
+    }
+    mass_ = capacity_cache.sum; // 单位容量矩阵只在初始化时组装，后续复用
 }
 
 void RadioactivityAssembly::refresh_source() // 按区域缓存体积核素产生率的右端贡献
@@ -124,7 +145,7 @@ RadioactivityAssembly::State RadioactivityAssembly::update(const PropertiesField
     diffusion_.update(properties);
     source_.update(properties);
     boundary_.update(properties);
-    refresh_matrix(diffusion_, diffusion_cache_, true, "diffusion");
+    refresh_diffusion();
     refresh_source();
     refresh_boundary();
     if (last_domain_ != diffusion_cache_.sum || last_boundary_ != boundary_matrix_cache_.sum) // 用缓存指针是否替换判断总 K 是否需要更新
@@ -133,9 +154,9 @@ RadioactivityAssembly::State RadioactivityAssembly::update(const PropertiesField
         // 单核素衰变是正的反应项，和扩散、Robin 左端一起组成 K。
         if (decay_constant_ != 0.0)
         {
-            state_.diffusion.reset(mfem::Add(1.0, *diffusion, decay_constant_, *mass_)); // K=K_temp+lambda M
+            state_.matrix.reset(mfem::Add(1.0, *diffusion, decay_constant_, *mass_)); // K=K_temp+lambda M
         }
-        else { state_.diffusion = std::move(diffusion); }
+        else { state_.matrix = std::move(diffusion); }
         last_domain_ = diffusion_cache_.sum; last_boundary_ = boundary_matrix_cache_.sum;
     }
     if (last_source_ != source_cache_.sum || last_boundary_load_ != boundary_load_cache_.sum) // 源或边界右端变化时才重新汇总 F
@@ -186,31 +207,31 @@ void RadioactivityAssembly::essential_values(std::map<int, double>& values) cons
 
 void RadioactivityAssembly::apply_initial_constraints() // 只调整试探浓度值，不修改待求解的矩阵与右端
 {
-    auto reduced_concentration = interface_nuclide_transfer_manager_.constraints().reduced_values(); // 从完整试探场提取独立自由度浓度
+    auto solution = interface_nuclide_transfer_manager_.constraints().reduced_values(); // 从完整试探场提取独立自由度浓度
     std::map<int, double> essential;
     essential_values(essential);
     for (const auto& [dof, value] : essential)
     {
-        reduced_concentration[dof] = value;
+        solution[dof] = value;
     }
-    recover(reduced_concentration); // 经 P 恢复完整试探场，同时满足完美接触和指定表面浓度
+    recover(solution); // 经 P 恢复完整试探场，同时满足完美接触和指定表面浓度
     for (int zone : boundary_.zones())
     {
         boundary_.assembled(zone, RadioactivityBoundaryPart::Essential);
     }
 }
 
-void RadioactivityAssembly::form_system(const mfem::SparseMatrix& matrix, const mfem::Vector& rhs,
-    mfem::SparseMatrix& system, mfem::Vector& load, mfem::Vector& reduced_concentration) const
+void RadioactivityAssembly::form_system(const mfem::SparseMatrix& matrix, const mfem::Vector& load,
+    mfem::SparseMatrix& system, mfem::Vector& system_load, mfem::Vector& solution) const
 {
     std::map<int, double> essential;
     essential_values(essential);
-    interface_nuclide_transfer_manager_.constraints().form_system(matrix, rhs, essential, system, load, reduced_concentration); // P^T A P、P^T b，再施加 Dirichlet 消元
+    interface_nuclide_transfer_manager_.constraints().form_system(matrix, load, essential, system, system_load, solution); // P^T A P、P^T b，再施加 Dirichlet 消元
 }
 
-void RadioactivityAssembly::recover(const mfem::Vector& reduced_concentration)
+void RadioactivityAssembly::recover(const mfem::Vector& solution)
 {
-    const auto full = interface_nuclide_transfer_manager_.constraints().recover(reduced_concentration);
+    const auto full = interface_nuclide_transfer_manager_.constraints().recover(solution);
     trial_field_.set_values(full); // 仅修改本次求解的试探场，正式场由 accept() 更新
 }
 
@@ -218,19 +239,19 @@ void RadioactivityAssembly::project_initial()
 {
     // 带几何权重的 L2 投影保持总盘存；逐自由度平均不具有这个性质。
     const auto& p = interface_nuclide_transfer_manager_.prolongation();
-    auto guess = interface_nuclide_transfer_manager_.constraints().reduced_values(); // 独立自由度上的初始猜测
+    auto solution = interface_nuclide_transfer_manager_.constraints().reduced_values(); // 独立自由度上的初始猜测
     mfem::Vector original = trial_field_.values(), projected(trial_field_.size());
-    p.Mult(guess, projected); projected -= original; // 已满足连续约束时无须再次投影
+    p.Mult(solution, projected); projected -= original; // 已满足连续约束时无须再次投影
     if (projected.Normlinf() <= 1e-12 * original.Normlinf()) { return; }
-    mfem::Vector full_rhs(trial_field_.size()), rhs(p.Width());
-    mass_->Mult(original, full_rhs); p.MultTranspose(full_rhs, rhs); // 投影右端 P^T M c_original
+    mfem::Vector load(trial_field_.size()), system_load(p.Width());
+    mass_->Mult(original, load); p.MultTranspose(load, system_load); // 投影右端 P^T M c_original
     std::unique_ptr<mfem::SparseMatrix> system(mfem::RAP(p, *mass_, p)); // 投影矩阵 P^T M P
     mfem::GSSmoother preconditioner(*system);
     mfem::CGSolver solver; solver.SetOperator(*system); solver.SetPreconditioner(preconditioner);
     solver.SetRelTol(1e-12); solver.SetAbsTol(0.0); solver.SetMaxIter(1000); solver.SetPrintLevel(0);
-    solver.Mult(rhs, guess);
+    solver.Mult(system_load, solution);
     if (!solver.GetConverged()) { throw std::runtime_error("界面连续约束下的初始浓度投影未收敛"); }
-    recover(guess);
+    recover(solution);
 }
 
 }

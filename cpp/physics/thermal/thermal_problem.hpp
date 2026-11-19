@@ -16,7 +16,7 @@ public:
                    const ThermalRegionConfigs& regions,
                    const ThermalBoundaryConfigs& boundaries,
                    const ThermalInterfaceConfigs& interfaces);
-    
+
     ThermalProblem(FemSystem& fem, RegionFieldData& accepted_temperature, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output, const std::string& problem_type,
                    const std::vector<ThermalInitialConfig>& initial,
                    const ThermalRegionConfigs& regions,
@@ -49,7 +49,7 @@ private:
     OutputManager& output_;
 
     bool transient_;
-    
+
     ThermalAssembly assembly_;
 };
 

@@ -25,16 +25,16 @@ private:
 
 }
 
-std::shared_ptr<mfem::SparseMatrix> ScalarIntegrator::domain_matrix(int region, const std::vector<double>& values, bool diffusion) // 整体矩阵组装（域内积分）：组装指定 region 的域内总体矩阵贡献：根据 diffusion 生成扩散矩阵或容量矩阵 region : 当前要组装的区域编号 values: 已经计算好的全域积分点系数数组，数组长度是全域积分点总数(扩散或容量系数) diffusion: 选择积分类型 (true: 扩散项 false: 容量项)
+std::shared_ptr<mfem::SparseMatrix> ScalarIntegrator::domain_matrix(int region, const std::vector<double>& values, MatrixForm form) // 按指定积分形式组装区域矩阵
 {
     auto result = std::make_shared<mfem::SparseMatrix>(trial_field_.size()); // 创建方形稀疏矩阵，行列数均为场的完整自由度数
     PointCoefficient coefficient(fem_, values); // 把积分点数组包装成 MFEM 系数对象 积分器求值时，它返回 当前积分点系数 * 降维几何权重 它根据积分器调用 Eval() 时传入的当前单元编号和局部积分点编号确定下标
     std::unique_ptr<mfem::BilinearFormIntegrator> integrator; // 通过公共基类指针保存具体积分器 BilinearForm 双线性形式 通常对应左端矩阵项 指的是分别对试探函数(形函数构成的那个试探场) u 和测试函数 v 都是线性的
-    if (diffusion)  // 如果是扩散项则对应 DiffusionIntegrator 积分 int k grad(N_i) · grad(N_j) dOmega
+    if (form == MatrixForm::Gradient)  // 梯度型对应 DiffusionIntegrator 积分 int k grad(N_i) · grad(N_j) dOmega
     {
         integrator = std::make_unique<mfem::DiffusionIntegrator>(coefficient); // 组装系数乘形函数梯度内积
     }
-    else // 如果是容量项则对应 MassIntegrator 积分 int capacity N_i N_j dOmega
+    else // 质量型对应 MassIntegrator 积分 int capacity N_i N_j dOmega
     {
         integrator = std::make_unique<mfem::MassIntegrator>(coefficient); // 组装系数乘形函数值的乘积
     }

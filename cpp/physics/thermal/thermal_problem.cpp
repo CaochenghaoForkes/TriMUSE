@@ -23,11 +23,11 @@ ThermalProblem::ThermalProblem(FemSystem& fem, TrialField trial_temperature, Pro
 {
     assembly_.mark_coupled(properties_, transient_); // 登记热方程所需属性与温度之间的耦合关系
     if (trial_temperature_.regional())
-    { 
+    {
         initialize_temperature(*trial_temperature_.accepted_region_field(), initial); // 分域场直接设置初温
     }
-    else 
-    { 
+    else
+    {
         initialize_temperature(fem, *trial_temperature_.accepted_continuous_field(), initial);  // 连续场直接设置初温或投影
     }
     trial_temperature_.load(); // 将正式场的初温复制到试探场
@@ -76,14 +76,14 @@ void ThermalProblem::iterate(double time_step, double theta) // 准备旧时刻�
 {
     const mfem::Vector previous_step_values = trial_temperature_.values(); // 保存进入本次求解时的完整温度向量
     ThermalAssembly::State old; // 准备旧时刻的组装状态
-    mfem::Vector old_rhs(trial_temperature_.size()); old_rhs = 0.0; // 准备旧时刻的右端贡献
+    mfem::Vector old_load(trial_temperature_.size()); old_load = 0.0; // 准备旧时刻的右端贡献
     if (transient_ && theta < 1.0) // 只有是瞬态且 theta < 1 时才会需要旧时刻的 Kn Fn
     {
         old = assembly_.update(properties_.previous_field_data(), true); // properties_.previous_field_data()是上一时刻 tn 已按当时的最终温度 Tn 更新接收的属性快照，根据这些旧属性取得 M_n,K_n,F_n 这里 true 表示需要容量矩阵；内部仍按缓存判断是否重新组装 温度不依赖材料的情况下，这里相当于把上一时间步末的材料属性放进去再次取得上一时间步末的矩阵与向量，但如果温度依赖属性，则上一时间步最后一次迭代用的是“求解前的试探温度组装的”，求得最终 Tn 后，accept_temperature 会按照 Tn 更新属性，却不会随即重新组装，因此下一步读取旧属性快照时，若系数与缓存中的值不同，就会重组对应区域
-        old.conduction->Mult(previous_step_values, old_rhs); // KnTn
-        old_rhs *= -1.0; // -KnTn
-        old_rhs += *old.load; // Fn-KnTn
-        old_rhs *= 1.0 - theta; // old_rhs = (1-\theta)(Fn-KnTn)
+        old.matrix->Mult(previous_step_values, old_load); // KnTn
+        old_load *= -1.0; // -KnTn
+        old_load += *old.load; // Fn-KnTn
+        old_load *= 1.0 - theta; // old_load = (1-\theta)(Fn-KnTn)
     }
     assembly_.update_boundary(properties_.field_data()); // 更新新时刻的边界值
     assembly_.apply_initial_constraints(); // 并施加到当前试探温度
@@ -91,7 +91,7 @@ void ThermalProblem::iterate(double time_step, double theta) // 准备旧时刻�
     const auto& picard = solver_.nonlinear_config("temperature");
     for (int iteration = 0; iteration < (nonlinear ? picard.max_iterations : 1); ++iteration) // 线性问题只求解一次，非线性问题最多执行配置的迭代次数
     {
-        mfem::Vector iteration_delta = trial_temperature_.values(), rhs(trial_temperature_.size()); // 保存本轮更新前的试探温度，用于之后判断收敛
+        mfem::Vector iteration_delta = trial_temperature_.values(), load(trial_temperature_.size()); // 保存迭代前的温度，并准备完整方程右端 load
         ThermalAssembly::State current; // 新状态(稳态或theta>0)
         if (!transient_ || theta > 0.0) // 如果需要当前属性(稳态或瞬态theta>0)
         {
@@ -100,11 +100,11 @@ void ThermalProblem::iterate(double time_step, double theta) // 准备旧时刻�
             properties_.update_field_dependent_assembly("temperature", trial_fields, true);
             current = assembly_.update(properties_.field_data(), transient_); // 取得本轮的 M,K,F，仅重组发生变化的贡献 稳态不需要容量项
         }
-        std::unique_ptr<mfem::SparseMatrix> matrix;
+        std::unique_ptr<mfem::SparseMatrix> matrix; // 完整自由度上的左端矩阵，瞬态时包含时间离散贡献
         if (!transient_) // 稳态直接使用 KT = F
         {
-            matrix = std::make_unique<mfem::SparseMatrix>(*current.conduction); // A = Kn+1
-            rhs = *current.load; // b = Fn+1
+            matrix = std::make_unique<mfem::SparseMatrix>(*current.matrix); // A = Kn+1
+            load = *current.load; // b = Fn+1
         }
         else // 瞬态
         {
@@ -116,13 +116,13 @@ void ThermalProblem::iterate(double time_step, double theta) // 准备旧时刻�
                 mixed_mass.reset(mfem::Add(1.0 - theta, *old.mass, theta, *current.mass)); // 构造混合矩阵M_theta=(1-theta)M_n+theta M_{n+1}
                 mass = mixed_mass.get();
             }
-            mass->Mult(previous_step_values, rhs); // b = MTn
-            rhs /= time_step; // b = MTn/delta_t
-            rhs += old_rhs; // b = MTn/delta_t + (1-theta)(Fn-KnTn) [theta<1.0]  b = MTn/delta_t [theta=1.0]
+            mass->Mult(previous_step_values, load); // b = MTn
+            load /= time_step; // b = MTn/delta_t
+            load += old_load; // b = MTn/delta_t + (1-theta)(Fn-KnTn) [theta<1.0]  b = MTn/delta_t [theta=1.0]
             if (theta > 0.0) // 若 theta>0
             {
-                rhs.Add(theta, *current.load); // b = MTn/delta_t + (1-theta)(Fn-KnTn) + thetaFn+1
-                matrix.reset(mfem::Add(1.0 / time_step, *mass, theta, *current.conduction)); // A=M/delta_t + thetaKn+1
+                load.Add(theta, *current.load); // b = MTn/delta_t + (1-theta)(Fn-KnTn) + thetaFn+1
+                matrix.reset(mfem::Add(1.0 / time_step, *mass, theta, *current.matrix)); // A=M/delta_t + thetaKn+1
             }
             else // 若 theta=0
             {
@@ -130,17 +130,17 @@ void ThermalProblem::iterate(double time_step, double theta) // 准备旧时刻�
                 *matrix *= 1.0 / time_step; // A = M/delta_t b = MTn/delta_t + (Fn-KnTn)
             }
         }
-        mfem::SparseMatrix system;
-        mfem::Vector load, reduced_solution;
-        assembly_.form_system(*matrix, rhs, system, load, reduced_solution); // 收集一类条件，通过映射 P 整理成独立自由度下的一类条件，然后把完整自由度上的方程，通过 P^TAPu=P^Tb 约化成独立自由度系统，再对独立自由度系统上的 Dirichlet 条件执行消元
-        solver_.solve_linear("temperature", system, load, reduced_solution, output_);
-        assembly_.recover(reduced_solution); // 求出独立自由度温度，再通过 T=Pu 恢复到完整试探场
+        mfem::SparseMatrix system; // 约化并施加约束后的求解矩阵
+        mfem::Vector system_load, solution; // 约束后系统的右端向量与独立自由度解
+        assembly_.form_system(*matrix, load, system, system_load, solution); // 将完整方程 matrix、load 约化并施加约束，得到 system、system_load 和初始解 solution
+        solver_.solve_linear("temperature", system, system_load, solution, output_);
+        assembly_.recover(solution); // 通过约束映射 P 将独立自由度解恢复到完整试探场
         const auto trial_values = trial_temperature_.values();
         iteration_delta -= trial_values; // 旧试探值 - 新试探值，用于收敛判据
         const double increment = iteration_delta.Normlinf(); // 计算相邻两轮温度变化
-        if (!std::isfinite(increment)) 
-        { 
-            throw std::runtime_error("导热迭代产生非有限温度"); 
+        if (!std::isfinite(increment))
+        {
+            throw std::runtime_error("导热迭代产生非有限温度");
         }
         if (!nonlinear || increment <= picard.absolute_tolerance + picard.relative_tolerance * trial_values.Normlinf()) // 线性问题求解一次后直接接受；非线性问题满足该条件后：
         {

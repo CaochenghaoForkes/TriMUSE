@@ -21,7 +21,7 @@ class RadioactivityAssembly // 汇总扩散、衰变、源与外边界贡献，�
 public:
     struct State // 一次 update() 返回的只读组装结果，可由旧、新时刻同时持有
     {
-        std::shared_ptr<const mfem::SparseMatrix> mass, diffusion; // M 与 K=Kdiffusion+KRobin+lambda M
+        std::shared_ptr<const mfem::SparseMatrix> mass, matrix; // 时间导数项矩阵 M，以及扩散、边界和衰变合并的总矩阵 K
         std::shared_ptr<const mfem::Vector> load; // F=F_birth+F_boundary
     };
     using Counts = std::map<std::string, int>; // 贡献名称 -> 已组装区域或边界的次数
@@ -33,12 +33,13 @@ public:
     void update_boundary(const PropertiesFieldData& properties); // 只更新当前时刻边界值，不组装整套方程
     void apply_initial_constraints(); // 将完美接触和 Dirichlet 条件施加到试探浓度值
     void project_initial(); // 将阶跃初值投影到满足完美接触的空间
-    void form_system(const mfem::SparseMatrix& matrix, const mfem::Vector& rhs, mfem::SparseMatrix& system, mfem::Vector& load, mfem::Vector& reduced_concentration) const; // 将完整方程约化到独立自由度并消去 Dirichlet 值
-    void recover(const mfem::Vector& reduced_concentration); // 经 P 恢复完整浓度并写入试探场
+    void form_system(const mfem::SparseMatrix& matrix, const mfem::Vector& load, mfem::SparseMatrix& system, mfem::Vector& system_load, mfem::Vector& solution) const; // 将完整方程约化到独立自由度并消去 Dirichlet 值
+    void recover(const mfem::Vector& solution); // 经 P 恢复完整浓度并写入试探场
     const Counts& counts() const { return counts_; }
 
 private:
-    void refresh_matrix(RadioactivityDomainManager& manager, AssemblyCache<mfem::SparseMatrix>& cache, bool diffusion, const std::string& counter); // 仅重组系数变化的区域，再汇总各区域矩阵
+    void refresh_diffusion(); // 按区域变化标记刷新diffusion矩阵
+    void refresh_capacity(); // 按区域变化标记刷新capacity矩阵
     void refresh_source(); // 按区域变化标记更新体积源向量
     void refresh_boundary(); // 分别更新自然边界的矩阵和右端贡献
     void essential_values(std::map<int, double>& values) const; // 收集独立自由度编号 -> 指定表面浓度

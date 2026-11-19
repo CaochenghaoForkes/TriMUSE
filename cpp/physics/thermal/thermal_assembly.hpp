@@ -20,9 +20,9 @@ using ThermalInterfaceConfigs = std::unordered_map<std::string, std::vector<Ther
 class ThermalAssembly
 {
 public:
-    struct State // 组装状态包含 mass: 容量矩阵 conduction: Kdomain+KR+KI load: FQ+Fgamma
+    struct State // 完整自由度上的方程贡献，尚未进行时间离散和约束处理
     {
-        std::shared_ptr<const mfem::SparseMatrix> mass, conduction; // M 以及 K=Kdomain+KR+KI
+        std::shared_ptr<const mfem::SparseMatrix> mass, matrix; // 时间导数项矩阵 M，以及域内、边界和界面合并的总矩阵 K
         std::shared_ptr<const mfem::Vector> load; // F=FQ+Fgamma
     };
 
@@ -42,14 +42,15 @@ public:
 
     void project_initial(); // 把当前初温投影到满足界面连续约束的空间中
 
-    void form_system(const mfem::SparseMatrix& matrix, const mfem::Vector& rhs, mfem::SparseMatrix& system, mfem::Vector& load, mfem::Vector& reduced_temperature) const;
+    void form_system(const mfem::SparseMatrix& matrix, const mfem::Vector& load, mfem::SparseMatrix& system, mfem::Vector& system_load, mfem::Vector& solution) const;
 
-    void recover(const mfem::Vector& reduced_temperature); // 传入独立自由度温度向量，把独立自由度温度恢复成完整温度向量，并写入试探场
+    void recover(const mfem::Vector& solution); // 传入独立自由度温度向量，把独立自由度温度恢复成完整温度向量，并写入试探场
 
     const Counts& counts() const { return counts_; } // 返回 组装次数统计
 
 private:
-    void refresh_matrix(ThermalDomainManager& manager, AssemblyCache<mfem::SparseMatrix>& cache, bool diffusion, const std::string& counter); // 负责按需更新域内矩阵缓存：只重组发生变化的区域，再更新这些区域贡献的总和 导热矩阵和热容矩阵共用这套逻辑 cache: 对应缓存 cache.parts: 区域编号->该区域的矩阵贡献 cache.sum: 所有区域贡献之和
+    void refresh_conduction(); // 按区域变化标记刷新conduction矩阵
+    void refresh_capacity(); // 按区域变化标记刷新capacity矩阵
 
     void refresh_source(); // 按需组装体积热源向量缓存
 
@@ -79,13 +80,13 @@ private:
 
     std::map<int, std::vector<int>> boundary_elements_; // 外边界单元索引表: 边界物理属性编号 → 该分区包含的原网格边界单元编号列表
 
-    AssemblyCache<mfem::SparseMatrix> mass_cache_, conduction_cache_, boundary_matrix_cache_; // 组装结果的缓存 域内热容矩阵 M 域内导热矩阵 Kdomian 外边界 Robin 矩阵 KR
+    AssemblyCache<mfem::SparseMatrix> capacity_cache_, conduction_cache_, boundary_matrix_cache_; // 组装结果的缓存 域内热容矩阵 M 域内导热矩阵 Kdomian 外边界 Robin 矩阵 KR
 
     AssemblyCache<mfem::SparseMatrix> interface_heat_transfer_matrix_cache_; // 界面传热矩阵 KI
 
     AssemblyCache<mfem::Vector> source_cache_, boundary_load_cache_; // 右端项的缓存 体积热源向量 FQ Neumann 和 Robin 外边界右端向量 Fgamma
 
-    State state_; // 当前汇总后的组装状态 
+    State state_; // 当前汇总后的组装状态
 
     // std::shared_ptr<T> 是 C++ 的共享所有权智能指针：多个指针可以共同拥有同一个对象，最后一个拥有者释放它时，对象会自动销毁
     std::shared_ptr<const mfem::SparseMatrix> last_conduction_cache_sum_, last_boundary_matrix_cache_sum_, last_interface_heat_transfer_matrix_cache_sum_; // 上次汇总时使用的矩阵缓存指针

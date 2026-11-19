@@ -20,23 +20,23 @@ MechanicsAssembly::MechanicsAssembly(FemSystem& fem, TrialField& trial_field, co
 {
     constraints_.finalize(); // 界面管理器已登记全部连接，统一生成 P （生成约束映射，界面连续约束的映射）
     for (int zone : boundary_manager_.zones()) // 为已配置边界建立空列表
-    { 
-        boundary_elements_[zone] = {}; 
+    {
+        boundary_elements_[zone] = {};
     }
     const auto& mesh = fem_.mesh_data().mfem_mesh();
     for (int boundary = 0; boundary < mesh.GetNBE(); ++boundary) // 遍历原网格中的边界单元，包含显式标记的内部材料界面 未显式配置模型的外边界 已配置模型的外边界
     {
         const auto zone = boundary_elements_.find(mesh.GetBdrAttribute(boundary)); // 找到对应边界区域编号
         if (zone == boundary_elements_.end()) // 当前边界分区未配置力学边界模型，跳过
-        { 
-            continue; 
+        {
+            continue;
         }
         int first, second;
         mesh.GetFaceElements(mesh.GetBdrElementFaceIndex(boundary), &first, &second); // 取得该面两侧的域单元编号
         if (second < 0) // 内部材料界面不作为外部载荷或位移边界
-        { 
+        {
             zone->second.push_back(boundary); // 将外表面单元编号加入对应外边界区域列表
-        } 
+        }
     }
 }
 
@@ -62,7 +62,7 @@ void MechanicsAssembly::refresh_stiffness() // 只重组需要更新的区域刚
     for (int region : stiffness_manager_.regions()) // 遍历刚度管理器中配置了模型的各个区域
     {
         if (stiffness_cache_.parts.count(region) && stiffness_manager_.required_no_change(region)) // 若该区域已经有组装缓存，且该区域的系数的 dirty == false
-        { 
+        {
             continue; // 则跳过
         }
         stiffness_cache_.parts[region] = integrator_.domain_matrix(region, stiffness_manager_.values()); // 传入全域积分点系数数值，但只遍历并积分当前 region 的单元
@@ -71,7 +71,7 @@ void MechanicsAssembly::refresh_stiffness() // 只重组需要更新的区域刚
         changed = true; // 记录本次至少有一个区域的刚度缓存发生了更新，需要重新计算总矩阵
     }
     if (changed) // 如果有任何一个区域的刚度矩阵发生了变化，或还没有组装过总刚度矩阵
-    { 
+    {
         stiffness_cache_.sum = sum_matrices(stiffness_cache_.parts, trial_field_.size()); // 则组装总刚度矩阵
     }
 }
@@ -81,18 +81,18 @@ void MechanicsAssembly::refresh_thermal_expansion()
     bool changed = !thermal_expansion_cache_.sum;
     for (int region : thermal_expansion_manager_.regions())
     {
-        if (thermal_expansion_cache_.parts.count(region) && thermal_expansion_manager_.required_no_change(region)) 
-        { 
-            continue; 
+        if (thermal_expansion_cache_.parts.count(region) && thermal_expansion_manager_.required_no_change(region))
+        {
+            continue;
         }
         thermal_expansion_cache_.parts[region] = integrator_.eigenstrain_load(region, thermal_expansion_manager_.values());
         thermal_expansion_manager_.assembled(region);
         ++counts_["thermal_expansion"];
         changed = true;
     }
-    if (changed) 
-    { 
-        thermal_expansion_cache_.sum = sum_vectors(thermal_expansion_cache_.parts, trial_field_.size()); 
+    if (changed)
+    {
+        thermal_expansion_cache_.sum = sum_vectors(thermal_expansion_cache_.parts, trial_field_.size());
     }
 }
 
@@ -110,8 +110,8 @@ void MechanicsAssembly::refresh_source()
         ++counts_["source"];
         changed = true;
     }
-    if (changed) 
-    { 
+    if (changed)
+    {
         source_cache_.sum = sum_vectors(source_cache_.parts, trial_field_.size());
     }
 }
@@ -121,22 +121,22 @@ void MechanicsAssembly::refresh_boundary()
     bool changed = !boundary_load_cache_.sum;
     for (int zone : boundary_manager_.zones())
     {
-        if (boundary_manager_.essential(zone)) 
-        { 
-            continue; 
+        if (boundary_manager_.essential(zone))
+        {
+            continue;
         } // 指定位移在形成系统时处理，不进行表面积分
-        if (boundary_load_cache_.parts.count(zone) && boundary_manager_.required_no_change(zone)) 
-        { 
-            continue; 
+        if (boundary_load_cache_.parts.count(zone) && boundary_manager_.required_no_change(zone))
+        {
+            continue;
         }
         boundary_load_cache_.parts[zone] = integrator_.boundary_load(boundary_elements_.at(zone), boundary_manager_.values(zone));
         boundary_manager_.assembled(zone);
         ++counts_["boundary_load"];
         changed = true;
     }
-    if (changed) 
-    { 
-        boundary_load_cache_.sum = sum_vectors(boundary_load_cache_.parts, trial_field_.size()); 
+    if (changed)
+    {
+        boundary_load_cache_.sum = sum_vectors(boundary_load_cache_.parts, trial_field_.size());
     }
 }
 
@@ -151,7 +151,7 @@ MechanicsAssembly::State MechanicsAssembly::update(const PropertiesFieldData& pr
     refresh_source(); // 根据 dirty 只重新组装发生变化或尚无缓存的区域体积力载荷，必要时重新计算总体积力载荷 并更换 cache_.sum 指针为新对象
     refresh_boundary(); // 根据 dirty 只重新组装发生变化或尚无缓存的表面边界表面力载荷，必要时重新计算表面边界表面力载荷 并更换 cache_.sum 指针为新对象
 
-    state_.stiffness = stiffness_cache_.sum; // 让 state_.stiffness 与 stiffness_cache_.sum 共同持有同一张矩阵，不复制矩阵数值
+    state_.matrix = stiffness_cache_.sum; // 让 state_.matrix 与 stiffness_cache_.sum 共同持有同一张矩阵，不复制矩阵数值
     if (last_thermal_expansion_cache_sum_ != thermal_expansion_cache_.sum // 若总热膨胀载荷指针发生更换
         || last_source_cache_sum_ != source_cache_.sum // 或总体积力载荷指针发生更换
         || last_boundary_load_cache_sum_ != boundary_load_cache_.sum) // 或总表面力载荷指针发生更换
@@ -176,8 +176,8 @@ void MechanicsAssembly::essential_values(std::map<int, double>& values) const //
     for (int zone : boundary_manager_.zones()) // 遍历已经配置的边界分区
     {
         if (!boundary_manager_.essential(zone)) // 跳过指定面力和压力边界，只保留指定位移边界
-        { 
-            continue; 
+        {
+            continue;
         }
         const auto& displacement = std::get<VectorValue>(boundary_manager_.values(zone)); // 取得该分区的指定位移向量
         for (int boundary : boundary_elements_.at(zone)) // 找到该分区包含的原网格外边界单元
@@ -198,17 +198,17 @@ void MechanicsAssembly::essential_values(std::map<int, double>& values) const //
     }
 }
 
-void MechanicsAssembly::form_system(const mfem::SparseMatrix& matrix, const mfem::Vector& rhs, mfem::SparseMatrix& system, mfem::Vector& load, mfem::Vector& reduced_displacement) const
+void MechanicsAssembly::form_system(const mfem::SparseMatrix& matrix, const mfem::Vector& load, mfem::SparseMatrix& system, mfem::Vector& system_load, mfem::Vector& solution) const
 {
     std::map<int, double> essential; // 保存的是被指定位移约束的独立自由度及其指定值
     essential_values(essential);
     add_rigid_body_constraints(fem_, trial_field_, constraints_, essential); // 读取已有位移约束，再补上对称条件和必要的定位约束，最终更新 essential 表
-    constraints_.form_system(matrix, rhs, essential, system, load, reduced_displacement); // 把完整自由度上的方程，转换成独立自由度系统，并施加 Dirichlet 场值约束
+    constraints_.form_system(matrix, load, essential, system, system_load, solution); // 把完整自由度上的方程，转换成独立自由度系统，并施加 Dirichlet 场值约束
 }
 
-void MechanicsAssembly::recover(const mfem::Vector& reduced_displacement) // 将独立自由度位移恢复完整自由度位移
+void MechanicsAssembly::recover(const mfem::Vector& solution) // 将独立自由度位移恢复完整自由度位移
 {
-    trial_field_.set_values(constraints_.recover(reduced_displacement)); 
+    trial_field_.set_values(constraints_.recover(solution));
 }
 
 void MechanicsAssembly::update_state(MechanicsState& mechanics_state) const // 更新各求积点的试探应变、应力

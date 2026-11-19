@@ -38,11 +38,11 @@ void MechanicsProblem::solve()
     properties_.update_field_dependent_assembly("displacement", trial_fields, true);
     const auto current = assembly_.update(properties_.field_data()); // 更新系数，按缓存取得完整刚度与总载荷
 
-    mfem::SparseMatrix system;
-    mfem::Vector load, reduced_displacement;
-    assembly_.form_system(*current.stiffness, *current.load, system, load, reduced_displacement);
-    solver_.solve_linear("displacement", system, load, reduced_displacement, output_);
-    assembly_.recover(reduced_displacement); // 独立位移 -> 完整试探位移
+    mfem::SparseMatrix system; // 约化并施加约束后的求解矩阵
+    mfem::Vector system_load, solution; // 约束后系统的右端向量与独立自由度解
+    assembly_.form_system(*current.matrix, *current.load, system, system_load, solution); // 将完整方程 matrix、load 约化并施加约束，得到 system、system_load 和初始解 solution
+    solver_.solve_linear("displacement", system, system_load, solution, output_);
+    assembly_.recover(solution); // 通过约束映射 P 将独立自由度解恢复到完整试探场
     assembly_.update_state(mechanics_state_); // 用同一次组装的 C、beta 和新位移恢复试探总应变、应力
     trial_displacement_.accept();
     mechanics_state_.accept(); // 位移与求积点状态一起提交

@@ -186,13 +186,13 @@ mfem::Vector DofConstraints::reduced_values() const // 用于把试探场的完�
     return reduced;
 }
 
-void DofConstraints::form_system(const mfem::SparseMatrix& matrix, const mfem::Vector& rhs, const std::map<int, double>& essential, mfem::SparseMatrix& system, mfem::Vector& load, mfem::Vector& solution) const // 把完整自由度上的方程，转换成独立自由度系统，并施加 Dirichlet 场值约束 输入 Ax=b 输出 system(最终系统矩阵)、load(最终右端)、solution(独立自由度空间中的场值初始猜测); matrix 与 rhs: 已经组合好的完整矩阵与右端 
+void DofConstraints::form_system(const mfem::SparseMatrix& matrix, const mfem::Vector& load, const std::map<int, double>& essential, mfem::SparseMatrix& system, mfem::Vector& system_load, mfem::Vector& solution) const // 输入完整方程 matrix、load，输出约束后的 system、system_load 及独立自由度初始解 solution
 {
     const auto& p = prolongation(); // 取得约束映射 P x=Pu
     if (p.Height() == p.Width()) // 没有自由度约化时直接复制
     {
         system = matrix;
-        load = rhs;
+        system_load = load;
     }
     else // 有约束时转换到独立空间 约化方程：把相互约束的自由度对应的平衡方程合并；约化场值初始值：给同组自由度选出一个代表场值
     {
@@ -204,7 +204,7 @@ void DofConstraints::form_system(const mfem::SparseMatrix& matrix, const mfem::V
         // 因为是对任意的 z 都成立 所以 P^T A P u = P^T b
         std::unique_ptr<mfem::SparseMatrix> reduced(mfem::RAP(p, matrix, p)); // 该方法计算 A独立 = P^T A P
         system = *reduced; // 将约化矩阵保存到输出 system
-        load.SetSize(p.Width()); p.MultTranspose(rhs, load); // 右端转换为 b独立 = P^T b 这里右端不除以组成员数，因为约化方程需要将同组自由度的方程贡献相加，与前面构造场值初始猜测时的组内平均不同
+        system_load.SetSize(p.Width()); p.MultTranspose(load, system_load); // 右端转换为 b独立 = P^T b 这里右端不除以组成员数，因为约化方程需要将同组自由度的方程贡献相加，与前面构造场值初始猜测时的组内平均不同
     }
     solution = reduced_values(); // 将当前完整试探场值转换为独立自由度向量
     // 指定值由物理模块收集：独立自由度编号 → 指定场值
@@ -215,11 +215,11 @@ void DofConstraints::form_system(const mfem::SparseMatrix& matrix, const mfem::V
         solution[dof] = value; // 先让求解初始猜测满足指定场值
         constrained[dof] = 1; // 表示该自由度已经给定位移或标量场值
     }
-    system.EliminateCols(constrained, &solution, &load); // 把已知列的贡献移到右端，然后清零这些列 对于每个自由行执行 bi <- bi - sum_{d属于已知自由度} A_{id} g_d 并令 A_{id} <- 0
+    system.EliminateCols(constrained, &solution, &system_load); // 把已知列的贡献移到右端，然后清零这些列 对于每个自由行执行 bi <- bi - sum_{d属于已知自由度} A_{id} g_d 并令 A_{id} <- 0
     for (const auto& [dof, value] : essential)
     {
         system.EliminateRow(dof, mfem::Operator::DIAG_ONE); // 该行除了对角元素设为 1，其余元素全部清零，因此变成 ud = gd
-        load[dof] = value; // Dirichlet 消元后，这个自由度仍保留在向量里，只是其场值已经固定
+        system_load[dof] = value; // Dirichlet 消元后，这个自由度仍保留在向量里，只是其场值已经固定
     }
 }
 

@@ -24,7 +24,7 @@ class MechanicsAssembly // 汇集完整自由度上的刚度与载荷，统一�
 public:
     struct State // K d = f，保存约化和 Dirichlet 消元前的只读组装结果
     {
-        std::shared_ptr<const mfem::SparseMatrix> stiffness;
+        std::shared_ptr<const mfem::SparseMatrix> matrix; // 完整自由度上的非时间导数项总矩阵 K
         std::shared_ptr<const mfem::Vector> load; // 热膨胀载荷 + 体积力载荷 + 表面载荷
     };
 
@@ -38,9 +38,9 @@ public:
 
     State update(const PropertiesFieldData& properties); // 更新各类系数，按变化情况刷新缓存，最后返回完整自由度上的刚度矩阵与总载荷：
 
-    void form_system(const mfem::SparseMatrix& matrix, const mfem::Vector& rhs, mfem::SparseMatrix& system, mfem::Vector& load, mfem::Vector& reduced_displacement) const; // 收集指定位移与刚体约束，再约化方程并进行 Dirichlet 消元
+    void form_system(const mfem::SparseMatrix& matrix, const mfem::Vector& load, mfem::SparseMatrix& system, mfem::Vector& system_load, mfem::Vector& solution) const; // 收集指定位移与刚体约束，再约化方程并进行 Dirichlet 消元
 
-    void recover(const mfem::Vector& reduced_displacement); // 完整位移 = P * 独立位移，将结果写入试探场
+    void recover(const mfem::Vector& solution); // 完整位移 = P * 独立位移，将结果写入试探场
 
     void update_state(MechanicsState& mechanics_state) const; // 使用最近一次 update 的 C、beta 及当前试探位移恢复应变和应力，不重新组装
 
@@ -54,7 +54,7 @@ private:
     void refresh_source();
 
     void refresh_boundary();
-    
+
     void essential_values(std::map<int, double>& values) const; // 边界各分量的指定位移 -> 独立自由度编号与指定值
 
     FemSystem& fem_; // 公共有限元空间
