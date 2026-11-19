@@ -221,8 +221,9 @@ class PropertiesCardExamine:
                     raise ValueError(f"{item_location}: uniform_from_birth_rate 不需要模型参数")
                 continue
             if name == "derived.fast_neutron_fluence" and config.model == "common.accumulate_from_fast_neutron_flux":
-                if config.parameters:
-                    raise ValueError(f"{item_location}: accumulate_from_fast_neutron_flux 不需要模型参数")
+                initial_value = config.parameters.get("initial_value")
+                if set(config.parameters) != {"initial_value"} or not isinstance(initial_value, float) or not math.isfinite(initial_value) or initial_value < 0.0:
+                    raise ValueError(f"{item_location}: 必须指定有限非负标量 initial_value")
                 continue
             PropertiesCardExamine.check_time_model(config, item_location)
             values = [config.parameters["constant_value"]] if config.model == "common.constant" else config.parameters["values"]

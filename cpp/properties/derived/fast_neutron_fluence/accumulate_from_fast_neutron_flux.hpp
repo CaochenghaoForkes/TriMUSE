@@ -8,8 +8,11 @@ namespace trimuse
 class AccumulateFromFastNeutronFlux final : public FastNeutronFluenceModel
 {
 public:
-    explicit AccumulateFromFastNeutronFlux(const ModelParameterMap&);
+    explicit AccumulateFromFastNeutronFlux(const ModelParameterMap& parameters);
     StateValue evaluate(const PropertiesStatePoint& point) const override;
+
+private:
+    double initial_value_;
 };
 
 }
