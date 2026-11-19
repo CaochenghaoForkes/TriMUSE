@@ -16,7 +16,7 @@ from matplotlib.colors import Normalize
 from matplotlib.ticker import MaxNLocator
 import numpy as np
 import vtk
-from vtk.util.numpy_support import vtk_to_numpy
+from vtk.util.numpy_support import vtk_to_numpy # pyright: ignore[reportMissingImports]
 
 
 def read_surface(path):
