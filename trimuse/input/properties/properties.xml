@@ -90,10 +90,14 @@
     </derived_property>
     <!-- burnup_fima_fraction 使用 0 到 1 的 FIMA 份额, 例如 0.2 表示 20% FIMA -->
     <derived_property name="burnup_fima_fraction">
+        <!-- 按区域平均体积裂变率、当前体积和初始重金属盘存累积 FIMA，initial_value 为初始份额 -->
+        <region name="[str]" model="common.accumulate_from_fission_rate">
+            <parameter name="initial_value" value="0" unit="[1]" si_unit="[1]"/>
+        </region>
+        <!-- 也可使用常数或时间表替换上面的 region
         <region name="[str]" model="common.constant">
             <parameter name="constant_value" value="[float]" unit="[1]" si_unit="[1]"/>
         </region>
-        <!-- 如需随时间变化, 用下方节点替换上面的 region 节点
         <region name="[str]" model="common.time_series">
             <parameter name="times" value="[float] [float]" unit="[s]" si_unit="[s]"/>
             <parameter name="values" value="[float] [float]" unit="[1]" si_unit="[1]"/>

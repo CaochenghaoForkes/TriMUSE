@@ -51,3 +51,7 @@ MechanicsAssembly::MechanicsAssembly(FemSystem& fem, TrialField& trial_field, co
 - 各物理问题的 State 统一使用 `mass`、`matrix`、`load`；准静态力学不添加无用的 mass
 - Problem 中完整自由度方程使用 `matrix`、`load`，约化并施加约束后的系统使用 `system`、`system_load`、`solution`，旧时刻右端贡献使用 `old_load`
 - Assembly 内部的管理器、缓存和 refresh 方法按具体物理项命名，保留 conduction、capacity、diffusion、decay、stiffness 等物理含义
+
+## 属性模型约定
+
+- 时间累积模型的初值构造参数统一命名为 `initial_value`

@@ -10,7 +10,7 @@ class PropertiesCardExamine:
         "assembly.interface_thermal_resistance": {"common.uniform_from_constant_value", "common.local_from_constant_value"},
         "external.power": COMMON_MODELS,
         "external.energy_per_fission": {"common.constant"},
-        "derived.burnup_fima_fraction": COMMON_MODELS,
+        "derived.burnup_fima_fraction": COMMON_MODELS | {"common.accumulate_from_fission_rate"},
         "external.uranium_fraction": COMMON_MODELS,
         "external.initial_heavy_metal_inventory": {"common.constant"},
         "external.nuclide_birth_rate": COMMON_MODELS,
@@ -249,6 +249,11 @@ class PropertiesCardExamine:
 
     @staticmethod
     def check_burnup(config: PropertiesCard.Region, location: str) -> None:
+        if config.model == "common.accumulate_from_fission_rate":
+            initial_value = config.parameters.get("initial_value")
+            if set(config.parameters) != {"initial_value"} or not isinstance(initial_value, float) or not math.isfinite(initial_value) or not 0.0 <= initial_value <= 1.0:
+                raise ValueError(f"{location}: 必须指定 [0,1] 内的有限标量 initial_value")
+            return
         PropertiesCardExamine.check_time_model(config, location)
         values = [config.parameters["constant_value"]] if config.model == "common.constant" else config.parameters["values"]
         if any(not 0 <= value <= 1 for value in values):
