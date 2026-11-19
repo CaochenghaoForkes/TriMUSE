@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-#include "properties/precomputed/nuclide_symbol.hpp"
+#include "properties/precomputed/geometry_center.hpp"
 #include "properties/precomputed/region_volume.hpp"
 #include "properties/properties_system.hpp"
 
@@ -17,13 +17,9 @@ void PrecomputedManager::initialize_precomputed(PropertiesSystem& properties, co
         properties.set_precomputed(name, value);
     }
 
-    initialize_nuclide_symbol(properties, parameters);
-    auto& field_data = properties.field_data();
-
     // 必定需要的预计算参数
-    initialize_region_volume(field_data, fem);
-    const auto& center = fem.geometry_center();
-    properties.set_precomputed("geometry_center", VectorValue(center.begin(), center.end()));
+    initialize_region_volume(properties, fem);
+    initialize_geometry_center(properties, fem);
 
     // 场需要的预计算参数
     for (const auto& initializer : conditional_initializers_)
@@ -32,11 +28,11 @@ void PrecomputedManager::initialize_precomputed(PropertiesSystem& properties, co
             [&initializer](const auto& field)
             {
                 const auto& required = field.second;
-                return std::find(required.begin(), required.end(), initializer.required_property) != required.end();
+                return field.first == initializer.requirement || std::find(required.begin(), required.end(), initializer.requirement) != required.end();
             });
         if (needed)
         {
-            initializer.initialize(field_data, fem);
+            initializer.initialize(properties, fem);
         }
     }
 }

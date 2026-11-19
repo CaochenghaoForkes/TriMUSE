@@ -5,14 +5,11 @@
 namespace trimuse
 {
 
-inline void initialize_nuclide_symbol(PropertiesSystem& properties, const ModelParameterMap& parameters)
+inline void initialize_nuclide_symbol(PropertiesSystem& properties, const FemSystem&)
 {
-    if (const auto entry = parameters.find("nuclide_name"); entry != parameters.end())
-    {
-        const auto& name = std::get<std::string>(entry->second);
-        const auto symbol = name.substr(0, name.find_first_not_of("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"));
-        properties.set_precomputed("nuclide_symbol", symbol);
-    }
+    const auto& name = std::get<std::string>(properties.field_data().global_values.at("precomputed.nuclide_name").value());
+    const auto symbol = name.substr(0, name.find_first_not_of("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"));
+    properties.set_precomputed("nuclide_symbol", symbol);
 }
 
 }
