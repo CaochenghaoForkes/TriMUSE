@@ -8,7 +8,7 @@ RadioactivityDecayManager::RadioactivityDecayManager(const FemSystem& fem, const
     :
     RadioactivityDomainManager(fem)
 {
-    registry_.register_model<PurDecay>("pur_decay", {"precomputed.half_life"});
+    registry_.register_model<PurDecay>("pur_decay", {"precomputed.decay_constant"});
     assign(configs);
 }
 

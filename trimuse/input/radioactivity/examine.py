@@ -15,10 +15,9 @@ class RadioactivityCardExamine:
             terms = {model.name for model in region.model}
             if "diffusion" not in terms:
                 raise ValueError(f"radioactivity.regions.{region.name}: 缺少扩散组装项 diffusion")
-        if any(model.name == "decay" for region in card.regions.region for model in region.model):
-            half_life = card.parameters.get("half_life")
-            if not isinstance(half_life, float) or not math.isfinite(half_life) or half_life <= 0:
-                raise ValueError("radioactivity.parameters.half_life: 启用衰变需要有限正半衰期，内部单位为 s")
+        half_life = card.parameters.get("half_life")
+        if not isinstance(half_life, float) or not math.isfinite(half_life) or half_life <= 0:
+            raise ValueError("radioactivity.parameters.half_life: 预计算衰变常数需要有限正半衰期，内部单位为 s")
         for item in card.initial.concentration:
             location = f"initial.concentration.{item.region}"
             if item.model != "uniform_from_inventory":

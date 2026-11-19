@@ -96,6 +96,7 @@ private:
         {"precomputed.nuclide_name", PropertyType::Precomputed, PropertyScope::Global}, // 核素名称, 如 Cs137
         {"precomputed.nuclide_symbol", PropertyType::Precomputed, PropertyScope::Global}, // 元素符号, 如 Cs
         {"precomputed.half_life", PropertyType::Precomputed, PropertyScope::Global}, // s, 核素半衰期
+        {"precomputed.decay_constant", PropertyType::Precomputed, PropertyScope::Global}, // s^-1，ln(2)/half_life
         {"external.time", PropertyType::External, PropertyScope::Global},
         {"external.time_step", PropertyType::External, PropertyScope::Global}, // s, 本次推进的时间增量
         {"external.environment_temperature", PropertyType::External, PropertyScope::Zone},

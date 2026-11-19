@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "common/model_parameters.hpp"
+#include "properties/precomputed/decay_constant.hpp"
 #include "properties/precomputed/nuclide_symbol.hpp"
 #include "properties/precomputed/tensor_transform.hpp"
 
@@ -31,6 +32,7 @@ private:
     inline static constexpr ConditionalInitializer conditional_initializers_[] = {
         {"material.mechanics.elasticity_tensor", initialize_tensor_transform},
         {"concentration", initialize_nuclide_symbol},
+        {"concentration", initialize_decay_constant},
     };
 };
 
