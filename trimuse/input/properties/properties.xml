@@ -94,6 +94,19 @@
         </global>
         -->
     </derived_property>
+    <derived_property name="average_volumetric_fission_rate">
+        <!-- 区域总裂变释热功率 / 当前区域体积 / 全局单次裂变释热能量 -->
+        <region name="[str]" model="common.from_power"/>
+        <!-- 直接指定区域平均体积裂变率时，用下方 constant 或 time_series 替换上面的 region
+        <region name="[str]" model="common.constant">
+            <parameter name="constant_value" value="[float]" unit="[1]/[m]^3[s]" si_unit="[1]/[m]^3[s]"/>
+        </region>
+        <region name="[str]" model="common.time_series">
+            <parameter name="times" value="[float] [float]" unit="[s]" si_unit="[s]"/>
+            <parameter name="values" value="[float] [float]" unit="[1]/[m]^3[s]" si_unit="[1]/[m]^3[s]"/>
+        </region>
+        -->
+    </derived_property>
     <derived_property name="volumetric_power">
         <!-- 可选 common.constant、common.time_series、common.uniform_from_power -->
         <!-- 仅 common.uniform_from_power 需要同一区域的 external.power 和 derived.region_volume -->

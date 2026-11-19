@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 
+#include "properties/derived/average_volumetric_fission_rate/average_volumetric_fission_rate_model_manager.hpp"
 #include "properties/derived/region_volume/region_volume_model_manager.hpp"
 #include "properties/derived/burnup_fima_fraction/burnup_fima_fraction_model_manager.hpp"
 #include "properties/derived/heat_transfer_coef/heat_transfer_coef_model_manager.hpp"
@@ -27,6 +28,7 @@ private:
     RegionVolumeModelManager region_volume_model_manager_;
     BurnupFimaFractionModelManager burnup_fima_fraction_model_manager_;
     VolumetricPowerModelManager volumetric_power_model_manager_;
+    AverageVolumetricFissionRateModelManager average_volumetric_fission_rate_model_manager_;
     HeatTransferCoefModelManager heat_transfer_coef_model_manager_;
     MassTransferCoefModelManager mass_transfer_coef_model_manager_;
     VolumetricNuclideBirthRateModelManager volumetric_nuclide_birth_rate_model_manager_;

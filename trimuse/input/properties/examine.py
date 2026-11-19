@@ -26,6 +26,7 @@ class PropertiesCardExamine:
         "derived.heat_transfer_coef": COMMON_MODELS,
         "derived.mass_transfer_coef": COMMON_MODELS,
         "derived.region_volume": {"common.undeformed"},
+        "derived.average_volumetric_fission_rate": COMMON_MODELS | {"common.from_power"},
         "derived.volumetric_power": COMMON_MODELS | {"common.uniform_from_power"},
         "derived.volumetric_nuclide_birth_rate": COMMON_MODELS | {"common.uniform_from_birth_rate"},
         "derived.fast_neutron_fluence": COMMON_MODELS | {"common.accumulate_from_fast_neutron_flux"},
@@ -42,6 +43,7 @@ class PropertiesCardExamine:
         "external.nuclide_flux": ("external_property", "zone"),
         "derived.mass_transfer_coef": ("derived_property", "zone"),
         "derived.volumetric_nuclide_birth_rate": ("derived_property", "region"),
+        "derived.average_volumetric_fission_rate": ("derived_property", "region"),
         "derived.fast_neutron_fluence": ("derived_property", "global"),
     }
 
@@ -197,6 +199,10 @@ class PropertiesCardExamine:
         configs = [property_config.global_] if scope == "global" else getattr(property_config, scope)
         for config in configs:
             item_location = f"{location}.{config.name}" if scope != "global" else f"{location}.global"
+            if name == "derived.average_volumetric_fission_rate" and config.model == "common.from_power":
+                if config.parameters:
+                    raise ValueError(f"{item_location}: from_power 不需要模型参数")
+                continue
             if name == "derived.volumetric_nuclide_birth_rate" and config.model == "common.uniform_from_birth_rate":
                 if config.parameters:
                     raise ValueError(f"{item_location}: uniform_from_birth_rate 不需要模型参数")
