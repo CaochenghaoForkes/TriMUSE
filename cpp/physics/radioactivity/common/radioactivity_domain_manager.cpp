@@ -7,14 +7,6 @@ RadioactivityDomainManager::RadioactivityDomainManager(const FemSystem& fem) // 
 {
 }
 
-std::vector<RadioactivityDomainConfig> RadioactivityDomainManager::defaults(const FemSystem& fem, const std::string& model) // 为所有材料区域安排指定模型和空参数表
-{
-    std::vector<RadioactivityDomainConfig> configs;
-    for (int region : fem.mesh_data().region_attributes()) { configs.push_back({region, model, {}}); }
-
-    return configs;
-}
-
 void RadioactivityDomainManager::assign(const std::vector<RadioactivityDomainConfig>& configs) // 注册表工厂创建具体模型，按区域保存
 {
     for (const auto& config : configs)

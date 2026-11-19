@@ -50,6 +50,7 @@ public:
 
 private:
     void refresh_conduction(); // 按区域变化标记刷新conduction矩阵
+
     void refresh_capacity(); // 按区域变化标记刷新capacity矩阵
 
     void refresh_source(); // 按需组装体积热源向量缓存
@@ -80,18 +81,18 @@ private:
 
     std::map<int, std::vector<int>> boundary_elements_; // 外边界单元索引表: 边界物理属性编号 → 该分区包含的原网格边界单元编号列表
 
-    AssemblyCache<mfem::SparseMatrix> capacity_cache_, conduction_cache_, boundary_matrix_cache_; // 组装结果的缓存 域内热容矩阵 M 域内导热矩阵 Kdomian 外边界 Robin 矩阵 KR
+    AssemblyCache<mfem::SparseMatrix> capacity_matrix_cache_, conduction_matrix_cache_, boundary_matrix_cache_; // 组装结果的缓存 域内热容矩阵 M 域内导热矩阵 Kdomian 外边界 Robin 矩阵 KR
 
     AssemblyCache<mfem::SparseMatrix> interface_heat_transfer_matrix_cache_; // 界面传热矩阵 KI
 
-    AssemblyCache<mfem::Vector> source_cache_, boundary_load_cache_; // 右端项的缓存 体积热源向量 FQ Neumann 和 Robin 外边界右端向量 Fgamma
+    AssemblyCache<mfem::Vector> source_load_cache_, boundary_load_cache_; // 右端项的缓存 体积热源向量 FQ Neumann 和 Robin 外边界右端向量 Fgamma
 
     State state_; // 当前汇总后的组装状态
 
     // std::shared_ptr<T> 是 C++ 的共享所有权智能指针：多个指针可以共同拥有同一个对象，最后一个拥有者释放它时，对象会自动销毁
-    std::shared_ptr<const mfem::SparseMatrix> last_conduction_cache_sum_, last_boundary_matrix_cache_sum_, last_interface_heat_transfer_matrix_cache_sum_; // 上次汇总时使用的矩阵缓存指针
+    std::shared_ptr<const mfem::SparseMatrix> last_conduction_matrix_cache_sum_, last_boundary_matrix_cache_sum_, last_interface_heat_transfer_matrix_cache_sum_; // 上次汇总时使用的矩阵缓存指针
 
-    std::shared_ptr<const mfem::Vector> last_source_cache_sum_, last_boundary_load_cache_sum_; // 记录上次形成总右端向量时使用的 用于比较指针是否被替换 last_source_cache_sum_ -> source_cache_.sum last_boundary_load_cache_sum_ -> boundary_load_cache_.sum
+    std::shared_ptr<const mfem::Vector> last_source_load_cache_sum_, last_boundary_load_cache_sum_; // 记录上次形成总右端向量时使用的 用于比较指针是否被替换 last_source_load_cache_sum_ -> source_load_cache_.sum last_boundary_load_cache_sum_ -> boundary_load_cache_.sum
 
     Counts counts_; // 组装次数统计 某矩阵/右端名称 -> 该项组装次数
 };

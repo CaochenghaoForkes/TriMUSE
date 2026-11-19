@@ -9,7 +9,7 @@
 namespace trimuse
 {
 
-class RadioactivityDomainManager // 扩散、单位容量和体积源共用的区域模型管理逻辑
+class RadioactivityDomainManager // 扩散、容量、衰变和体积源共用的区域模型管理逻辑
 {
 public:
     void update(const PropertiesFieldData& properties); // 更新各区域积分点系数，并标记需要重新组装的区域
@@ -30,8 +30,6 @@ protected:
     explicit RadioactivityDomainManager(const FemSystem& fem);
 
     void assign(const std::vector<RadioactivityDomainConfig>& configs); // 根据区域配置创建并保存具体模型
-
-    static std::vector<RadioactivityDomainConfig> defaults(const FemSystem& fem, const std::string& model); // 为每个材料区域生成相同的默认模型配置
 
     ModelRegistry<RadioactivityDomainModel> registry_; // 模型名到工厂和所需属性的注册表
 

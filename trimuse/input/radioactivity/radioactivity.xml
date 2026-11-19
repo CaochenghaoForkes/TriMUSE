@@ -12,10 +12,13 @@
         </concentration>
     </initial>
     <regions>
+        <!-- capacity 用于瞬态项，decay 用于衰变项，两者独立配置 -->
+        <!-- 省略 decay 的区域不组装衰变，pur_decay 根据 half_life 计算衰变系数 -->
         <!-- 省略 source 的区域无源，volumetric_nuclide_birth_rate 读取属性卡 -->
         <region name="residual">
             <model name="diffusion" model_name="fick"/>
             <model name="capacity" model_name="unit"/>
+            <model name="decay" model_name="pur_decay"/>
         </region>
     </regions>
     <boundaries>

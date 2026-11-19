@@ -65,16 +65,16 @@ private:
     MechanicsSourceManager source_manager_; // 体积力向量管理器
     MechanicsBoundaryManager boundary_manager_; // 边界管理器
     DofConstraints constraints_; // 持有 P，供界面连接、刚体约束、方程约化及恢复共用
-    MechanicsInterfaceManager interface_manager_; // 界面模型管理器
+    MechanicsInterfaceManager interface_contact_manager_; // 界面模型管理器
 
     std::map<int, std::vector<int>> boundary_elements_; // 外边界物理标识 -> 原网格边界单元编号列表
-    AssemblyCache<mfem::SparseMatrix> stiffness_cache_; // 刚度矩阵缓存
-    AssemblyCache<mfem::Vector> thermal_expansion_cache_; //热膨胀载荷缓存
-    AssemblyCache<mfem::Vector> source_cache_; // 体积力载荷缓存
+    AssemblyCache<mfem::SparseMatrix> stiffness_matrix_cache_; // 刚度矩阵缓存
+    AssemblyCache<mfem::Vector> thermal_expansion_load_cache_; //热膨胀载荷缓存
+    AssemblyCache<mfem::Vector> source_load_cache_; // 体积力载荷缓存
     AssemblyCache<mfem::Vector> boundary_load_cache_; // 表面载荷缓存
 
     State state_; // 当前完整自由度上的组装结果，包含刚度矩阵 stiffness 和总载荷 load，尚未约化或施加 Dirichlet 消元
-    std::shared_ptr<const mfem::Vector> last_thermal_expansion_cache_sum_, last_source_cache_sum_, last_boundary_load_cache_sum_; // 只有缓存指针变化时才重新组合总载荷
+    std::shared_ptr<const mfem::Vector> last_thermal_expansion_load_cache_sum_, last_source_load_cache_sum_, last_boundary_load_cache_sum_; // 只有缓存指针变化时才重新组合总载荷
     Counts counts_; // 组装次数统计，贡献名称 -> 累计组装次数，按每个区域或边界分区的一次组装计数
 };
 

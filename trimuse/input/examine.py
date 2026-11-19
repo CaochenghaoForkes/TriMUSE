@@ -56,6 +56,12 @@ class InputCardsExamine:
                        if "capacity" not in {model.name for model in region.model}}
             if missing:
                 raise ValueError(f"以下区域缺少瞬态热容组装项: {', '.join(sorted(missing))}")
+        if radioactivity is not None and any(
+            field.name == "concentration" and field.model == "transient" for field in simulation.problem.field
+        ):
+            for region in radioactivity.regions.region:
+                if not any(model.name == "capacity" for model in region.model):
+                    raise ValueError(f"radioactivity.regions.{region.name}: 缺少瞬态容量组装项 capacity")
         if "displacement" in fields:
             expansion_enabled = any(model.name == "thermal_expansion" for region in mechanics.regions.region for model in region.model)
             if expansion_enabled:

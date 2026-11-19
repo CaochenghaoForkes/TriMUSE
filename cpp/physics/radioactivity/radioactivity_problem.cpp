@@ -6,33 +6,17 @@
 
 namespace trimuse
 {
-namespace
-{
 
-double nuclide_decay_constant(const PropertiesFieldData& properties)
-{
-    const auto& value = properties.global_values.at("precomputed.half_life");
-    const auto* half_life = value ? std::get_if<double>(&*value) : nullptr;
-    if (!half_life || !std::isfinite(*half_life) || *half_life <= 0.0)
-    {
-        throw std::invalid_argument("核素衰变需要有限的正半衰期 precomputed.half_life");
-    }
-    return std::log(2.0) / *half_life;
-}
-
-}
-
-
-RadioactivityProblem::RadioactivityProblem(FemSystem& fem, FieldData& accepted_concentration, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output, const std::string& problem_type, const std::vector<RadioactivityInitialConfig>& initial, const RadioactivityRegionConfigs& regions, const RadioactivityBoundaryConfigs& boundaries, const RadioactivityInterfaceConfigs& interfaces)
-    : RadioactivityProblem(fem, TrialField(fem, accepted_concentration), properties, solver, output, problem_type, initial, regions, boundaries, interfaces) // 连续正式场包装为独立试探场，再交给统一构造函数
+RadioactivityProblem::RadioactivityProblem(FemSystem& fem, FieldData& accepted_concentration, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output_manager, const std::string& problem_type, const std::vector<RadioactivityInitialConfig>& initial, const RadioactivityRegionConfigs& regions, const RadioactivityBoundaryConfigs& boundaries, const RadioactivityInterfaceConfigs& interfaces)
+    : RadioactivityProblem(fem, TrialField(fem, accepted_concentration), properties, solver, output_manager, problem_type, initial, regions, boundaries, interfaces) // 连续正式场包装为独立试探场，再交给统一构造函数
 {
 }
-RadioactivityProblem::RadioactivityProblem(FemSystem& fem, RegionFieldData& accepted_concentration, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output, const std::string& problem_type, const std::vector<RadioactivityInitialConfig>& initial, const RadioactivityRegionConfigs& regions, const RadioactivityBoundaryConfigs& boundaries, const RadioactivityInterfaceConfigs& interfaces)
-    : RadioactivityProblem(fem, TrialField(fem, accepted_concentration), properties, solver, output, problem_type, initial, regions, boundaries, interfaces) // 分域正式场同样包装为试探场
+RadioactivityProblem::RadioactivityProblem(FemSystem& fem, RegionFieldData& accepted_concentration, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output_manager, const std::string& problem_type, const std::vector<RadioactivityInitialConfig>& initial, const RadioactivityRegionConfigs& regions, const RadioactivityBoundaryConfigs& boundaries, const RadioactivityInterfaceConfigs& interfaces)
+    : RadioactivityProblem(fem, TrialField(fem, accepted_concentration), properties, solver, output_manager, problem_type, initial, regions, boundaries, interfaces) // 分域正式场同样包装为试探场
 {
 }
-RadioactivityProblem::RadioactivityProblem(FemSystem& fem, TrialField trial_concentration, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output, const std::string& problem_type, const std::vector<RadioactivityInitialConfig>& initial, const RadioactivityRegionConfigs& regions, const RadioactivityBoundaryConfigs& boundaries, const RadioactivityInterfaceConfigs& interfaces)
-    : trial_concentration_(std::move(trial_concentration)), properties_(properties), solver_(solver), output_(output), transient_(problem_type == "transient"), assembly_(fem, trial_concentration_, nuclide_decay_constant(properties.field_data()), regions, boundaries, interfaces)
+RadioactivityProblem::RadioactivityProblem(FemSystem& fem, TrialField trial_concentration, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output_manager, const std::string& problem_type, const std::vector<RadioactivityInitialConfig>& initial, const RadioactivityRegionConfigs& regions, const RadioactivityBoundaryConfigs& boundaries, const RadioactivityInterfaceConfigs& interfaces)
+    : trial_concentration_(std::move(trial_concentration)), properties_(properties), solver_(solver), output_manager_(output_manager), transient_(problem_type == "transient"), assembly_(fem, trial_concentration_, regions, boundaries, interfaces)
 {
     assembly_.mark_coupled(properties_); // 登记扩散、源和边界所需属性与浓度场的耦合关系
     if (trial_concentration_.regional())
@@ -46,7 +30,7 @@ RadioactivityProblem::RadioactivityProblem(FemSystem& fem, TrialField trial_conc
     trial_concentration_.load(); // 正式场初值复制到试探场
     assembly_.project_initial(); // 必要时将区域初始阶跃投影到完美接触约束空间
     trial_concentration_.accept(); // 将投影后的初值写回正式场
-    output_.add_field("concentration", "radioactivity"); // 注册本问题的输出场
+    output_manager_.add_field("concentration", "radioactivity"); // 注册本问题的输出场
 }
 
 void RadioactivityProblem::accept_concentration()
@@ -60,7 +44,7 @@ void RadioactivityProblem::accept_concentration()
 
 void RadioactivityProblem::solve(double time_step, double theta) // 每个时刻的统一入口，负责初始状态、正常求解与组装统计
 {
-    output_.clear_solve_information("concentration");
+    output_manager_.clear_solve_information("concentration");
     const auto started = std::chrono::steady_clock::now();
     const auto before = assembly_.counts(); // 用于计算本步新增的组装次数
     trial_concentration_.load(); // 以正式浓度作为本步试探初值
@@ -72,12 +56,12 @@ void RadioactivityProblem::solve(double time_step, double theta) // 每个时刻
         return;
     }
     iterate(time_step, theta); // 稳态求解或瞬态时间推进
-    output_.append_solve_information("concentration", "solve_elapsed_seconds",
+    output_manager_.append_solve_information("concentration", "solve_elapsed_seconds",
         std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count());
     for (const auto& [name, count] : assembly_.counts())
     {
         const auto old = before.find(name);
-        output_.append_solve_information("concentration", name + "_assemblies",
+        output_manager_.append_solve_information("concentration", name + "_assemblies",
             count - (old == before.end() ? 0 : old->second));
     }
 }
@@ -85,7 +69,7 @@ void RadioactivityProblem::solve(double time_step, double theta) // 每个时刻
 void RadioactivityProblem::save_output(int cycle, double time, double time_step)
 {
     const FieldView accepted_concentration = trial_concentration_.regional() ? FieldView(trial_concentration_.accepted_region_field()) : FieldView(&trial_concentration_.accepted_continuous_field()->mfem_grid_function());
-    output_.save("concentration", accepted_concentration, cycle, time, time_step);
+    output_manager_.save("concentration", accepted_concentration, cycle, time, time_step);
 }
 
 void RadioactivityProblem::iterate(double time_step, double theta) // 在完整自由度上形成方程，再约化并求解
@@ -145,7 +129,7 @@ void RadioactivityProblem::iterate(double time_step, double theta) // 在完整�
         mfem::SparseMatrix system; // 约化并施加约束后的求解矩阵
         mfem::Vector system_load, solution; // 约束后系统的右端向量与独立自由度解
         assembly_.form_system(*matrix, load, system, system_load, solution); // 将完整方程 matrix、load 约化并施加约束，得到 system、system_load 和初始解 solution
-        solver_.solve_linear("concentration", system, system_load, solution, output_); // 求独立自由度浓度
+        solver_.solve_linear("concentration", system, system_load, solution, output_manager_); // 求独立自由度浓度
         assembly_.recover(solution); // 通过约束映射 P 将独立自由度解恢复到完整试探场
         const auto trial_values = trial_concentration_.values();
         iteration_delta -= trial_values; // 旧试探值 - 新试探值，用于收敛判据
@@ -154,8 +138,8 @@ void RadioactivityProblem::iterate(double time_step, double theta) // 在完整�
         if (!nonlinear || increment <= picard.absolute_tolerance + picard.relative_tolerance * trial_values.Normlinf())
         {
             accept_concentration(); // 满足 Picard 判据后提交正式场
-            output_.append_solve_information("concentration", "picard_iterations", iteration + 1);
-            output_.append_solve_information("concentration", "final_concentration_increment_inf_norm_atom_per_m3", increment);
+            output_manager_.append_solve_information("concentration", "picard_iterations", iteration + 1);
+            output_manager_.append_solve_information("concentration", "final_concentration_increment_inf_norm_atom_per_m3", increment);
             return;
         }
     }

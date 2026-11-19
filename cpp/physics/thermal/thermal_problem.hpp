@@ -11,13 +11,13 @@ namespace trimuse
 class ThermalProblem
 {
 public:
-    ThermalProblem(FemSystem& fem, FieldData& accepted_temperature, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output, const std::string& problem_type,
+    ThermalProblem(FemSystem& fem, FieldData& accepted_temperature, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output_manager, const std::string& problem_type,
                    const std::vector<ThermalInitialConfig>& initial,
                    const ThermalRegionConfigs& regions,
                    const ThermalBoundaryConfigs& boundaries,
                    const ThermalInterfaceConfigs& interfaces);
 
-    ThermalProblem(FemSystem& fem, RegionFieldData& accepted_temperature, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output, const std::string& problem_type,
+    ThermalProblem(FemSystem& fem, RegionFieldData& accepted_temperature, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output_manager, const std::string& problem_type,
                    const std::vector<ThermalInitialConfig>& initial,
                    const ThermalRegionConfigs& regions,
                    const ThermalBoundaryConfigs& boundaries,
@@ -30,7 +30,7 @@ public:
     const ThermalAssembly::Counts& assembly_counts() const { return assembly_.counts(); }
 
 private:
-    ThermalProblem(FemSystem& fem, TrialField trial_temperature, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output, const std::string& problem_type,
+    ThermalProblem(FemSystem& fem, TrialField trial_temperature, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output_manager, const std::string& problem_type,
                    const std::vector<ThermalInitialConfig>& initial,
                    const ThermalRegionConfigs& regions,
                    const ThermalBoundaryConfigs& boundaries,
@@ -46,7 +46,7 @@ private:
 
     SolverSystem& solver_;
 
-    OutputManager& output_;
+    OutputManager& output_manager_;
 
     bool transient_;
 

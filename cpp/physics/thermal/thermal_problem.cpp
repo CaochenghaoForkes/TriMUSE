@@ -8,18 +8,18 @@ namespace trimuse
 {
 
 
-ThermalProblem::ThermalProblem(FemSystem& fem, FieldData& accepted_temperature, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output, const std::string& problem_type, const std::vector<ThermalInitialConfig>& initial, const ThermalRegionConfigs& regions, const ThermalBoundaryConfigs& boundaries, const ThermalInterfaceConfigs& interfaces) // 接收连续场
-    : ThermalProblem(fem, TrialField(fem, accepted_temperature), properties, solver, output, problem_type, initial, regions, boundaries, interfaces) // 包装成 TrialField 调用第三个构造函数进行委托构造
+ThermalProblem::ThermalProblem(FemSystem& fem, FieldData& accepted_temperature, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output_manager, const std::string& problem_type, const std::vector<ThermalInitialConfig>& initial, const ThermalRegionConfigs& regions, const ThermalBoundaryConfigs& boundaries, const ThermalInterfaceConfigs& interfaces) // 接收连续场
+    : ThermalProblem(fem, TrialField(fem, accepted_temperature), properties, solver, output_manager, problem_type, initial, regions, boundaries, interfaces) // 包装成 TrialField 调用第三个构造函数进行委托构造
 {
 }
 
-ThermalProblem::ThermalProblem(FemSystem& fem, RegionFieldData& accepted_temperature, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output, const std::string& problem_type, const std::vector<ThermalInitialConfig>& initial, const ThermalRegionConfigs& regions, const ThermalBoundaryConfigs& boundaries, const ThermalInterfaceConfigs& interfaces) // 接收分域场
-    : ThermalProblem(fem, TrialField(fem, accepted_temperature), properties, solver, output, problem_type, initial, regions, boundaries, interfaces) // 包装成 TrialField 调用第三个构造函数进行委托构造
+ThermalProblem::ThermalProblem(FemSystem& fem, RegionFieldData& accepted_temperature, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output_manager, const std::string& problem_type, const std::vector<ThermalInitialConfig>& initial, const ThermalRegionConfigs& regions, const ThermalBoundaryConfigs& boundaries, const ThermalInterfaceConfigs& interfaces) // 接收分域场
+    : ThermalProblem(fem, TrialField(fem, accepted_temperature), properties, solver, output_manager, problem_type, initial, regions, boundaries, interfaces) // 包装成 TrialField 调用第三个构造函数进行委托构造
 {
 }
 
-ThermalProblem::ThermalProblem(FemSystem& fem, TrialField trial_temperature, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output, const std::string& problem_type, const std::vector<ThermalInitialConfig>& initial, const ThermalRegionConfigs& regions, const ThermalBoundaryConfigs& boundaries, const ThermalInterfaceConfigs& interfaces)
-    : trial_temperature_(std::move(trial_temperature)), properties_(properties), solver_(solver), output_(output), transient_(problem_type == "transient"), assembly_(fem, trial_temperature_, regions, boundaries, interfaces) // trial_temperature_(std::move(trial_temperature)) 把传入试探场的资源移动给成员 trial_temperature_ assembly_(fem, trial_temperature_, regions, boundaries, interfaces) 创建组装器 让它使用成员试探场及模型配置
+ThermalProblem::ThermalProblem(FemSystem& fem, TrialField trial_temperature, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output_manager, const std::string& problem_type, const std::vector<ThermalInitialConfig>& initial, const ThermalRegionConfigs& regions, const ThermalBoundaryConfigs& boundaries, const ThermalInterfaceConfigs& interfaces)
+    : trial_temperature_(std::move(trial_temperature)), properties_(properties), solver_(solver), output_manager_(output_manager), transient_(problem_type == "transient"), assembly_(fem, trial_temperature_, regions, boundaries, interfaces) // trial_temperature_(std::move(trial_temperature)) 把传入试探场的资源移动给成员 trial_temperature_ assembly_(fem, trial_temperature_, regions, boundaries, interfaces) 创建组装器 让它使用成员试探场及模型配置
 {
     assembly_.mark_coupled(properties_, transient_); // 登记热方程所需属性与温度之间的耦合关系
     if (trial_temperature_.regional())
@@ -33,7 +33,7 @@ ThermalProblem::ThermalProblem(FemSystem& fem, TrialField trial_temperature, Pro
     trial_temperature_.load(); // 将正式场的初温复制到试探场
     assembly_.project_initial(); // 必要时投影初温，使分域场满足理想接触等连续约束
     trial_temperature_.accept(); // 把当前试探场的场值复制回正式场，接受本次求解结果
-    output_.add_field("temperature", "thermal"); // 注册本问题的输出场
+    output_manager_.add_field("temperature", "thermal"); // 注册本问题的输出场
 }
 
 void ThermalProblem::accept_temperature() // 收敛后的属性与最终温度同步; 上一时间步快照仍由外部调度统一提交
@@ -46,7 +46,7 @@ void ThermalProblem::accept_temperature() // 收敛后的属性与最终温度�
 
 void ThermalProblem::solve(double time_step, double theta) // 热问题的统一求解入口: 准备试探场、区分初始时刻与正常求解，并记录本次耗时和组装次数
 {
-    output_.clear_solve_information("temperature"); // 清空温度场上一次求解的统计信息
+    output_manager_.clear_solve_information("temperature"); // 清空温度场上一次求解的统计信息
     const auto started = std::chrono::steady_clock::now(); // 记录开始时间
     const auto before = assembly_.counts(); // 复制求解前的累计组装次数
     trial_temperature_.load(); // 把正式温度场复制到试探场，作为本次求解的初始状态
@@ -58,18 +58,18 @@ void ThermalProblem::solve(double time_step, double theta) // 热问题的统一
         return;
     }
     iterate(time_step, theta); // 执行稳态求解或瞬态推进，包括必要的 Picard 迭代
-    output_.append_solve_information("temperature", "solve_elapsed_seconds", std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count()); // 记录从开始到此处的耗时，单位为秒
+    output_manager_.append_solve_information("temperature", "solve_elapsed_seconds", std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count()); // 记录从开始到此处的耗时，单位为秒
     for (const auto& [name, count] : assembly_.counts()) // 遍历求解后的累计组装次数
     {
         const auto old = before.find(name); // 查找求解前对应的累计值
-        output_.append_solve_information("temperature", name + "_assemblies", count - (old == before.end() ? 0 : old->second)); // 本次组装次数 = 求解后累计次数 - 求解前累计次数
+        output_manager_.append_solve_information("temperature", name + "_assemblies", count - (old == before.end() ? 0 : old->second)); // 本次组装次数 = 求解后累计次数 - 求解前累计次数
     }
 }
 
 void ThermalProblem::save_output(int cycle, double time, double time_step)
 {
     const FieldView accepted_temperature = trial_temperature_.regional() ? FieldView(trial_temperature_.accepted_region_field()) : FieldView(&trial_temperature_.accepted_continuous_field()->mfem_grid_function());
-    output_.save("temperature", accepted_temperature, cycle, time, time_step);
+    output_manager_.save("temperature", accepted_temperature, cycle, time, time_step);
 }
 
 void ThermalProblem::iterate(double time_step, double theta) // 准备旧时刻贡献，更新当前温度相关属性，形成方程并求解，直到 Picard 迭代收敛 处理 M\dot{T} + KT =F
@@ -133,7 +133,7 @@ void ThermalProblem::iterate(double time_step, double theta) // 准备旧时刻�
         mfem::SparseMatrix system; // 约化并施加约束后的求解矩阵
         mfem::Vector system_load, solution; // 约束后系统的右端向量与独立自由度解
         assembly_.form_system(*matrix, load, system, system_load, solution); // 将完整方程 matrix、load 约化并施加约束，得到 system、system_load 和初始解 solution
-        solver_.solve_linear("temperature", system, system_load, solution, output_);
+        solver_.solve_linear("temperature", system, system_load, solution, output_manager_);
         assembly_.recover(solution); // 通过约束映射 P 将独立自由度解恢复到完整试探场
         const auto trial_values = trial_temperature_.values();
         iteration_delta -= trial_values; // 旧试探值 - 新试探值，用于收敛判据
@@ -145,8 +145,8 @@ void ThermalProblem::iterate(double time_step, double theta) // 准备旧时刻�
         if (!nonlinear || increment <= picard.absolute_tolerance + picard.relative_tolerance * trial_values.Normlinf()) // 线性问题求解一次后直接接受；非线性问题满足该条件后：
         {
             accept_temperature(); // 把试探温度提交到正式场，并同步最终温度对应的材料属性，再记录迭代次数和增量
-            output_.append_solve_information("temperature", "picard_iterations", iteration + 1);
-            output_.append_solve_information("temperature", "final_temperature_increment_inf_norm_K", increment);
+            output_manager_.append_solve_information("temperature", "picard_iterations", iteration + 1);
+            output_manager_.append_solve_information("temperature", "final_temperature_increment_inf_norm_K", increment);
             return;
         }
     }

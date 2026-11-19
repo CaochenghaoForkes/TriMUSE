@@ -16,7 +16,7 @@ MechanicsAssembly::MechanicsAssembly(FemSystem& fem, TrialField& trial_field, co
     thermal_expansion_manager_(fem, regions.at("thermal_expansion")),
     source_manager_(fem, regions.at("source")),
     boundary_manager_(boundaries.at("mechanics_boundary")),
-    interface_manager_(fem, constraints_, interfaces.at("interface_contact"))
+    interface_contact_manager_(fem, constraints_, interfaces.at("interface_contact"))
 {
     constraints_.finalize(); // 界面管理器已登记全部连接，统一生成 P （生成约束映射，界面连续约束的映射）
     for (int zone : boundary_manager_.zones()) // 为已配置边界建立空列表
@@ -58,61 +58,61 @@ bool MechanicsAssembly::coupled(const PropertiesSystem& properties) const // 判
 
 void MechanicsAssembly::refresh_stiffness() // 只重组需要更新的区域刚度矩阵，如果有更新，再把各区域贡献重新相加
 {
-    bool changed = !stiffness_cache_.sum; // 判断当前有没有总刚度矩阵 指针为空：changed = true，本次需要首次建立总矩阵
+    bool changed = !stiffness_matrix_cache_.sum; // 判断当前有没有总刚度矩阵 指针为空：changed = true，本次需要首次建立总矩阵
     for (int region : stiffness_manager_.regions()) // 遍历刚度管理器中配置了模型的各个区域
     {
-        if (stiffness_cache_.parts.count(region) && stiffness_manager_.required_no_change(region)) // 若该区域已经有组装缓存，且该区域的系数的 dirty == false
+        if (stiffness_matrix_cache_.parts.count(region) && stiffness_manager_.required_no_change(region)) // 若该区域已经有组装缓存，且该区域的系数的 dirty == false
         {
             continue; // 则跳过
         }
-        stiffness_cache_.parts[region] = integrator_.domain_matrix(region, stiffness_manager_.values()); // 传入全域积分点系数数值，但只遍历并积分当前 region 的单元
+        stiffness_matrix_cache_.parts[region] = integrator_.domain_matrix(region, stiffness_manager_.values()); // 传入全域积分点系数数值，但只遍历并积分当前 region 的单元
         stiffness_manager_.assembled(region); // 通知管理器：当前区域已经按最新系数组装完成，将该区域的 dirty 清为 false
         ++counts_["stiffness"]; // 刚度组装次数加一，每重新组装一个区域计一次
         changed = true; // 记录本次至少有一个区域的刚度缓存发生了更新，需要重新计算总矩阵
     }
     if (changed) // 如果有任何一个区域的刚度矩阵发生了变化，或还没有组装过总刚度矩阵
     {
-        stiffness_cache_.sum = sum_matrices(stiffness_cache_.parts, trial_field_.size()); // 则组装总刚度矩阵
+        stiffness_matrix_cache_.sum = sum_matrices(stiffness_matrix_cache_.parts, trial_field_.size()); // 则组装总刚度矩阵
     }
 }
 
 void MechanicsAssembly::refresh_thermal_expansion()
 {
-    bool changed = !thermal_expansion_cache_.sum;
+    bool changed = !thermal_expansion_load_cache_.sum;
     for (int region : thermal_expansion_manager_.regions())
     {
-        if (thermal_expansion_cache_.parts.count(region) && thermal_expansion_manager_.required_no_change(region))
+        if (thermal_expansion_load_cache_.parts.count(region) && thermal_expansion_manager_.required_no_change(region))
         {
             continue;
         }
-        thermal_expansion_cache_.parts[region] = integrator_.eigenstrain_load(region, thermal_expansion_manager_.values());
+        thermal_expansion_load_cache_.parts[region] = integrator_.eigenstrain_load(region, thermal_expansion_manager_.values());
         thermal_expansion_manager_.assembled(region);
         ++counts_["thermal_expansion"];
         changed = true;
     }
     if (changed)
     {
-        thermal_expansion_cache_.sum = sum_vectors(thermal_expansion_cache_.parts, trial_field_.size());
+        thermal_expansion_load_cache_.sum = sum_vectors(thermal_expansion_load_cache_.parts, trial_field_.size());
     }
 }
 
 void MechanicsAssembly::refresh_source()
 {
-    bool changed = !source_cache_.sum;
+    bool changed = !source_load_cache_.sum;
     for (int region : source_manager_.regions())
     {
-        if (source_cache_.parts.count(region) && source_manager_.required_no_change(region))
+        if (source_load_cache_.parts.count(region) && source_manager_.required_no_change(region))
         {
             continue;
         }
-        source_cache_.parts[region] = integrator_.domain_load(region, source_manager_.values());
+        source_load_cache_.parts[region] = integrator_.domain_load(region, source_manager_.values());
         source_manager_.assembled(region);
         ++counts_["source"];
         changed = true;
     }
     if (changed)
     {
-        source_cache_.sum = sum_vectors(source_cache_.parts, trial_field_.size());
+        source_load_cache_.sum = sum_vectors(source_load_cache_.parts, trial_field_.size());
     }
 }
 
@@ -151,17 +151,17 @@ MechanicsAssembly::State MechanicsAssembly::update(const PropertiesFieldData& pr
     refresh_source(); // 根据 dirty 只重新组装发生变化或尚无缓存的区域体积力载荷，必要时重新计算总体积力载荷 并更换 cache_.sum 指针为新对象
     refresh_boundary(); // 根据 dirty 只重新组装发生变化或尚无缓存的表面边界表面力载荷，必要时重新计算表面边界表面力载荷 并更换 cache_.sum 指针为新对象
 
-    state_.matrix = stiffness_cache_.sum; // 让 state_.matrix 与 stiffness_cache_.sum 共同持有同一张矩阵，不复制矩阵数值
-    if (last_thermal_expansion_cache_sum_ != thermal_expansion_cache_.sum // 若总热膨胀载荷指针发生更换
-        || last_source_cache_sum_ != source_cache_.sum // 或总体积力载荷指针发生更换
+    state_.matrix = stiffness_matrix_cache_.sum; // 让 state_.matrix 与 stiffness_matrix_cache_.sum 共同持有同一张矩阵，不复制矩阵数值
+    if (last_thermal_expansion_load_cache_sum_ != thermal_expansion_load_cache_.sum // 若总热膨胀载荷指针发生更换
+        || last_source_load_cache_sum_ != source_load_cache_.sum // 或总体积力载荷指针发生更换
         || last_boundary_load_cache_sum_ != boundary_load_cache_.sum) // 或总表面力载荷指针发生更换
     {
-        auto load = std::make_shared<mfem::Vector>(*thermal_expansion_cache_.sum); // 重新创建新总载荷向量 f = fth + fbody + fboundary
-        *load += *source_cache_.sum;
+        auto load = std::make_shared<mfem::Vector>(*thermal_expansion_load_cache_.sum); // 重新创建新总载荷向量 f = fth + fbody + fboundary
+        *load += *source_load_cache_.sum;
         *load += *boundary_load_cache_.sum;
         state_.load = std::move(load); // 把这个新向量的共享指针移交给 state_.load
-        last_thermal_expansion_cache_sum_ = thermal_expansion_cache_.sum; // 记录本次使用的新缓存指针
-        last_source_cache_sum_ = source_cache_.sum; // 记录本次使用的新缓存指针
+        last_thermal_expansion_load_cache_sum_ = thermal_expansion_load_cache_.sum; // 记录本次使用的新缓存指针
+        last_source_load_cache_sum_ = source_load_cache_.sum; // 记录本次使用的新缓存指针
         last_boundary_load_cache_sum_ = boundary_load_cache_.sum; // 记录本次使用的新缓存指针
     }
     return state_; // 更新时替换指针，调用方保留的旧状态不会被改写

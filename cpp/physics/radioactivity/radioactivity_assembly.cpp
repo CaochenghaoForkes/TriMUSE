@@ -5,21 +5,21 @@
 
 namespace trimuse
 {
-RadioactivityAssembly::RadioactivityAssembly(FemSystem& fem, TrialField& trial_field, double decay_constant, const RadioactivityRegionConfigs& regions, const RadioactivityBoundaryConfigs& boundaries, const RadioactivityInterfaceConfigs& interfaces)
+RadioactivityAssembly::RadioactivityAssembly(FemSystem& fem, TrialField& trial_field, const RadioactivityRegionConfigs& regions, const RadioactivityBoundaryConfigs& boundaries, const RadioactivityInterfaceConfigs& interfaces)
     :
-    decay_constant_(decay_constant),
     fem_(fem),
     trial_field_(trial_field),
     integrator_(fem, trial_field),
-    diffusion_(fem, regions.at("diffusion")),
-    capacity_(fem, regions.at("capacity")),
-    source_(fem, regions.at("source")),
-    boundary_(boundaries.at("nuclide_boundary")),
+    diffusion_manager_(fem, regions.at("diffusion")),
+    capacity_manager_(fem, regions.at("capacity")),
+    decay_manager_(fem, regions.at("decay")),
+    source_manager_(fem, regions.at("source")),
+    boundary_manager_(boundaries.at("nuclide_boundary")),
     interface_nuclide_transfer_manager_(fem, trial_field, interfaces.at("interface_nuclide_transfer"))
 {
     const auto& mesh = fem.mesh_data().mfem_mesh(); // 原网格用于筛选外边界单元
-    for (int zone : boundary_.zones()) { boundary_elements_[zone] = {}; }
-    for (int zone : boundary_.zones())
+    for (int zone : boundary_manager_.zones()) { boundary_elements_[zone] = {}; }
+    for (int zone : boundary_manager_.zones())
     for (int b = 0; b < mesh.GetNBE(); ++b)
     {
         int first, second;
@@ -29,104 +29,121 @@ RadioactivityAssembly::RadioactivityAssembly(FemSystem& fem, TrialField& trial_f
             boundary_elements_[zone].push_back(b);
         }
     }
-    // 容量恒为 1，M 同时用于时间导数、衰变和初值投影。
-    capacity_.update(PropertiesFieldData{}); // 单位容量模型不读取属性，填充全域积分点系数 1
-    refresh_capacity(); // M 与温度、浓度和时间无关，后续直接复用
+
 }
 
 void RadioactivityAssembly::mark_coupled(PropertiesSystem& properties) const // 登记扩散、源和边界模型的浓度依赖
 {
-    diffusion_.mark_coupled(properties, "concentration");
-    source_.mark_coupled(properties, "concentration");
-    boundary_.mark_coupled(properties, "concentration");
+    diffusion_manager_.mark_coupled(properties, "concentration");
+    decay_manager_.mark_coupled(properties, "concentration");
+    source_manager_.mark_coupled(properties, "concentration");
+    boundary_manager_.mark_coupled(properties, "concentration");
 }
 
 bool RadioactivityAssembly::coupled(const PropertiesSystem& properties) const // 任一方程系数依赖当前浓度时需要 Picard 迭代
 {
-    return diffusion_.coupled(properties, "concentration") || source_.coupled(properties, "concentration")
-        || boundary_.coupled(properties, "concentration");
+    return diffusion_manager_.coupled(properties, "concentration") || decay_manager_.coupled(properties, "concentration") || source_manager_.coupled(properties, "concentration")
+        || boundary_manager_.coupled(properties, "concentration");
 }
 
 void RadioactivityAssembly::refresh_diffusion() // 按区域变化标记刷新diffusion矩阵
 {
-    bool changed = !diffusion_cache_.sum;
-    for (int region : diffusion_.regions())
+    bool changed = !diffusion_matrix_cache_.sum;
+    for (int region : diffusion_manager_.regions())
     {
-        if (diffusion_cache_.parts.count(region) && diffusion_.required_no_change(region))
+        if (diffusion_matrix_cache_.parts.count(region) && diffusion_manager_.required_no_change(region))
         {
             continue;
         }
-        diffusion_cache_.parts[region] = integrator_.domain_matrix(region, diffusion_.values(), ScalarIntegrator::MatrixForm::Gradient);
-        diffusion_.assembled(region);
+        diffusion_matrix_cache_.parts[region] = integrator_.domain_matrix(region, diffusion_manager_.values(), ScalarIntegrator::MatrixForm::Gradient);
+        diffusion_manager_.assembled(region);
         ++counts_["diffusion"];
         changed = true;
     }
     if (changed)
     {
-        diffusion_cache_.sum = sum_matrices(diffusion_cache_.parts, trial_field_.size());
+        diffusion_matrix_cache_.sum = sum_matrices(diffusion_matrix_cache_.parts, trial_field_.size());
     }
 }
 
 void RadioactivityAssembly::refresh_capacity() // 按区域变化标记刷新capacity矩阵
 {
-    AssemblyCache<mfem::SparseMatrix> capacity_cache;
-    bool changed = !capacity_cache.sum;
-    for (int region : capacity_.regions())
+    bool changed = !capacity_matrix_cache_.sum;
+    for (int region : capacity_manager_.regions())
     {
-        if (capacity_cache.parts.count(region) && capacity_.required_no_change(region))
+        if (capacity_matrix_cache_.parts.count(region) && capacity_manager_.required_no_change(region))
         {
             continue;
         }
-        capacity_cache.parts[region] = integrator_.domain_matrix(region, capacity_.values(), ScalarIntegrator::MatrixForm::Mass);
-        capacity_.assembled(region);
+        capacity_matrix_cache_.parts[region] = integrator_.domain_matrix(region, capacity_manager_.values(), ScalarIntegrator::MatrixForm::Mass);
+        capacity_manager_.assembled(region);
         ++counts_["capacity"];
         changed = true;
     }
     if (changed)
     {
-        capacity_cache.sum = sum_matrices(capacity_cache.parts, trial_field_.size());
+        capacity_matrix_cache_.sum = sum_matrices(capacity_matrix_cache_.parts, trial_field_.size());
     }
-    mass_ = capacity_cache.sum; // 单位容量矩阵只在初始化时组装，后续复用
+}
+
+void RadioactivityAssembly::refresh_decay() // 按区域变化标记刷新衰变矩阵
+{
+    bool changed = !decay_matrix_cache_.sum;
+    for (int region : decay_manager_.regions())
+    {
+        if (decay_matrix_cache_.parts.count(region) && decay_manager_.required_no_change(region))
+        {
+            continue;
+        }
+        decay_matrix_cache_.parts[region] = integrator_.domain_matrix(region, decay_manager_.values(), ScalarIntegrator::MatrixForm::Mass);
+        decay_manager_.assembled(region);
+        ++counts_["decay"];
+        changed = true;
+    }
+    if (changed)
+    {
+        decay_matrix_cache_.sum = sum_matrices(decay_matrix_cache_.parts, trial_field_.size());
+    }
 }
 
 void RadioactivityAssembly::refresh_source() // 按区域缓存体积核素产生率的右端贡献
 {
-    bool changed = !source_cache_.sum;
-    for (int region : source_.regions())
+    bool changed = !source_load_cache_.sum;
+    for (int region : source_manager_.regions())
     {
-        if (source_cache_.parts.count(region) && source_.required_no_change(region))
+        if (source_load_cache_.parts.count(region) && source_manager_.required_no_change(region))
         {
             continue;
         }
-        source_cache_.parts[region] = integrator_.domain_load(region, source_.values()); // F_birth,i=int_Omega_region q_birth N_i dOmega
-        source_.assembled(region);
+        source_load_cache_.parts[region] = integrator_.domain_load(region, source_manager_.values()); // F_birth,i=int_Omega_region q_birth N_i dOmega
+        source_manager_.assembled(region);
         ++counts_["source"]; changed = true;
     }
     if (changed)
     {
-        source_cache_.sum = sum_vectors(source_cache_.parts, trial_field_.size());
+        source_load_cache_.sum = sum_vectors(source_load_cache_.parts, trial_field_.size());
     }
 }
 
 void RadioactivityAssembly::refresh_boundary() // 自然边界的矩阵与右端独立判断是否需要重组
 {
     bool matrix_changed = !boundary_matrix_cache_.sum, load_changed = !boundary_load_cache_.sum;
-    for (int zone : boundary_.zones())
+    for (int zone : boundary_manager_.zones())
     {
-        if (boundary_.essential(zone)) // Dirichlet 在形成求解系统时施加，不参与自然边界积分
+        if (boundary_manager_.essential(zone)) // Dirichlet 在形成求解系统时施加，不参与自然边界积分
         {
             continue;
         }
-        if (!boundary_matrix_cache_.parts.count(zone) || !boundary_.required_no_change(zone, RadioactivityBoundaryPart::Matrix))
+        if (!boundary_matrix_cache_.parts.count(zone) || !boundary_manager_.required_no_change(zone, RadioactivityBoundaryPart::Matrix))
         {
-            boundary_matrix_cache_.parts[zone] = integrator_.boundary_matrix(boundary_elements_.at(zone), boundary_.values(zone).matrix); // Robin 左端 h_m N_i N_j
-            boundary_.assembled(zone, RadioactivityBoundaryPart::Matrix);
+            boundary_matrix_cache_.parts[zone] = integrator_.boundary_matrix(boundary_elements_.at(zone), boundary_manager_.values(zone).matrix); // Robin 左端 h_m N_i N_j
+            boundary_manager_.assembled(zone, RadioactivityBoundaryPart::Matrix);
             ++counts_["boundary_matrix"]; matrix_changed = true;
         }
-        if (!boundary_load_cache_.parts.count(zone) || !boundary_.required_no_change(zone, RadioactivityBoundaryPart::Load))
+        if (!boundary_load_cache_.parts.count(zone) || !boundary_manager_.required_no_change(zone, RadioactivityBoundaryPart::Load))
         {
-            boundary_load_cache_.parts[zone] = integrator_.boundary_load(boundary_elements_.at(zone), boundary_.values(zone).load); // Neumann -j_n 或 Robin h_m c_infinity
-            boundary_.assembled(zone, RadioactivityBoundaryPart::Load);
+            boundary_load_cache_.parts[zone] = integrator_.boundary_load(boundary_elements_.at(zone), boundary_manager_.values(zone).load); // Neumann -j_n 或 Robin h_m c_infinity
+            boundary_manager_.assembled(zone, RadioactivityBoundaryPart::Load);
             ++counts_["boundary_load"]; load_changed = true;
         }
     }
@@ -142,47 +159,47 @@ void RadioactivityAssembly::refresh_boundary() // 自然边界的矩阵与右端
 
 RadioactivityAssembly::State RadioactivityAssembly::update(const PropertiesFieldData& properties) // 根据指定时刻属性按需更新并汇总 M、K、F
 {
-    diffusion_.update(properties);
-    source_.update(properties);
-    boundary_.update(properties);
+    diffusion_manager_.update(properties);
+    capacity_manager_.update(properties);
+    decay_manager_.update(properties);
+    source_manager_.update(properties);
+    boundary_manager_.update(properties);
     refresh_diffusion();
+    refresh_capacity();
+    refresh_decay();
     refresh_source();
     refresh_boundary();
-    if (last_domain_ != diffusion_cache_.sum || last_boundary_ != boundary_matrix_cache_.sum) // 用缓存指针是否替换判断总 K 是否需要更新
+    if (last_diffusion_matrix_cache_sum_ != diffusion_matrix_cache_.sum || last_decay_matrix_cache_sum_ != decay_matrix_cache_.sum || last_boundary_matrix_cache_sum_ != boundary_matrix_cache_.sum) // 用缓存指针是否替换判断总 K 是否需要更新
     {
-        std::unique_ptr<mfem::SparseMatrix> diffusion(mfem::Add(1.0, *diffusion_cache_.sum, 1.0, *boundary_matrix_cache_.sum)); // K_temp=K_diffusion+K_Robin
-        // 单核素衰变是正的反应项，和扩散、Robin 左端一起组成 K。
-        if (decay_constant_ != 0.0)
-        {
-            state_.matrix.reset(mfem::Add(1.0, *diffusion, decay_constant_, *mass_)); // K=K_temp+lambda M
-        }
-        else { state_.matrix = std::move(diffusion); }
-        last_domain_ = diffusion_cache_.sum; last_boundary_ = boundary_matrix_cache_.sum;
+        std::unique_ptr<mfem::SparseMatrix> diffusion(mfem::Add(1.0, *diffusion_matrix_cache_.sum, 1.0, *boundary_matrix_cache_.sum)); // K_temp=K_diffusion+K_Robin
+        state_.matrix.reset(mfem::Add(1.0, *diffusion, 1.0, *decay_matrix_cache_.sum)); // K = K_diffusion + K_boundary + K_decay
+        last_decay_matrix_cache_sum_ = decay_matrix_cache_.sum;
+        last_diffusion_matrix_cache_sum_ = diffusion_matrix_cache_.sum; last_boundary_matrix_cache_sum_ = boundary_matrix_cache_.sum;
     }
-    if (last_source_ != source_cache_.sum || last_boundary_load_ != boundary_load_cache_.sum) // 源或边界右端变化时才重新汇总 F
+    if (last_source_load_cache_sum_ != source_load_cache_.sum || last_boundary_load_cache_sum_ != boundary_load_cache_.sum) // 源或边界右端变化时才重新汇总 F
     {
-        auto load = std::make_shared<mfem::Vector>(*source_cache_.sum);
+        auto load = std::make_shared<mfem::Vector>(*source_load_cache_.sum);
         *load += *boundary_load_cache_.sum; // F=F_birth+F_boundary
         state_.load = std::move(load);
-        last_source_ = source_cache_.sum; last_boundary_load_ = boundary_load_cache_.sum;
+        last_source_load_cache_sum_ = source_load_cache_.sum; last_boundary_load_cache_sum_ = boundary_load_cache_.sum;
     }
-    state_.mass = mass_; // 固定单位容量矩阵无需每次重组
+    state_.mass = capacity_matrix_cache_.sum; // 容量项独立缓存，不参与衰变组装
     return state_; // 共享不可变结果，刷新缓存只替换指针，不改写旧时刻的矩阵。
 }
 
 // 初始时刻和 theta=0 只需更新指定边界值；不会触发新时刻的域内组装。
 void RadioactivityAssembly::update_boundary(const PropertiesFieldData& properties)
 {
-    boundary_.update(properties);
+    boundary_manager_.update(properties);
 }
 
 // 收集独立自由度编号 -> 指定浓度，外边界几何仍来自原网格。
 void RadioactivityAssembly::essential_values(std::map<int, double>& values) const
 {
     const auto& p = interface_nuclide_transfer_manager_.prolongation(); // P 的行是完整自由度，列是完美接触约束后的独立自由度
-    for (int zone : boundary_.zones())
+    for (int zone : boundary_manager_.zones())
     {
-        if (!boundary_.essential(zone))
+        if (!boundary_manager_.essential(zone))
         {
             continue;
         }
@@ -198,7 +215,7 @@ void RadioactivityAssembly::essential_values(std::map<int, double>& values) cons
             {
                 if (p.GetData()[j] != 0.0)
                 {
-                    values[p.GetJ()[j]] = boundary_.values(zone).concentration; // 转为独立自由度编号并记录指定浓度
+                    values[p.GetJ()[j]] = boundary_manager_.values(zone).concentration; // 转为独立自由度编号并记录指定浓度
                 }
             }
         }
@@ -215,9 +232,9 @@ void RadioactivityAssembly::apply_initial_constraints() // 只调整试探浓度
         solution[dof] = value;
     }
     recover(solution); // 经 P 恢复完整试探场，同时满足完美接触和指定表面浓度
-    for (int zone : boundary_.zones())
+    for (int zone : boundary_manager_.zones())
     {
-        boundary_.assembled(zone, RadioactivityBoundaryPart::Essential);
+        boundary_manager_.assembled(zone, RadioactivityBoundaryPart::Essential);
     }
 }
 
@@ -243,9 +260,17 @@ void RadioactivityAssembly::project_initial()
     mfem::Vector original = trial_field_.values(), projected(trial_field_.size());
     p.Mult(solution, projected); projected -= original; // 已满足连续约束时无须再次投影
     if (projected.Normlinf() <= 1e-12 * original.Normlinf()) { return; }
+    // 投影使用全域单位质量矩阵，与容量、衰变是否启用无关
+    std::map<int, std::shared_ptr<const mfem::SparseMatrix>> parts;
+    std::vector<double> unit(fem_.domain_quadrature_point_count(), 1.0);
+    for (int region : fem_.mesh_data().region_attributes())
+    {
+        parts[region] = integrator_.domain_matrix(region, unit, ScalarIntegrator::MatrixForm::Mass);
+    }
+    const auto mass = sum_matrices(parts, trial_field_.size());
     mfem::Vector load(trial_field_.size()), system_load(p.Width());
-    mass_->Mult(original, load); p.MultTranspose(load, system_load); // 投影右端 P^T M c_original
-    std::unique_ptr<mfem::SparseMatrix> system(mfem::RAP(p, *mass_, p)); // 投影矩阵 P^T M P
+    mass->Mult(original, load); p.MultTranspose(load, system_load); // 投影右端 P^T M c_original
+    std::unique_ptr<mfem::SparseMatrix> system(mfem::RAP(p, *mass, p)); // 投影矩阵 P^T M P
     mfem::GSSmoother preconditioner(*system);
     mfem::CGSolver solver; solver.SetOperator(*system); solver.SetPreconditioner(preconditioner);
     solver.SetRelTol(1e-12); solver.SetAbsTol(0.0); solver.SetMaxIter(1000); solver.SetPrintLevel(0);

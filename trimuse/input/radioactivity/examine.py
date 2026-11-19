@@ -8,15 +8,17 @@ class RadioactivityCardExamine:
 
     @classmethod
     def examine(cls, card: RadioactivityCard) -> None:
-        cls.check_models(card.regions.region, {'diffusion': {'fick'}, 'capacity': {'unit'}, 'source': {'volumetric_nuclide_birth_rate'}}, "radioactivity.regions")
+        cls.check_models(card.regions.region, {'diffusion': {'fick'}, 'capacity': {'unit'}, 'decay': {'pur_decay'}, 'source': {'volumetric_nuclide_birth_rate'}}, "radioactivity.regions")
         cls.check_models(card.boundaries.boundary, {'nuclide_boundary': {'robin', 'dirichlet', 'neumann'}}, "radioactivity.boundaries")
         cls.check_models(card.interfaces.interface, {'interface_nuclide_transfer': {'perfect_contact'}}, "radioactivity.interfaces")
         for region in card.regions.region:
             terms = {model.name for model in region.model}
             if "diffusion" not in terms:
                 raise ValueError(f"radioactivity.regions.{region.name}: 缺少扩散组装项 diffusion")
-            if "capacity" not in terms: # 容量矩阵同时用于瞬态项和衰变项
-                raise ValueError(f"radioactivity.regions.{region.name}: 缺少容量组装项 capacity")
+        if any(model.name == "decay" for region in card.regions.region for model in region.model):
+            half_life = card.parameters.get("half_life")
+            if not isinstance(half_life, float) or not math.isfinite(half_life) or half_life <= 0:
+                raise ValueError("radioactivity.parameters.half_life: 启用衰变需要有限正半衰期，内部单位为 s")
         for item in card.initial.concentration:
             location = f"initial.concentration.{item.region}"
             if item.model != "uniform_from_inventory":

@@ -51,61 +51,61 @@ bool ThermalAssembly::coupled(const PropertiesSystem& properties, bool transient
 
 void ThermalAssembly::refresh_conduction() // 按区域变化标记刷新conduction矩阵
 {
-    bool changed = !conduction_cache_.sum;
+    bool changed = !conduction_matrix_cache_.sum;
     for (int region : conduction_manager_.regions())
     {
-        if (conduction_cache_.parts.count(region) && conduction_manager_.required_no_change(region))
+        if (conduction_matrix_cache_.parts.count(region) && conduction_manager_.required_no_change(region))
         {
             continue;
         }
-        conduction_cache_.parts[region] = integrator_.domain_matrix(region, conduction_manager_.values(), ScalarIntegrator::MatrixForm::Gradient);
+        conduction_matrix_cache_.parts[region] = integrator_.domain_matrix(region, conduction_manager_.values(), ScalarIntegrator::MatrixForm::Gradient);
         conduction_manager_.assembled(region);
         ++counts_["conduction"];
         changed = true;
     }
     if (changed)
     {
-        conduction_cache_.sum = sum_matrices(conduction_cache_.parts, trial_field_.size());
+        conduction_matrix_cache_.sum = sum_matrices(conduction_matrix_cache_.parts, trial_field_.size());
     }
 }
 
 void ThermalAssembly::refresh_capacity() // 按区域变化标记刷新capacity矩阵
 {
-    bool changed = !capacity_cache_.sum;
+    bool changed = !capacity_matrix_cache_.sum;
     for (int region : capacity_manager_.regions())
     {
-        if (capacity_cache_.parts.count(region) && capacity_manager_.required_no_change(region))
+        if (capacity_matrix_cache_.parts.count(region) && capacity_manager_.required_no_change(region))
         {
             continue;
         }
-        capacity_cache_.parts[region] = integrator_.domain_matrix(region, capacity_manager_.values(), ScalarIntegrator::MatrixForm::Mass);
+        capacity_matrix_cache_.parts[region] = integrator_.domain_matrix(region, capacity_manager_.values(), ScalarIntegrator::MatrixForm::Mass);
         capacity_manager_.assembled(region);
         ++counts_["capacity"];
         changed = true;
     }
     if (changed)
     {
-        capacity_cache_.sum = sum_matrices(capacity_cache_.parts, trial_field_.size());
+        capacity_matrix_cache_.sum = sum_matrices(capacity_matrix_cache_.parts, trial_field_.size());
     }
 }
 
 void ThermalAssembly::refresh_source() // 根据 source_manager 各区的 dirty 决定更新哪些区的源右端缓存，若有区域被更新还会重新求和得到总源右端，注意这里 cache.parts 和 cache.sum 存储的是共享指针，一旦发生更新，对应的指针会被替换 cache: 对应缓存 cache.parts: 区域编号->该区域的源右端贡献 cache.sum: 所有区域贡献之和
 {
-    bool changed = !source_cache_.sum; // 如果还没有热源总向量，标记为需要首次建立；否则先假设没有变化
+    bool changed = !source_load_cache_.sum; // 如果还没有热源总向量，标记为需要首次建立；否则先假设没有变化
     for (int region : source_manager_.regions()) // 遍历配置了热源模型的区域
     {
-        if (source_cache_.parts.count(region) && source_manager_.required_no_change(region)) // 如果该区域已有热源向量缓存，且热源系数没有变化(dirty为false)，就跳过组装
+        if (source_load_cache_.parts.count(region) && source_manager_.required_no_change(region)) // 如果该区域已有热源向量缓存，且热源系数没有变化(dirty为false)，就跳过组装
         {
             continue;
         }
-        source_cache_.parts[region] = integrator_.domain_load(region, source_manager_.values()); // 用最新积分点热源值组装 int_Omega_region Q*Ni dOmega
+        source_load_cache_.parts[region] = integrator_.domain_load(region, source_manager_.values()); // 用最新积分点热源值组装 int_Omega_region Q*Ni dOmega
         source_manager_.assembled(region); // 清除该区域的 dirty 标记，表示缓存已与当前热源系数一致
         ++counts_["source"];
         changed = true; // 记录一次区域热源向量组装，并标记总向量需要更新
     }
     if (changed)
     {
-        source_cache_.sum = sum_vectors(source_cache_.parts, trial_field_.size()); // 首次建立或有区域重组时，将各区域贡献相加 让 source_cache_.sum 持有新向量的共享指针，改为指向新的向量对象
+        source_load_cache_.sum = sum_vectors(source_load_cache_.parts, trial_field_.size()); // 首次建立或有区域重组时，将各区域贡献相加 让 source_load_cache_.sum 持有新向量的共享指针，改为指向新的向量对象
     }
 }
 
@@ -176,9 +176,9 @@ ThermalAssembly::State ThermalAssembly::update(const PropertiesFieldData& proper
     refresh_source(); // 按变化标记刷新体积热源向量缓存
     refresh_boundary(); // 按变化标记刷新外边界矩阵和右端向量缓存
     refresh_interface_heat_transfer(); // 按变化标记刷新界面矩阵缓存
-    if (last_conduction_cache_sum_ != conduction_cache_.sum || last_boundary_matrix_cache_sum_ != boundary_matrix_cache_.sum || last_interface_heat_transfer_matrix_cache_sum_ != interface_heat_transfer_matrix_cache_.sum)
+    if (last_conduction_matrix_cache_sum_ != conduction_matrix_cache_.sum || last_boundary_matrix_cache_sum_ != boundary_matrix_cache_.sum || last_interface_heat_transfer_matrix_cache_sum_ != interface_heat_transfer_matrix_cache_.sum)
     {
-        std::unique_ptr<mfem::SparseMatrix> conduction(mfem::Add(1.0, *conduction_cache_.sum, 1.0, *boundary_matrix_cache_.sum));
+        std::unique_ptr<mfem::SparseMatrix> conduction(mfem::Add(1.0, *conduction_matrix_cache_.sum, 1.0, *boundary_matrix_cache_.sum));
         if (interface_heat_transfer_matrix_cache_.sum)
         {
             state_.matrix.reset(mfem::Add(1.0, *conduction, 1.0, *interface_heat_transfer_matrix_cache_.sum));
@@ -187,18 +187,18 @@ ThermalAssembly::State ThermalAssembly::update(const PropertiesFieldData& proper
         {
             state_.matrix = std::move(conduction);
         }
-        last_conduction_cache_sum_ = conduction_cache_.sum;
+        last_conduction_matrix_cache_sum_ = conduction_matrix_cache_.sum;
         last_boundary_matrix_cache_sum_ = boundary_matrix_cache_.sum;
         last_interface_heat_transfer_matrix_cache_sum_ = interface_heat_transfer_matrix_cache_.sum;
     }
-    if (last_source_cache_sum_ != source_cache_.sum || last_boundary_load_cache_sum_ != boundary_load_cache_.sum) // 通过指针判断体积源或外边界右端是否更新
+    if (last_source_load_cache_sum_ != source_load_cache_.sum || last_boundary_load_cache_sum_ != boundary_load_cache_.sum) // 通过指针判断体积源或外边界右端是否更新
     {
-        auto load = std::make_shared<mfem::Vector>(*source_cache_.sum); // 先复制体积源向量，再加上外边界贡献
+        auto load = std::make_shared<mfem::Vector>(*source_load_cache_.sum); // 先复制体积源向量，再加上外边界贡献
         *load += *boundary_load_cache_.sum; // F = F体积源 + F外边界
         state_.load = std::move(load); // 保存新右端，并记录本次使用的缓存指针
-        last_source_cache_sum_ = source_cache_.sum; last_boundary_load_cache_sum_ = boundary_load_cache_.sum;
+        last_source_load_cache_sum_ = source_load_cache_.sum; last_boundary_load_cache_sum_ = boundary_load_cache_.sum;
     }
-    state_.mass = capacity_cache_.sum; // 共享引用当前热容缓存，不复制矩阵
+    state_.mass = capacity_matrix_cache_.sum; // 共享引用当前热容缓存，不复制矩阵
     return state_; // 只共享不可变的组装结果, 后续更新替换指针, 不改写旧时刻的矩阵。
 }
 

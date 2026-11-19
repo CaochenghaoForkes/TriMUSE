@@ -105,7 +105,7 @@ class Radioactivity:
         card = input_cards.radioactivity
         mesh_info = fem_manager.mesh_info
         initial_configs = prepare_initial(card.initial.concentration, mesh_info.region_attributes)
-        regions, boundaries, interfaces = prepare_configs(card, input_cards, mesh_info, (('diffusion', 'capacity', 'source'), ('nuclide_boundary',), ('interface_nuclide_transfer',)))
+        regions, boundaries, interfaces = prepare_configs(card, input_cards, mesh_info, (('diffusion', 'capacity', 'decay', 'source'), ('nuclide_boundary',), ('interface_nuclide_transfer',)))
         self.radioactivity_problem = RadioactivityProblem(fem_manager.fem_system, properties_manager.properties_system, solver_manager.solver_system, output_manager.field_output, problem_type, initial_configs, regions, boundaries, interfaces)
 
     def solve(self, time_step: float = 0.0, theta: float = 1.0) -> None:
