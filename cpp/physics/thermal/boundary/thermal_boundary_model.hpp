@@ -20,22 +20,22 @@ struct ThermalBoundaryValues // 边界模型求值后，交给组装层使用的
     double temperature = 0.0; // Dirichlet 边界指定的表面温度 用于约束边界自由度
 };
 
-enum class BoundaryPart { Matrix, Load, Essential };
+enum class BoundaryPart
+{
+    Matrix,
+    Load,
+    Essential
+};
 
 class ThermalBoundaryModel
 {
 public:
     virtual ~ThermalBoundaryModel() = default; // 默认析构
-
     virtual bool essential() const { return false; } // 判断是否为本质边界条件 默认为 false 组装层通过这个方法决定：该边界需要约束温度自由度，还是提供矩阵、右端项贡献
-
     virtual ThermalBoundaryValues evaluate(const PropertiesFieldData& properties, int zone) const = 0; // 传入properties与区域编号，返回内容包括边界贡献的矩阵系数(默认0.0)、边界贡献的右端系数(默认0.0)、一类边界值(默认0.0)
 
 protected:
-    static double scalar(const PropertiesFieldData& properties, const std::string& name, int zone) // 得到属性表中名为 name 的区域属性在 zone 区域的值
-    {
-        return std::get<double>(properties.zone_values.at(name).at(zone).value());
-    }
+    static double scalar(const PropertiesFieldData& properties, const std::string& name, int zone); // 得到属性表中名为 name 的区域属性在 zone 区域的值
 };
 
 }

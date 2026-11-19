@@ -9,7 +9,6 @@ class GravitySource final : public MechanicsSourceModel // 使用积分点质量
 {
 public:
     GravitySource(const ModelParameterMap&);
-
     VectorValue evaluate(const PropertiesFieldData& properties, std::size_t point) const override;
 };
 

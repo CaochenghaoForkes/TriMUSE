@@ -5,9 +5,10 @@ namespace trimuse
 {
 
 AnisotropyTimeSeriesYoungModulus::AnisotropyTimeSeriesYoungModulus(const ModelParameterMap& parameters)
-    : times_(std::get<VectorValue>(parameters.at("times"))),
-      r_values_(std::get<VectorValue>(parameters.at("r_values"))),
-      t_values_(std::get<VectorValue>(parameters.at("t_values")))
+    :
+    times_(std::get<VectorValue>(parameters.at("times"))),
+    r_values_(std::get<VectorValue>(parameters.at("r_values"))),
+    t_values_(std::get<VectorValue>(parameters.at("t_values")))
 {
 }
 

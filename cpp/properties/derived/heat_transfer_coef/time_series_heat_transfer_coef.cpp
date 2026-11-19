@@ -4,7 +4,8 @@ namespace trimuse
 {
 
 TimeSeriesHeatTransferCoef::TimeSeriesHeatTransferCoef(const ModelParameterMap& parameters)
-    : TimeSeriesModel(parameters)
+    :
+    TimeSeriesModel(parameters)
 {
 }
 

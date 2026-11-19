@@ -10,7 +10,6 @@ class ThermalResistanceFromProperty final : public ThermalInterfaceModel
 {
 public:
     explicit ThermalResistanceFromProperty(const ModelParameterMap& parameters); // 把 Python 传来的角域参数整理成 AngularRanges 角域列表
-
     bool is_perfect_contact(const InterfaceContext& context) const override; // 判断当前面片是否按完美接触处理
 
 private:

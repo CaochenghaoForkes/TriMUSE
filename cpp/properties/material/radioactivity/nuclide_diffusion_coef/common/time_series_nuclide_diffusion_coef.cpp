@@ -4,7 +4,8 @@ namespace trimuse
 {
 
 TimeSeriesNuclideDiffusionCoef::TimeSeriesNuclideDiffusionCoef(const ModelParameterMap& parameters)
-    : TimeSeriesModel(parameters)
+    :
+    TimeSeriesModel(parameters)
 {
 }
 

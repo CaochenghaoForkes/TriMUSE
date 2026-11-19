@@ -4,7 +4,8 @@ namespace trimuse
 {
 
 TimeSeriesSurfaceDisplacement::TimeSeriesSurfaceDisplacement(const ModelParameterMap& parameters)
-    : TimeSeriesModel(parameters, "vector")
+    :
+    TimeSeriesModel(parameters, "vector")
 {
 }
 

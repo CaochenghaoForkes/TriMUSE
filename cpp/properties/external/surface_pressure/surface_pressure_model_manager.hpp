@@ -16,7 +16,6 @@ class SurfacePressureModel
 {
 public:
     virtual ~SurfacePressureModel();
-
     virtual double evaluate(const PropertiesStatePoint& point) const = 0;
 };
 
@@ -24,11 +23,8 @@ class SurfacePressureModelManager
 {
 public:
     void register_models();
-
     void assign(int zone_attribute, const std::string& model_name, const ModelParameterMap& parameters);
-
     double evaluate(const PropertiesStatePoint& point) const;
-
     const std::vector<std::string>& required_states(const std::string& model_name) const;
 
 private:

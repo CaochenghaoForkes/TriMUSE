@@ -10,7 +10,6 @@ class ConstantNuclideDiffusionCoef final : public NuclideDiffusionCoefModel, pri
 {
 public:
     explicit ConstantNuclideDiffusionCoef(const ModelParameterMap& parameters);
-
     double evaluate(const PropertiesStatePoint& point) const override;
 };
 

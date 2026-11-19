@@ -5,6 +5,7 @@
 
 namespace trimuse
 {
+
 ThermalAssembly::ThermalAssembly(FemSystem& fem, TrialField& trial_field, const ThermalRegionConfigs& regions, const ThermalBoundaryConfigs& boundaries, const ThermalInterfaceConfigs& interfaces) // 初始化各物理贡献管理器，并建立已配置外边界的单元索引表
     :
     fem_(fem),
@@ -19,17 +20,20 @@ ThermalAssembly::ThermalAssembly(FemSystem& fem, TrialField& trial_field, const 
 {
     constraints_.finalize(); // 全部界面相等关系已登记，构建 P，供后续初值投影、约化求解及恢复共用
     const auto& mesh = fem.mesh_data().mfem_mesh(); // 取得原始网格
-    for (int zone : boundary_manager_.zones()) { boundary_elements_[zone] = {}; }
-    for (int zone : boundary_manager_.zones()) // 遍历已配置的边界分区 (不仅包含外边界 还有可能包含显式标记的内部材料界面)
-    for (int b = 0; b < mesh.GetNBE(); ++b) // 遍历全部网格边界单元
+    for (int zone : boundary_manager_.zones())
     {
-        int first, second;
-        mesh.GetFaceElements(mesh.GetBdrElementFaceIndex(b), &first, &second); // 先取得边界单元 b 对应的原网格面编号 再查找这个两侧的域单元编号 first: 第一侧域单元 second: 第二侧域单元 若小于0表示没有第二侧 即为外部表面
-        if (second < 0 && mesh.GetBdrAttribute(b) == zone) // 若是外部表面,且边界属性编号与当前的 zone 一致
-        {
-            boundary_elements_[zone].push_back(b); // 形成 如  zone 41 → {边界单元 2, 5, 9}
-        }
+        boundary_elements_[zone] = {};
     }
+    for (int zone : boundary_manager_.zones()) // 遍历已配置的边界分区 (不仅包含外边界 还有可能包含显式标记的内部材料界面)
+        for (int b = 0; b < mesh.GetNBE(); ++b) // 遍历全部网格边界单元
+        {
+            int first, second;
+            mesh.GetFaceElements(mesh.GetBdrElementFaceIndex(b), &first, &second); // 先取得边界单元 b 对应的原网格面编号 再查找这个两侧的域单元编号 first: 第一侧域单元 second: 第二侧域单元 若小于0表示没有第二侧 即为外部表面
+            if (second < 0 && mesh.GetBdrAttribute(b) == zone) // 若是外部表面,且边界属性编号与当前的 zone 一致
+            {
+                boundary_elements_[zone].push_back(b); // 形成 如  zone 41 → {边界单元 2, 5, 9}
+            }
+        }
 }
 
 void ThermalAssembly::mark_coupled(PropertiesSystem& properties, bool transient) const // 登记热方程实际用到的属性与温度场之间的耦合关系
@@ -45,8 +49,7 @@ void ThermalAssembly::mark_coupled(PropertiesSystem& properties, bool transient)
 
 bool ThermalAssembly::coupled(const PropertiesSystem& properties, bool transient) const // 判断: 当前热方程中，是否存在已登记的温度耦合关系，用于决定是否需要非线性迭代
 {
-    return conduction_manager_.coupled(properties, "temperature") || source_manager_.coupled(properties, "temperature") // || 连接: 任意一项为 true 整个方法就返回 true
-        || boundary_manager_.coupled(properties, "temperature") || (transient && capacity_manager_.coupled(properties, "temperature"));
+    return conduction_manager_.coupled(properties, "temperature") || source_manager_.coupled(properties, "temperature") || boundary_manager_.coupled(properties, "temperature") || (transient && capacity_manager_.coupled(properties, "temperature")); // || 连接: 任意一项为 true 整个方法就返回 true
 }
 
 void ThermalAssembly::refresh_conduction() // 按区域变化标记刷新conduction矩阵
@@ -122,13 +125,15 @@ void ThermalAssembly::refresh_boundary() // 根据 boundary_manager_ 各 zone �
         {
             boundary_matrix_cache_.parts[zone] = integrator_.boundary_matrix(boundary_elements_.at(zone), boundary_manager_.values(zone).matrix); // 组装并保存该 zone 的矩阵贡献，Robin 对应 int_Gamma_zone h * Ni * Nj dGamma
             boundary_manager_.assembled(zone, BoundaryPart::Matrix); // 清除该边界的 Matrix 变化标记，不影响 Load 标记
-            ++counts_["boundary_matrix"]; matrix_changed = true; // 记录一次边界矩阵组装，并标记需要重新求和
+            ++counts_["boundary_matrix"];
+            matrix_changed = true; // 记录一次边界矩阵组装，并标记需要重新求和
         }
         if (!boundary_load_cache_.parts.count(zone) || !boundary_manager_.required_no_change(zone, BoundaryPart::Load)) // 同样检查: 是否没有缓存，或者右端系数需要更新
         {
             boundary_load_cache_.parts[zone] = integrator_.boundary_load(boundary_elements_.at(zone), boundary_manager_.values(zone).load); // 依次执行：组装该 zone 的右端贡献、清除 Load 标记、增加统计次数、标记总向量需要更新
             boundary_manager_.assembled(zone, BoundaryPart::Load);
-            ++counts_["boundary_load"]; load_changed = true;
+            ++counts_["boundary_load"];
+            load_changed = true;
         }
     }
     if (matrix_changed)
@@ -196,7 +201,8 @@ ThermalAssembly::State ThermalAssembly::update(const PropertiesFieldData& proper
         auto load = std::make_shared<mfem::Vector>(*source_load_cache_.sum); // 先复制体积源向量，再加上外边界贡献
         *load += *boundary_load_cache_.sum; // F = F体积源 + F外边界
         state_.load = std::move(load); // 保存新右端，并记录本次使用的缓存指针
-        last_source_load_cache_sum_ = source_load_cache_.sum; last_boundary_load_cache_sum_ = boundary_load_cache_.sum;
+        last_source_load_cache_sum_ = source_load_cache_.sum;
+        last_boundary_load_cache_sum_ = boundary_load_cache_.sum;
     }
     state_.mass = capacity_matrix_cache_.sum; // 共享引用当前热容缓存，不复制矩阵
     return state_; // 只共享不可变的组装结果, 后续更新替换指针, 不改写旧时刻的矩阵。
@@ -225,13 +231,13 @@ void ThermalAssembly::essential_values(std::map<int, double>& values) const // �
             mfem::Array<int> dofs;
             trial_field_.face_dofs(mesh.GetAttribute(first), face, dofs); // 取得边界面上的完整自由度编号
             for (int dof : dofs) // 遍历边界面的完整自由度编号，也就是 P 的行号
-            for (int j = p.GetI()[dof]; j < p.GetI()[dof + 1]; ++j) // 遍历该行已存储条目的数组下标 j
-            {
-                if (p.GetData()[j] != 0.0) // GetJ()[j] 是列号，即与当前完整自由度关联的独立自由度编号
+                for (int j = p.GetI()[dof]; j < p.GetI()[dof + 1]; ++j) // 遍历该行已存储条目的数组下标 j
                 {
-                    values[p.GetJ()[j]] = boundary_manager_.values(zone).temperature; // 将该独立自由度的指定温度写入 values
+                    if (p.GetData()[j] != 0.0) // GetJ()[j] 是列号，即与当前完整自由度关联的独立自由度编号
+                    {
+                        values[p.GetJ()[j]] = boundary_manager_.values(zone).temperature; // 将该独立自由度的指定温度写入 values
+                    }
                 }
-            }
         }
     }
 }
@@ -271,10 +277,11 @@ void ThermalAssembly::project_initial() // 把当前初温投影到满足界面�
     const auto& p = constraints_.prolongation(); // Pu=T_original
     auto solution = constraints_.reduced_values(); // 根据当前完整温度生成独立自由度上的初始猜测
     mfem::Vector original = trial_field_.values(), projected(trial_field_.size());
-    p.Mult(solution, projected); projected -= original; // projected = P solution - T_original (projected 保存的是恢复温度与原始温度的差)
+    p.Mult(solution, projected);
+    projected -= original; // projected = P solution - T_original (projected 保存的是恢复温度与原始温度的差)
     if (projected.Normlinf() <= 1e-12 * std::max(1.0, original.Normlinf()))
     {
-        return;  // 若这个差足够小，说明原始温度已经满足约束，直接返回
+        return; // 若这个差足够小，说明原始温度已经满足约束，直接返回
     }
     std::map<int, std::shared_ptr<const mfem::SparseMatrix>> parts; // 准备各区域的矩阵贡献
     std::vector<double> unit(fem_.domain_quadrature_point_count(), 1.0); // 以及所有积分点都为 1 的系数数组
@@ -284,11 +291,17 @@ void ThermalAssembly::project_initial() // 把当前初温投影到满足界面�
     }
     auto mass = sum_matrices(parts, trial_field_.size()); // 得到 M
     mfem::Vector load(trial_field_.size()), system_load(p.Width());
-    mass->Mult(original, load); p.MultTranspose(load, system_load); // load = M T_original system_load = P^T M T_original
+    mass->Mult(original, load);
+    p.MultTranspose(load, system_load); // load = M T_original system_load = P^T M T_original
     std::unique_ptr<mfem::SparseMatrix> system(mfem::RAP(p, *mass, p)); // system = P^T M P
     mfem::GSSmoother preconditioner(*system);
-    mfem::CGSolver solver; solver.SetOperator(*system); solver.SetPreconditioner(preconditioner);
-    solver.SetRelTol(1e-12); solver.SetAbsTol(0.0); solver.SetMaxIter(1000); solver.SetPrintLevel(0);
+    mfem::CGSolver solver;
+    solver.SetOperator(*system);
+    solver.SetPreconditioner(preconditioner);
+    solver.SetRelTol(1e-12);
+    solver.SetAbsTol(0.0);
+    solver.SetMaxIter(1000);
+    solver.SetPrintLevel(0);
     solver.Mult(system_load, solution); // 求解 (P^T M P)u = P^T M T_original
     if (!solver.GetConverged())
     {

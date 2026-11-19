@@ -10,7 +10,6 @@ class TimeSeriesVolumetricNuclideBirthRate final : public VolumetricNuclideBirth
 {
 public:
     explicit TimeSeriesVolumetricNuclideBirthRate(const ModelParameterMap& parameters);
-
     StateValue evaluate(const PropertiesStatePoint& point) const override;
 };
 

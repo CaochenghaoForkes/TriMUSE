@@ -10,7 +10,6 @@ class ConstantCrystalliteDiameter final : public CrystalliteDiameterModel, priva
 {
 public:
     explicit ConstantCrystalliteDiameter(const ModelParameterMap& parameters);
-
     double evaluate(const PropertiesStatePoint& point) const override;
 };
 

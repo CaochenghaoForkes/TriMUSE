@@ -9,7 +9,6 @@ class UniformFromBirthRate final : public VolumetricNuclideBirthRateModel
 {
 public:
     explicit UniformFromBirthRate(const ModelParameterMap& parameters);
-
     StateValue evaluate(const PropertiesStatePoint& point) const override;
 };
 

@@ -10,7 +10,6 @@ class ConstantSurfaceTraction final : public SurfaceTractionModel, private Const
 {
 public:
     explicit ConstantSurfaceTraction(const ModelParameterMap& parameters);
-
     VectorValue evaluate(const PropertiesStatePoint& point) const override;
 };
 

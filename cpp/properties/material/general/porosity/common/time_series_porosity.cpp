@@ -4,7 +4,8 @@ namespace trimuse
 {
 
 TimeSeriesPorosity::TimeSeriesPorosity(const ModelParameterMap& parameters)
-    : TimeSeriesModel(parameters)
+    :
+    TimeSeriesModel(parameters)
 {
 }
 

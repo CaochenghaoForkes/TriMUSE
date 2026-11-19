@@ -9,7 +9,6 @@ class ArrheniusNuclideDiffusionCoef final : public NuclideDiffusionCoefModel
 {
 public:
     explicit ArrheniusNuclideDiffusionCoef(const ModelParameterMap& parameters);
-
     double evaluate(const PropertiesStatePoint& state_point) const override;
 
 private:

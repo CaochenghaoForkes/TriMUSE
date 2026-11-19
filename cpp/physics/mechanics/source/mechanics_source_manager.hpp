@@ -15,19 +15,12 @@ class MechanicsSourceManager // 按区域管理体积力模型，缓存全域积
 {
 public:
     explicit MechanicsSourceManager(const FemSystem& fem, const std::vector<MechanicsDomainConfig>& configs = {}); // 只安排显式配置的区域，未配置区域的体积力为零
-
     void update(const PropertiesFieldData& properties); // 更新各个求积点上的体积力与 dirty 标记
-
     bool coupled(const PropertiesSystem& properties, const std::string& field) const; // 判断属性是否因体积力而与位移场耦合
-
     void mark_coupled(PropertiesSystem& properties, const std::string& field) const; // 标记由于体积力而与位移场耦合的属性
-
     bool required_no_change(int region) const; // 根据 dirty 判断指定区域的系数是否与最近一次组装时一致(dirty是否为False)，因而可以复用已有矩阵或向量
-
     void assembled(int region); // 将 region 处的 dirty 记为 false
-
     const std::vector<VectorValue>& values() const { return values_; } // 全域积分点编号 -> 该点的体积力向量
-
     std::vector<int> regions() const; // 返回当前管理器中已经配置模型的所有区域编号
 
 private:

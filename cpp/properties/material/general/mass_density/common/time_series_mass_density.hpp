@@ -10,7 +10,6 @@ class TimeSeriesMassDensity final : public MassDensityModel, private TimeSeriesM
 {
 public:
     explicit TimeSeriesMassDensity(const ModelParameterMap& parameters);
-
     double evaluate(const PropertiesStatePoint& point) const override;
 };
 

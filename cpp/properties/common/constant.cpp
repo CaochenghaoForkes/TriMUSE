@@ -4,7 +4,8 @@ namespace trimuse
 {
 
 ConstantModel::ConstantModel(const ModelParameterMap& parameters, const std::string& value_type)
-    : ConstantModel(parameters.at("constant_value"), value_type) // 委托构造 调用下面的构造函数
+    :
+    ConstantModel(parameters.at("constant_value"), value_type) // 委托构造 调用下面的构造函数
 {
 }
 

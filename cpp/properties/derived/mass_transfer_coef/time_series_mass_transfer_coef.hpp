@@ -10,7 +10,6 @@ class TimeSeriesMassTransferCoef final : public MassTransferCoefModel, private T
 {
 public:
     explicit TimeSeriesMassTransferCoef(const ModelParameterMap& parameters);
-
     StateValue evaluate(const PropertiesStatePoint& point) const override;
 };
 

@@ -50,10 +50,7 @@ void MechanicsAssembly::mark_coupled(PropertiesSystem& properties) const // 标�
 
 bool MechanicsAssembly::coupled(const PropertiesSystem& properties) const // 判断: 是否有任何一个模型的依赖属性与指定求解场耦合
 {
-    return stiffness_manager_.coupled(properties, "displacement")
-        || thermal_expansion_manager_.coupled(properties, "displacement")
-        || source_manager_.coupled(properties, "displacement")
-        || boundary_manager_.coupled(properties, "displacement");
+    return stiffness_manager_.coupled(properties, "displacement") || thermal_expansion_manager_.coupled(properties, "displacement") || source_manager_.coupled(properties, "displacement") || boundary_manager_.coupled(properties, "displacement");
 }
 
 void MechanicsAssembly::refresh_stiffness() // 只重组需要更新的区域刚度矩阵，如果有更新，再把各区域贡献重新相加
@@ -152,9 +149,7 @@ MechanicsAssembly::State MechanicsAssembly::update(const PropertiesFieldData& pr
     refresh_boundary(); // 根据 dirty 只重新组装发生变化或尚无缓存的表面边界表面力载荷，必要时重新计算表面边界表面力载荷 并更换 cache_.sum 指针为新对象
 
     state_.matrix = stiffness_matrix_cache_.sum; // 让 state_.matrix 与 stiffness_matrix_cache_.sum 共同持有同一张矩阵，不复制矩阵数值
-    if (last_thermal_expansion_load_cache_sum_ != thermal_expansion_load_cache_.sum // 若总热膨胀载荷指针发生更换
-        || last_source_load_cache_sum_ != source_load_cache_.sum // 或总体积力载荷指针发生更换
-        || last_boundary_load_cache_sum_ != boundary_load_cache_.sum) // 或总表面力载荷指针发生更换
+    if (last_thermal_expansion_load_cache_sum_ != thermal_expansion_load_cache_.sum || last_source_load_cache_sum_ != source_load_cache_.sum || last_boundary_load_cache_sum_ != boundary_load_cache_.sum) // 若总热膨胀载荷指针发生更换；或总体积力载荷指针发生更换；或总表面力载荷指针发生更换
     {
         auto load = std::make_shared<mfem::Vector>(*thermal_expansion_load_cache_.sum); // 重新创建新总载荷向量 f = fth + fbody + fboundary
         *load += *source_load_cache_.sum;
@@ -188,12 +183,12 @@ void MechanicsAssembly::essential_values(std::map<int, double>& values) const //
             trial_field_.face_dofs(mesh.GetAttribute(first), face, dofs);
             const int count = dofs.Size() / dimension; // 每个分量的自由度数（插值节点数） 面上自由度按 [分量 0 的全部节点，分量 1 的全部节点，...] 排列
             for (int component = 0; component < dimension; ++component) // 遍历维度分量数
-            for (int node = 0; node < count; ++node) // 遍历插值节点
-            {
-                const int full_dof = dofs[component * count + node]; // 按分量块找到对应的完整自由度编号
-                const int reduced_dof = prolongation.GetJ()[prolongation.GetI()[full_dof]]; // 得到对应的独立自由度编号
-                values[reduced_dof] = displacement[component]; // 保存的是被指定位移约束的独立自由度及其指定值
-            }
+                for (int node = 0; node < count; ++node) // 遍历插值节点
+                {
+                    const int full_dof = dofs[component * count + node]; // 按分量块找到对应的完整自由度编号
+                    const int reduced_dof = prolongation.GetJ()[prolongation.GetI()[full_dof]]; // 得到对应的独立自由度编号
+                    values[reduced_dof] = displacement[component]; // 保存的是被指定位移约束的独立自由度及其指定值
+                }
         }
     }
 }

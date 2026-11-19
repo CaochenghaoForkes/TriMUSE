@@ -4,7 +4,8 @@ namespace trimuse
 {
 
 IsotropyConstantPoissonRatio::IsotropyConstantPoissonRatio(const ModelParameterMap& parameters)
-    : ConstantModel(parameters.at("isotropy_constant_value"), "scalar")
+    :
+    ConstantModel(parameters.at("isotropy_constant_value"), "scalar")
 {
 }
 

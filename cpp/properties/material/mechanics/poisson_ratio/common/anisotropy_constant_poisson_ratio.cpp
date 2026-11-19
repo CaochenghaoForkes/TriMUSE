@@ -4,7 +4,8 @@ namespace trimuse
 {
 
 AnisotropyConstantPoissonRatio::AnisotropyConstantPoissonRatio(const ModelParameterMap& parameters)
-    : ConstantModel(VectorValue{std::get<double>(parameters.at("rt_constant_value")), std::get<double>(parameters.at("tt_constant_value"))}, "vector")
+    :
+    ConstantModel(VectorValue{std::get<double>(parameters.at("rt_constant_value")), std::get<double>(parameters.at("tt_constant_value"))}, "vector")
 {
 }
 

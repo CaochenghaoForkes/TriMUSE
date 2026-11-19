@@ -14,7 +14,6 @@ class FastNeutronFluenceModel
 {
 public:
     virtual ~FastNeutronFluenceModel();
-
     virtual StateValue evaluate(const PropertiesStatePoint& point) const = 0;
 };
 
@@ -22,11 +21,8 @@ class FastNeutronFluenceModelManager
 {
 public:
     void register_models();
-
     void assign(const std::string& model_name, const ModelParameterMap& parameters);
-
     StateValue evaluate(const PropertiesStatePoint& point) const;
-    
     const std::vector<std::string>& required_states(const std::string& model_name) const;
 
 private:

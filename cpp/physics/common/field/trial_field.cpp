@@ -4,20 +4,22 @@ namespace trimuse
 {
 
 TrialField::TrialField(FemSystem&, FieldData& accepted_field) // 使用连续场时的构造函数，负责保存正式场引用，并建立独立的试探场，将正式场的场向量传入试验场中
-    : accepted_continuous_field_(&accepted_field), // 将正式场 accepted_field 的地址保存到 accepted_continuous_field_
+    :
+    accepted_continuous_field_(&accepted_field), // 将正式场 accepted_field 的地址保存到 accepted_continuous_field_
       trial_continuous_field_(std::make_unique<mfem::GridFunction>(accepted_field.mfem_grid_function().FESpace())) // accepted_field.mfem_grid_function().FESpace() 取得正式场所使用的有限元空间指针 std::make_unique<mfem::GridFunction>(该空间指针) 在同一个有限元空间上创建新的试探 GridFunction
 {
     load(); // 将正式场当前的场值复制到新建的试探场中
 }
 
 TrialField::TrialField(FemSystem& fem, RegionFieldData& accepted_field) // 使用分域场时的构造函数：保存正式场，创建同样布局的试探场，记录各区域的自由度偏移，最后复制场值
-    : accepted_region_field_(&accepted_field)
+    :
+    accepted_region_field_(&accepted_field)
 {
     const auto attributes = fem.mesh_data().region_attributes(); // 取得网格中所有区域的属性编号
     const auto& first_space = accepted_field.finite_element_space(attributes.front()); // attributes.front() 取得第一个区域的编号 再取得该区域的有限元空间 这个空间可以代表所有分域的空间
     trial_region_field_ = std::make_unique<RegionFieldData>(fem.mesh_data(), first_space.order(), first_space.vector_dimension()); // 根据同一个网格和相同插值阶次、分量数，创建新的分域试探场
     for (std::size_t i = 0; i < attributes.size(); ++i) // 建立“区域编号 → 整体自由度偏移”的映射
-    { 
+    {
         offsets_[attributes[i]] = accepted_field.dof_offsets()[i]; // 最后一个是整体自由度总数,不存入 attributes = {3, 17}; accepted_field.dof_offsets() = {0, 10, 18};
     }
     load(); // 将正式分域场的场值复制到试探场，完成初始化
@@ -40,12 +42,12 @@ int TrialField::local_element(int element) const // 将原网格的域单元编�
 
 void TrialField::element_dofs(int element, mfem::Array<int>& dofs) const // 根据原网格的域单元编号，将该单元对应的分域场整体/连续场中的整体自由度编号填入 dofs
 {
-    if (regional()) 
-    { 
+    if (regional())
+    {
         trial_region_field_->element_dofs(element, dofs); // 如果使用分域场 内部 1.确定单元所属区域 2.将原单元编号映射为子网格局部单元编号 3.取得该单元在区域空间中的自由度编号 4. 加上区域偏移转换为分域场整体拼接向量中的编号
     }
-    else 
-    { 
+    else
+    {
         trial_continuous_field_->FESpace()->GetElementVDofs(element, dofs); // 如果使用连续场，直接从原网格上的有限元空间取得该单元的自由度编号
     }
 }
@@ -53,24 +55,24 @@ void TrialField::element_dofs(int element, mfem::Array<int>& dofs) const // 根�
 void TrialField::face_dofs(int region, int face, mfem::Array<int>& dofs) const // 取得指定区域一侧、某个网格面上的自由度编号，并填入 dofs region 是区域属性编号用于指定面的哪一侧 face 是原网格中的面编号不是边界单元编号 dofs 输出的完整向量中的自由度编号数组
 {
     space(region).GetFaceVDofs(regional() ? trial_region_field_->local_face(region, face) : face, dofs); // space(region): 取得当前区域的试探场空间;连续场则取得整个网格的空间 GetFaceVDofs(...) 取得该面上的自由度 分域场需要先把原网格面编号转换成对应子网格的局部面编号 连续场直接使用 face
-    if (regional()) 
-    { 
-        for (int& dof : dofs) 
-        { 
+    if (regional())
+    {
+        for (int& dof : dofs)
+        {
             dof = dof >= 0 ? dof + offsets_.at(region) : dof - offsets_.at(region); // 分域场刚取得的是区域空间内的自由度编号，加上区域偏移后，转换成整体拼接向量中的编号；保留 MFEM 的有符号编号编码
-        } 
+        }
     }
 }
 
 mfem::Vector TrialField::values() const // 将当前试探场的整体向量自由度值，作为一个整体向量返回
 {
     mfem::Vector result;
-    if (regional()) 
-    { 
+    if (regional())
+    {
         trial_region_field_->get_values(result);
     }
-    else 
-    { 
+    else
+    {
         result = *trial_continuous_field_;
     }
     return result;
@@ -78,12 +80,12 @@ mfem::Vector TrialField::values() const // 将当前试探场的整体向量自�
 
 void TrialField::set_values(const mfem::Vector& values) // 将传入的整体场向量写入试探场
 {
-    if (regional()) 
-    { 
+    if (regional())
+    {
         trial_region_field_->set_values(values);
     }
-    else 
-    { 
+    else
+    {
         *trial_continuous_field_ = values;
     }
 }
@@ -92,29 +94,32 @@ void TrialField::load() // 把正式场当前的场值复制到试探场，作�
 {
     if (regional()) // 若当前使用分域场
     {
-        mfem::Vector values; 
+        mfem::Vector values;
         accepted_region_field_->get_values(values); // 把正式分域场中各区域的自由度值，按区域偏移拼接到 values 中
         trial_region_field_->set_values(values); // 再将这个整体向量按相同布局拆分，写入各区域的试探场
     }
-    else { *trial_continuous_field_ = accepted_continuous_field_->mfem_grid_function(); } // 如果用的是连续场则直接把正式场的全部自由度值复制到试探 GridFunction 中
+    else
+    {
+        *trial_continuous_field_ = accepted_continuous_field_->mfem_grid_function();
+    } // 如果用的是连续场则直接把正式场的全部自由度值复制到试探 GridFunction 中
 }
 
 void TrialField::accept() // 把当前试探场的场值复制回正式场，接受本次求解结果
 {
-    if (regional()) 
-    { 
+    if (regional())
+    {
         accepted_region_field_->set_values(values());
     }
-    else 
-    { 
+    else
+    {
         accepted_continuous_field_->mfem_grid_function() = *trial_continuous_field_;
     }
 }
 
 FieldView TrialField::view() const // 用于把当前试探场包装成统一的只读访问接口 FieldView，供 properties 等模块在积分点上读取场值
 {
-    if (regional()) 
-    { 
+    if (regional())
+    {
         return trial_region_field_.get(); // 从 unique_ptr 取得 RegionFieldData*，随后通过 FieldView 对应的构造函数，自动转换成 FieldView
     }
     return trial_continuous_field_.get(); // 如果是连续场，取得 GridFunction*，同样构造相应的 FieldView

@@ -21,12 +21,9 @@ class MaterialCoordinateSystem
 {
 public:
     MaterialCoordinateSystem(const std::string& geometry_method, int dimension, const std::array<double, 3>& center, const RegionLayerGeometryMap& region_layers);
-
     Tensor3DValue basis(int region_attribute, const std::array<double, 3>& position) const; // Q=[n,t1,t2]；2D 使用 (r,z,phi) 计算基底，3D 使用 (x,y,z)
 
 private:
-    enum class Geometry { Sphere, Legendre, SphericalHarmonics, Flat };
-
     struct Profile // 某一层表面的轮廓描述 每个区域有两个
     {
         bool origin = false; // 是否表示中心点 最内材料没有内表面 因此 origin = true
@@ -45,24 +42,24 @@ private:
         double dR_dphi_over_sin = 0.0; // (partial R / partial phi) / sin(theta)，两极使用解析极限
     };
 
+    enum class Geometry
+    {
+        Sphere,
+        Legendre,
+        SphericalHarmonics,
+        Flat
+    };
+
     Profile make_profile(const ModelParameterMap& parameters) const;
-
     Sample sample(const Profile& profile, double theta, double phi) const; // 按轮廓类型调用对应方法
-
     Sample sphere_sample(const Profile& profile) const;
-
     Sample flat_sample(const Profile& profile, double theta) const;
-
     Sample stochastic_sample_2d(const Profile& profile, double theta) const;
-
     Sample stochastic_sample_3d(const Profile& profile, double theta, double phi) const;
 
     Geometry geometry_; // 构造几何方法
-
     int dimension_; // 维数
-
     std::array<double, 3> center_; // 中心坐标
-
     std::unordered_map<int, std::array<Profile, 2>> profiles_; // 区域编号 -> 内外侧的 Profile
 };
 

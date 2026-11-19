@@ -10,7 +10,6 @@ class AnisotropyTimeSeriesPoissonRatio final : public PoissonRatioModel
 {
 public:
     explicit AnisotropyTimeSeriesPoissonRatio(const ModelParameterMap& parameters);
-
     VectorValue evaluate(const PropertiesStatePoint& point) const override;
 
 private:

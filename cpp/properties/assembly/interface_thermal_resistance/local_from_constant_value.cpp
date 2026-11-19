@@ -4,7 +4,9 @@ namespace trimuse
 {
 
 LocalInterfaceThermalResistance::LocalInterfaceThermalResistance(const ModelParameterMap& parameters)
-    : angles_(parameters), resistances_(AngularRanges::number_array(parameters, "constant_value"))
+    :
+    angles_(parameters),
+    resistances_(AngularRanges::number_array(parameters, "constant_value"))
 {
 }
 

@@ -4,7 +4,8 @@ namespace trimuse
 {
 
 ConstantSurfaceDisplacement::ConstantSurfaceDisplacement(const ModelParameterMap& parameters)
-    : ConstantModel(parameters, "vector")
+    :
+    ConstantModel(parameters, "vector")
 {
 }
 

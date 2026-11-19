@@ -4,7 +4,8 @@ namespace trimuse
 {
 
 TimeSeriesVolumetricNuclideBirthRate::TimeSeriesVolumetricNuclideBirthRate(const ModelParameterMap& parameters)
-    : TimeSeriesModel(parameters)
+    :
+    TimeSeriesModel(parameters)
 {
 }
 

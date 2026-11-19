@@ -4,7 +4,8 @@ namespace trimuse
 {
 
 TimeSeriesSurfaceNuclideConcentration::TimeSeriesSurfaceNuclideConcentration(const ModelParameterMap& parameters, const std::string& value_type)
-    : TimeSeriesModel(parameters, value_type)
+    :
+    TimeSeriesModel(parameters, value_type)
 {
 }
 

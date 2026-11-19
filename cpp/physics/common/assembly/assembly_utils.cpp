@@ -21,10 +21,10 @@ std::shared_ptr<mfem::SparseMatrix> sum_matrices(const std::map<int, std::shared
             rows    = {0, 2, 3, 5};    // 各行的起始偏移，末项是条目总数
         */
         for (int row = 0; row < size; ++row)
-        for (int j = rows[row]; j < rows[row + 1]; ++j) // j 是 CSR 数据数组下标
-        { 
-            sum->Add(row, columns[j], data[j]); 
-        }
+            for (int j = rows[row]; j < rows[row + 1]; ++j) // j 是 CSR 数据数组下标
+            {
+                sum->Add(row, columns[j], data[j]);
+            }
     }
     sum->Finalize(); // 将新矩阵整理为 CSR 格式，供后续矩阵运算使用
     return sum;
@@ -34,9 +34,9 @@ std::shared_ptr<mfem::Vector> sum_vectors(const std::map<int, std::shared_ptr<co
 {
     auto sum = std::make_shared<mfem::Vector>(size); // 创建长度为 size 的向量，由共享智能指针管理
     *sum = 0.0; // 全部分量置零
-    for (const auto& [region, vector] : parts) 
-    { 
-        *sum += *vector;  // 逐个取出贡献向量，解引用后按分量相加
+    for (const auto& [region, vector] : parts)
+    {
+        *sum += *vector; // 逐个取出贡献向量，解引用后按分量相加
     }
     return sum;
 }

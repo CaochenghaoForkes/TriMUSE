@@ -10,7 +10,6 @@ class TimeSeriesEnvironmentNuclideConcentration final : public EnvironmentNuclid
 {
 public:
     explicit TimeSeriesEnvironmentNuclideConcentration(const ModelParameterMap& parameters, const std::string& value_type);
-
     StateValue evaluate(const PropertiesStatePoint& point) const override;
 };
 

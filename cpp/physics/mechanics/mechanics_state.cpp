@@ -5,6 +5,7 @@
 
 namespace trimuse
 {
+
 namespace
 {
 
@@ -13,8 +14,7 @@ void principal_values(const VectorValue& values, VectorValue& principal) // 向�
     const double entries[3][3] = {
         {values[0], values[5], values[4]},
         {values[5], values[1], values[3]},
-        {values[4], values[3], values[2]}
-    }; // [11,22,33,23,13,12] 还原为对称张量，张量剪应变直接填入非对角位置
+        {values[4], values[3], values[2]}}; // [11,22,33,23,13,12] 还原为对称张量，张量剪应变直接填入非对角位置
     const mfem::DenseMatrix tensor(entries);
     double directions[9]; // MFEM 接口同时输出主方向，此处仅使用主值
     tensor.CalcEigenvalues(principal.data(), directions); // principal.data()：接收三个特征值  directions：接收对应的三个特征向量
@@ -24,12 +24,9 @@ void principal_values(const VectorValue& values, VectorValue& principal) // 向�
 }
 
 MechanicsState::MechanicsState(std::size_t point_count) // 传入 point_count 是原网格全部域单元的求积点总数
-    : trial_values_{std::vector<VectorValue>(point_count, VectorValue(6, 0.0)),
-                    std::vector<VectorValue>(point_count, VectorValue(6, 0.0)),
-                    std::vector<VectorValue>(point_count, VectorValue(3, 0.0)),
-                    std::vector<VectorValue>(point_count, VectorValue(3, 0.0)),
-                    std::vector<double>(point_count, 0.0)},
-      accepted_values_(trial_values_)
+    :
+    trial_values_{std::vector<VectorValue>(point_count, VectorValue(6, 0.0)), std::vector<VectorValue>(point_count, VectorValue(6, 0.0)), std::vector<VectorValue>(point_count, VectorValue(3, 0.0)), std::vector<VectorValue>(point_count, VectorValue(3, 0.0)), std::vector<double>(point_count, 0.0)},
+    accepted_values_(trial_values_)
 {
 }
 

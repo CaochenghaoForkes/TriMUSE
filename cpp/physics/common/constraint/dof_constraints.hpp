@@ -12,30 +12,20 @@ class DofConstraints
 {
 public:
     DofConstraints(FemSystem& fem, const TrialField& trial_field);
-
     void connect(const MeshData::Interface& interface); // 找出当前界面两侧对应的自由度，登记为同一组，后续由同一个场未知量表示
-
     void finalize(); // 所有 connect 完成后调用一次，构建 P 并释放配对数据；后续只做约化与恢复
-
     const mfem::SparseMatrix& prolongation() const { return *prolongation_; }
-
     mfem::Vector reduced_values() const; // 从当前完整试探场提取独立自由度上的初始猜测
-
     mfem::Vector recover(const mfem::Vector& solution) const; // x完整 = P x独立，返回完整向量
-
     void form_system(const mfem::SparseMatrix& matrix, const mfem::Vector& load, const std::map<int, double>& essential, mfem::SparseMatrix& system, mfem::Vector& system_load, mfem::Vector& solution) const; // 输入完整方程 matrix、load，输出约束后的 system、system_load 及独立自由度初始解 solution
 
 private:
     int root(int dof); // 找到某个自由度所属分组的最终代表编号
-
     std::unique_ptr<mfem::SparseMatrix> make_prolongation(); // 根据已经建立的自由度分组生成映射矩阵 P，使 x完整 = P x独立
 
     const TrialField& trial_field_; // 试探场
-    
     std::unique_ptr<mfem::SparseMatrix> prolongation_; // 最终约束映射，行对应完整自由度，列对应独立自由度
-
     std::unique_ptr<mfem::H1_FECollection> collection_; // 拥有一套辅助 H1 有限元集合，与分域场采用相同阶次，用于建立下面的父连续空间
-
     std::unique_ptr<mfem::FiniteElementSpace> parent_space_; // 拥有建立在原网格上的辅助连续有限元空间 它为共享界面上的同一自由度提供共同编号，用这个编号配对两侧分域自由度，避免比较浮点坐标
 
     // 保存自由度分组中的“父节点编号” representative_[自由度编号] = 它指向的父自由度编号;

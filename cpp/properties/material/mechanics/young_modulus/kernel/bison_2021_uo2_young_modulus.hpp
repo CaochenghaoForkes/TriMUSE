@@ -10,7 +10,6 @@ class Bison2021Uo2YoungModulus final : public YoungModulusModel
 {
 public:
     explicit Bison2021Uo2YoungModulus(const ModelParameterMap& parameters);
-
     VectorValue evaluate(const PropertiesStatePoint& state_point) const override;
 };
 

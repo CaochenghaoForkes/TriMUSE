@@ -10,7 +10,6 @@ class IsotropyTimeSeriesPoissonRatio final : public PoissonRatioModel
 {
 public:
     explicit IsotropyTimeSeriesPoissonRatio(const ModelParameterMap& parameters);
-
     VectorValue evaluate(const PropertiesStatePoint& point) const override;
 
 private:

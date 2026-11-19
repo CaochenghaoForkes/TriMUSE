@@ -17,7 +17,6 @@ class Cea2004SicConductivity final : public ConductivityModel
 {
 public:
     explicit Cea2004SicConductivity(const ModelParameterMap& parameters);
-
     double evaluate(const PropertiesStatePoint& state_point) const override;
 };
 

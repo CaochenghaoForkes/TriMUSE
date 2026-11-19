@@ -10,7 +10,6 @@ class ConstantVolumetricPower final : public VolumetricPowerModel, private Const
 {
 public:
     explicit ConstantVolumetricPower(const ModelParameterMap& parameters);
-
     StateValue evaluate(const PropertiesStatePoint& point) const override;
 };
 

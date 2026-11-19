@@ -10,7 +10,6 @@ class ConstantSurfaceNuclideConcentration final : public SurfaceNuclideConcentra
 {
 public:
     explicit ConstantSurfaceNuclideConcentration(const ModelParameterMap& parameters, const std::string& value_type);
-
     StateValue evaluate(const PropertiesStatePoint& point) const override;
 };
 

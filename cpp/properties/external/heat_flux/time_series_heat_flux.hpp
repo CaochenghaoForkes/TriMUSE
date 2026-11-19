@@ -10,7 +10,6 @@ class TimeSeriesHeatFlux final : public HeatFluxModel, private TimeSeriesModel
 {
 public:
     explicit TimeSeriesHeatFlux(const ModelParameterMap& parameters, const std::string& value_type);
-
     StateValue evaluate(const PropertiesStatePoint& point) const override;
 };
 

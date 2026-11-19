@@ -10,7 +10,6 @@ class TimeSeriesHeatTransferCoef final : public HeatTransferCoefModel, private T
 {
 public:
     explicit TimeSeriesHeatTransferCoef(const ModelParameterMap& parameters);
-
     StateValue evaluate(const PropertiesStatePoint& point) const override;
 };
 

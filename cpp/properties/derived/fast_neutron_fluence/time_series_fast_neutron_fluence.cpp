@@ -4,7 +4,8 @@ namespace trimuse
 {
 
 TimeSeriesFastNeutronFluence::TimeSeriesFastNeutronFluence(const ModelParameterMap& parameters)
-    : TimeSeriesModel(parameters)
+    :
+    TimeSeriesModel(parameters)
 {
 }
 

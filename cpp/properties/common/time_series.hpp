@@ -13,12 +13,10 @@ class TimeSeriesModel
 {
 public:
     explicit TimeSeriesModel(const ModelParameterMap& parameters, const std::string& value_type = "scalar"); // values 按时间逐样本排列; 向量和张量的各分量展平成一维列表, 张量按行排列
-
     StateValue evaluate(const PropertiesStatePoint& point) const;
 
 private:
     std::vector<double> times_;
-    
     std::vector<StateValue> values_;
 };
 

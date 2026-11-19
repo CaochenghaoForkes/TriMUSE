@@ -4,8 +4,9 @@ namespace trimuse
 {
 
 FieldData::FieldData(FiniteElementSpaceData& finite_element_space, double initial_value)
-    : finite_element_space_(finite_element_space),
-      grid_function_(&finite_element_space_.mfem_space()) // grid_function 存储整个有限元空间中全部自由度值的向量(不仅包含未知节点,还包含施加Dirichlet条件的已知边界自由度)，同时它还关联着对应的有限元空间；它不只是普通向量：结合有限元空间，它能在单元内计算场值
+    :
+    finite_element_space_(finite_element_space),
+    grid_function_(&finite_element_space_.mfem_space()) // grid_function 存储整个有限元空间中全部自由度值的向量(不仅包含未知节点,还包含施加Dirichlet条件的已知边界自由度)，同时它还关联着对应的有限元空间；它不只是普通向量：结合有限元空间，它能在单元内计算场值
 {
     assign(initial_value);
 }

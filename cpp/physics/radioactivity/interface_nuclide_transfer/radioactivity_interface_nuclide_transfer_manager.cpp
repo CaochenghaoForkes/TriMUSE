@@ -4,9 +4,9 @@
 namespace trimuse
 {
 
-RadioactivityInterfaceNuclideTransferManager::RadioactivityInterfaceNuclideTransferManager(FemSystem& fem, const TrialField& trial_field,
-    const std::vector<RadioactivityInterfaceNuclideTransferConfig>& configs) // 按界面标识选择模型，未配置的界面默认完美接触
-    : constraints_(fem, trial_field)
+RadioactivityInterfaceNuclideTransferManager::RadioactivityInterfaceNuclideTransferManager(FemSystem& fem, const TrialField& trial_field, const std::vector<RadioactivityInterfaceNuclideTransferConfig>& configs) // 按界面标识选择模型，未配置的界面默认完美接触
+    :
+    constraints_(fem, trial_field)
 {
     registry_.register_model<RadioactivityPerfectContact>("perfect_contact");
     for (const auto& config : configs)

@@ -10,7 +10,6 @@ class TimeSeriesNuclideDiffusionCoef final : public NuclideDiffusionCoefModel, p
 {
 public:
     explicit TimeSeriesNuclideDiffusionCoef(const ModelParameterMap& parameters);
-
     double evaluate(const PropertiesStatePoint& point) const override;
 };
 

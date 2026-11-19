@@ -11,7 +11,6 @@ class IsotropyConstantYoungModulus final : public YoungModulusModel, private Con
 {
 public:
     explicit IsotropyConstantYoungModulus(const ModelParameterMap& parameters);
-
     VectorValue evaluate(const PropertiesStatePoint& point) const override;
 };
 

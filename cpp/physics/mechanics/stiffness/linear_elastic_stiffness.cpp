@@ -8,4 +8,8 @@ ElasticityTensorValue LinearElasticStiffness::evaluate(const PropertiesFieldData
     return std::get<ElasticityTensorValue>(properties.integration_point_values.at("material.mechanics.elasticity_tensor")[point].value());
 }
 
+LinearElasticStiffness::LinearElasticStiffness(const ModelParameterMap&)
+{
+}
+
 }

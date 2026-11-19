@@ -10,7 +10,6 @@ class ConstantNuclideBirthRate final : public NuclideBirthRateModel, private Con
 {
 public:
     explicit ConstantNuclideBirthRate(const ModelParameterMap& parameters, const std::string& value_type);
-
     StateValue evaluate(const PropertiesStatePoint& point) const override;
 };
 

@@ -11,7 +11,6 @@ class LocalInterfaceThermalResistance final : public InterfaceThermalResistance
 {
 public:
     explicit LocalInterfaceThermalResistance(const ModelParameterMap& parameters);
-
     std::optional<double> evaluate(const PropertiesStatePoint& point) const override;
 
 private:

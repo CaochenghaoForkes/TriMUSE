@@ -8,4 +8,8 @@ MechanicsBoundaryValue MechanicsFromSurfacePressure::evaluate(const PropertiesFi
     return std::get<double>(properties.zone_values.at("external.surface_pressure").at(zone).value());
 }
 
+MechanicsFromSurfacePressure::MechanicsFromSurfacePressure(const ModelParameterMap&)
+{
+}
+
 }

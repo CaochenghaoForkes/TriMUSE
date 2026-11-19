@@ -9,7 +9,6 @@ class AccumulateFromFastNeutronFlux final : public FastNeutronFluenceModel
 {
 public:
     explicit AccumulateFromFastNeutronFlux(const ModelParameterMap&);
-    
     StateValue evaluate(const PropertiesStatePoint& point) const override;
 };
 

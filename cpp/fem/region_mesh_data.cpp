@@ -27,8 +27,11 @@ RegionMeshData::RegionMeshData(const mfem::Mesh& parent, int region_attribute) /
         // 根据网格维数，取得“子网格面编号 → 原网格面编号”的映射表，并用只读引用 faces 访问它
         // 二维：域单元的边界是边，所以取得边映射
         // 三维：域单元的边界是面，所以取得面映射
-        const auto& faces = parent.Dimension() == 2 ? submesh->GetParentEdgeIDMap() : submesh->GetParentFaceIDMap(); 
-        for (int face = 0; face < faces.Size(); ++face) { local_faces_[faces[face]] = face; } // 把面编号映射反过来 faces[子网格面编号] = 原网格面编号; -> local_faces_[原网格面编号] = 子网格面编号; 不属于该子网格的面仍保持初始化值 -1
+        const auto& faces = parent.Dimension() == 2 ? submesh->GetParentEdgeIDMap() : submesh->GetParentFaceIDMap();
+        for (int face = 0; face < faces.Size(); ++face)
+        {
+            local_faces_[faces[face]] = face;
+        } // 把面编号映射反过来 faces[子网格面编号] = 原网格面编号; -> local_faces_[原网格面编号] = 子网格面编号; 不属于该子网格的面仍保持初始化值 -1
         mesh_ = std::move(submesh); // 把 submesh 智能指针拥有的子网格，转交给成员变量 mesh_ 管理
     }
     // 建立“原网格单元编号 → 当前区域子网格单元编号”的反向映射
@@ -67,10 +70,12 @@ void RegionMeshData::build_interval(const mfem::Mesh& parent, const mfem::Array<
     for (int vertex = 0; vertex < vertices.Size(); ++vertex) // 遍历子网格顶点，这里的 vertex 是子网格顶点编号
     {
         local_faces_[vertices[vertex]] = vertex; // local_faces_[原顶点编号] = 子顶点编号;
-        if (counts[vertex] == 1) { mesh_->AddBdrPoint(vertex, boundary_attributes[vertices[vertex]]); } // 如果某个子顶点只连接一个线单元，它就是这个区域的端点 AddBdrPoint(子网格顶点编号, 边界属性编号); 这里不是再创建一个新顶点，而是在已有顶点上添加一个“边界点单元” 边界属性优先继承原标识；原来没有标识的，则使用前面准备的默认编号
+        if (counts[vertex] == 1)
+        {
+            mesh_->AddBdrPoint(vertex, boundary_attributes[vertices[vertex]]);
+        } // 如果某个子顶点只连接一个线单元，它就是这个区域的端点 AddBdrPoint(子网格顶点编号, 边界属性编号); 这里不是再创建一个新顶点，而是在已有顶点上添加一个“边界点单元” 边界属性优先继承原标识；原来没有标识的，则使用前面准备的默认编号
     }
     mesh_->FinalizeMesh(); // 根据已经加入的顶点、线单元和边界点，建立所需的连接关系并完成网格整理
-
     if (const auto* nodes = parent.GetNodes()) // 检查原网格是否有用有限元形式存储的几何坐标场,如果有的话需要把原网格的高阶几何映射保留到一维子网格中，取的取得原网格的几何节点 GridFunction
     {
         const auto* parent_space = nodes->FESpace(); // 取得这个几何坐标场使用的有限元空间，以便读取其阶次和分量排列方式
@@ -93,10 +98,10 @@ void RegionMeshData::build_interval(const mfem::Mesh& parent, const mfem::Array<
             local_nodes->FESpace()->GetElementVDofs(element, target_dofs); // 取得当前单元所有坐标分量对应的自由度编号
             coordinates.SetSize(target_dofs.Size()); // 为待写入的数据分配相同长度的临时向量
             for (int component = 0; component < parent.SpaceDimension(); ++component)
-            for (int point = 0; point < points.GetNPoints(); ++point)
-            {
-                coordinates[component * points.GetNPoints() + point] = positions(component, point); // 把坐标矩阵展开为当前单元自由度所需的分量分组形式
-            }
+                for (int point = 0; point < points.GetNPoints(); ++point)
+                {
+                    coordinates[component * points.GetNPoints() + point] = positions(component, point); // 把坐标矩阵展开为当前单元自由度所需的分量分组形式
+                }
             local_nodes->SetSubVector(target_dofs, coordinates); // 按 GetElementVDofs() 给出的局部编号顺序组织数值；整体存储位置由 target_dofs 决定
         }
     }
@@ -119,7 +124,7 @@ int RegionMeshData::parent_element(int local_element) const // 根据子网格�
 
 int RegionMeshData::local_element(int parent_element) const // 反向查询：根据原网格域单元编号，返回它在当前子网格中的编号
 {
-    return local_elements_[parent_element]; 
+    return local_elements_[parent_element];
 }
 
 int RegionMeshData::local_face(int parent_face) const // 根据原网格面编号，返回它在当前子网格中的面编号

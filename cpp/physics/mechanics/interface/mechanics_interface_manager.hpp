@@ -17,7 +17,6 @@ public:
 
 private:
     ModelRegistry<MechanicsInterfaceModel> registry_; // 模型名称 -> 创建模型的注册记录
-
     std::map<int, std::unique_ptr<MechanicsInterfaceModel>> models_; // 界面物理标识 -> 具体模型，同一物理界面的面片共用模型
 };
 

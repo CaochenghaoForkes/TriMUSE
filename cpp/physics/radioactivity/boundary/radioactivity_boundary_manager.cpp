@@ -41,13 +41,13 @@ void RadioactivityBoundaryManager::mark_coupled(PropertiesSystem& properties, co
 bool RadioactivityBoundaryManager::coupled(const PropertiesSystem& properties, const std::string& field) const // 任一边界所需属性参与场耦合即返回 true
 {
     for (const auto& [zone, assignment] : models_)
-    for (const auto& name : assignment.required)
-    {
-        if (properties.coupled_with_field(name, zone, field))
+        for (const auto& name : assignment.required)
         {
-            return true;
+            if (properties.coupled_with_field(name, zone, field))
+            {
+                return true;
+            }
         }
-    }
     return false;
 }
 

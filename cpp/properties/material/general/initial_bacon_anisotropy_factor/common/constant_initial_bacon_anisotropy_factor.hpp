@@ -10,7 +10,6 @@ class ConstantInitialBaconAnisotropyFactor final : public InitialBaconAnisotropy
 {
 public:
     explicit ConstantInitialBaconAnisotropyFactor(const ModelParameterMap& parameters);
-
     double evaluate(const PropertiesStatePoint& point) const override;
 };
 

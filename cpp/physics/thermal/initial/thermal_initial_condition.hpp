@@ -17,7 +17,6 @@ struct ThermalInitialConfig // 某个区域采用哪个初始温度模型，以�
 };
 
 void initialize_temperature(const FemSystem& fem_system, FieldData& accepted_temperature_field, const std::vector<ThermalInitialConfig>& initial_configs);
-
 void initialize_temperature(RegionFieldData& accepted_temperature_field, const std::vector<ThermalInitialConfig>& initial_configs);
 
 }

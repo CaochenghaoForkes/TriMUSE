@@ -15,7 +15,6 @@ class Bison2021SicSpecificHeat final : public SpecificHeatModel
 {
 public:
     explicit Bison2021SicSpecificHeat(const ModelParameterMap& parameters);
-
     double evaluate(const PropertiesStatePoint& state_point) const override;
 };
 

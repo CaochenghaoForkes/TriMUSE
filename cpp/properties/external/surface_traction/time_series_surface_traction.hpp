@@ -10,7 +10,6 @@ class TimeSeriesSurfaceTraction final : public SurfaceTractionModel, private Tim
 {
 public:
     explicit TimeSeriesSurfaceTraction(const ModelParameterMap& parameters);
-
     VectorValue evaluate(const PropertiesStatePoint& point) const override;
 };
 

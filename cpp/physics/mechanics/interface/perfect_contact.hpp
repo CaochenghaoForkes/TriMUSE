@@ -9,7 +9,6 @@ class MechanicsPerfectContact final : public MechanicsInterfaceModel // 完美�
 {
 public:
     explicit MechanicsPerfectContact(const ModelParameterMap& parameters);
-
     void assemble(const InterfaceContext& context, DofConstraints& constraints) const override;
 };
 

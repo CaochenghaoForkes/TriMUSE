@@ -10,7 +10,6 @@ class TecDoc978JapanUO2NuclideDiffusionCoef final : public NuclideDiffusionCoefM
 {
 public:
     explicit TecDoc978JapanUO2NuclideDiffusionCoef(const ModelParameterMap& parameters);
-
     double evaluate(const PropertiesStatePoint& state_point) const override;
 
 private:

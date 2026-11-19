@@ -20,8 +20,7 @@ TecDoc978JapanSiCNuclideDiffusionCoef::TecDoc978JapanSiCNuclideDiffusionCoef(con
     }
     static const std::unordered_map<std::string, ArrheniusTerms> coefficients{
         {"Sr", {{1.2e-9, 205e3}}},
-        {"Ag", {{6.8e-11, 177e3}}}
-    };
+        {"Ag", {{6.8e-11, 177e3}}}};
     terms_ = coefficients.at(symbol);
 }
 
@@ -31,22 +30,22 @@ double TecDoc978JapanSiCNuclideDiffusionCoef::evaluate(const PropertiesStatePoin
     if (xenon_)
     {
         // Xe 的三组拟合在表中有重叠区间，约定在 1400°C 和 1650°C 切换
-        if (temperature < 1400.0 + 273.15) 
-        { 
-            return evaluate_arrhenius_term(8.6e-10, 326e3, temperature); 
+        if (temperature < 1400.0 + 273.15)
+        {
+            return evaluate_arrhenius_term(8.6e-10, 326e3, temperature);
         }
-        if (temperature < 1650.0 + 273.15) 
-        { 
-            return evaluate_arrhenius_term(3.7e1, 657e3, temperature); 
+        if (temperature < 1650.0 + 273.15)
+        {
+            return evaluate_arrhenius_term(3.7e1, 657e3, temperature);
         }
         return evaluate_arrhenius_term(1.7, 624e3, temperature);
     }
     if (caesium_)
     {
         // Cs 的两组拟合之间有温度空档，约定在 1500°C 切换。
-        if (temperature < 1500.0 + 273.15) 
-        { 
-            return evaluate_arrhenius_term(6.8e-12, 177e3, temperature); 
+        if (temperature < 1500.0 + 273.15)
+        {
+            return evaluate_arrhenius_term(6.8e-12, 177e3, temperature);
         }
         return evaluate_arrhenius_term(2.5e-2, 503e3, temperature);
     }

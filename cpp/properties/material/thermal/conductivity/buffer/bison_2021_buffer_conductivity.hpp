@@ -20,7 +20,6 @@ class Bison2021BufferConductivity final : public ConductivityModel
 {
 public:
     explicit Bison2021BufferConductivity(const ModelParameterMap& parameters);
-
     double evaluate(const PropertiesStatePoint& state_point) const override;
 
 private:
@@ -28,7 +27,6 @@ private:
     static constexpr double theoretical_mass_density_ = 2250.0; // constexpr 编译期常量 初始化值必须能够在编译时确定 创建以后不能修改 编译器可以直接把它用于常量计算
     static constexpr double initial_conductivity_ = 0.5;
     static constexpr double theoretical_conductivity_ = 4.0;
-
 };
 
 }

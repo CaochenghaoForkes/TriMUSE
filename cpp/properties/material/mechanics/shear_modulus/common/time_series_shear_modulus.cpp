@@ -4,7 +4,8 @@ namespace trimuse
 {
 
 TimeSeriesShearModulus::TimeSeriesShearModulus(const ModelParameterMap& parameters)
-    : TimeSeriesModel(parameters)
+    :
+    TimeSeriesModel(parameters)
 {
 }
 

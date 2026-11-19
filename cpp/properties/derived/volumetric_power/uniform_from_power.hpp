@@ -9,7 +9,6 @@ class UniformFromPower final : public VolumetricPowerModel
 {
 public:
     explicit UniformFromPower(const ModelParameterMap& parameters);
-
     StateValue evaluate(const PropertiesStatePoint& point) const override;
 };
 

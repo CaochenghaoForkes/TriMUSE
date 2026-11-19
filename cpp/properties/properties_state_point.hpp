@@ -23,13 +23,9 @@ struct PropertiesStatePoint
     std::unordered_map<std::string, StateValue> values; // 属性名或场名 -> 单时空点上的 <double/vector/2d_tensor/3d_tensor>
 
     double scalar(const std::string& name) const; // 先根据 name 找到对应的 variant 型的 StateValue 再从这个 variant 中期望取出其中存储的 double
-
     const VectorValue& vector(const std::string& name) const; // 先根据 name 找到对应的 variant 型的 StateValue 再从这个 variant 中期望取出其中存储的 vector
-
     const Tensor2DValue& tensor_2d(const std::string& name) const; // 先根据 name 找到对应的 variant 型的 StateValue 再从这个 variant 中期望取出其中存储的 Tensor2DValue
-
     const Tensor3DValue& tensor_3d(const std::string& name) const; // 先根据 name 找到对应的 variant 型的 StateValue 再从这个 variant 中期望取出其中存储的 Tensor3DValue
-
     const ElasticityTensorValue& elasticity_tensor(const std::string& name) const; // 读取六分量弹性矩阵
 };
 

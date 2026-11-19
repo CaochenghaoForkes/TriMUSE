@@ -11,7 +11,6 @@ class IsotropyConstantPoissonRatio final : public PoissonRatioModel, private Con
 {
 public:
     explicit IsotropyConstantPoissonRatio(const ModelParameterMap& parameters);
-
     VectorValue evaluate(const PropertiesStatePoint& point) const override;
 };
 

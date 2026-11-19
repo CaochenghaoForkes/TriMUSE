@@ -10,7 +10,6 @@ class ConstantSurfacePressure final : public SurfacePressureModel, private Const
 {
 public:
     explicit ConstantSurfacePressure(const ModelParameterMap& parameters);
-
     double evaluate(const PropertiesStatePoint& point) const override;
 };
 

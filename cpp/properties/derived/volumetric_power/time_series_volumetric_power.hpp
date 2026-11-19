@@ -10,7 +10,6 @@ class TimeSeriesVolumetricPower final : public VolumetricPowerModel, private Tim
 {
 public:
     explicit TimeSeriesVolumetricPower(const ModelParameterMap& parameters);
-
     StateValue evaluate(const PropertiesStatePoint& point) const override;
 };
 

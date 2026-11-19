@@ -10,7 +10,6 @@ class ConstantBurnupFimaFraction final : public BurnupFimaFractionModel, private
 {
 public:
     explicit ConstantBurnupFimaFraction(const ModelParameterMap& parameters, const std::string& value_type);
-
     StateValue evaluate(const PropertiesStatePoint& point) const override;
 };
 

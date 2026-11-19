@@ -10,7 +10,6 @@ class ConstantEnvironmentNuclideConcentration final : public EnvironmentNuclideC
 {
 public:
     explicit ConstantEnvironmentNuclideConcentration(const ModelParameterMap& parameters, const std::string& value_type);
-
     StateValue evaluate(const PropertiesStatePoint& point) const override;
 };
 

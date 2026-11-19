@@ -22,10 +22,7 @@ public:
     virtual double evaluate(const PropertiesFieldData& properties, std::size_t point) const = 0;
 
 protected:
-    static double scalar(const PropertiesFieldData& properties, const std::string& name, std::size_t point) // 读取指定属性在全域积分点编号 point 处的标量值
-    {
-        return std::get<double>(properties.integration_point_values.at(name)[point].value());
-    }
+    static double scalar(const PropertiesFieldData& properties, const std::string& name, std::size_t point); // 读取指定属性在全域积分点编号 point 处的标量值
 };
 
 }

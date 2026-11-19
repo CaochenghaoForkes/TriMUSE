@@ -8,4 +8,8 @@ MechanicsBoundaryValue MechanicsFromSurfaceDisplacement::evaluate(const Properti
     return std::get<VectorValue>(properties.zone_values.at("external.surface_displacement").at(zone).value());
 }
 
+MechanicsFromSurfaceDisplacement::MechanicsFromSurfaceDisplacement(const ModelParameterMap&)
+{
+}
+
 }

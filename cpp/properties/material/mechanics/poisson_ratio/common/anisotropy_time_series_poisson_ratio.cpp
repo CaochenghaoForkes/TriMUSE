@@ -5,9 +5,10 @@ namespace trimuse
 {
 
 AnisotropyTimeSeriesPoissonRatio::AnisotropyTimeSeriesPoissonRatio(const ModelParameterMap& parameters)
-    : times_(std::get<VectorValue>(parameters.at("times"))),
-      rt_values_(std::get<VectorValue>(parameters.at("rt_values"))),
-      tt_values_(std::get<VectorValue>(parameters.at("tt_values")))
+    :
+    times_(std::get<VectorValue>(parameters.at("times"))),
+    rt_values_(std::get<VectorValue>(parameters.at("rt_values"))),
+    tt_values_(std::get<VectorValue>(parameters.at("tt_values")))
 {
 }
 

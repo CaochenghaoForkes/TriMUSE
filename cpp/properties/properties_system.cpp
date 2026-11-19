@@ -9,10 +9,12 @@ namespace trimuse
 {
 
 PropertiesSystem::PropertiesSystem(const FemSystem& fem_system, const std::vector<std::string>& field_names, const ModelParameterMap& precomputed_parameters)
-    : fem_system_(fem_system), field_names_(field_names)
+    :
+    fem_system_(fem_system),
+    field_names_(field_names)
 {
     for (const PropertyInfo& property : properties_)
-    { 
+    {
         if (property.scope == PropertyScope::Global)
         {
             properties_field_data_.global_values.emplace(property.name, std::nullopt); // 初始化各 Global 属性值为 std::nullopt
@@ -54,7 +56,8 @@ void PropertiesSystem::set_precomputed(const std::string& name, const ModelParam
         throw std::invalid_argument("set_precomputed 仅接受全局预计算属性: " + property_name);
     }
     build_parameters_[name] = value;
-    properties_field_data_.global_values.at(property_name) = std::visit([](const auto& item) -> StateValue { return item; }, value); // properties_field_data_.global_values.at(property_name) 取得该 Global Precomputed 对应的 std::optional<StateValue> std::visit(函数体, value) 把上面的 value 交给函数体 [](const auto& item) -> StateValue { return item; } 一个匿名函数负责把 value 的类型转化为 StateValue
+    properties_field_data_.global_values.at(property_name) = std::visit([](const auto& item) -> StateValue
+                                                                        { return item; }, value); // properties_field_data_.global_values.at(property_name) 取得该 Global Precomputed 对应的 std::optional<StateValue> std::visit(函数体, value) 把上面的 value 交给函数体 [](const auto& item) -> StateValue { return item; } 一个匿名函数负责把 value 的类型转化为 StateValue
 }
 
 PropertiesSystem::PropertyInfo& PropertiesSystem::property_info(const std::string& name) // 返回该 name 对应属性的 PropertyInfo
@@ -72,10 +75,10 @@ std::size_t PropertiesSystem::property_index(const std::string& name) const // �
     // std::find_if 在 [begin, end) 范围内查找第一个满足条件的元素
     // [&name]：按引用捕获外部变量 name
     // 对容器中每个 PropertyInfo 元素，判断其 name 成员是否与要找的名字相等
-    const auto property = std::find_if(properties_.begin(), properties_.end(), [&name](const PropertyInfo& item) 
-    {
-        return item.name == name; // 查找成功返回指向该元素的迭代器；失败则返回 end()
-    });
+    const auto property = std::find_if(properties_.begin(), properties_.end(), [&name](const PropertyInfo& item)
+                                       {
+                                           return item.name == name; // 查找成功返回指向该元素的迭代器；失败则返回 end()
+                                       });
     if (property == properties_.end()) // 未找到时抛出异常
     {
         throw std::out_of_range("未知属性: " + name);
@@ -102,7 +105,7 @@ const std::vector<std::string>& PropertiesSystem::model_required_states(const Pr
 
 void PropertiesSystem::assign(int attribute, const std::string& model_name, const ModelParameterMap& parameters) // 为某个属性在指定 体积域/边界域 上配置一个计算模型 并把该位置已有的“计算完成”标记清掉
 {
-    // 模型名固定为 namespace.model, 如 model_name = "material.thermal.conductivity.common.time_series"; 
+    // 模型名固定为 namespace.model, 如 model_name = "material.thermal.conductivity.common.time_series";
     const auto model_separator = model_name.rfind('.'); // rfind('.') 从右往左找最后一个点的位置
     const auto property_end = model_separator == std::string::npos ? std::string::npos : model_name.rfind('.', model_separator - 1); // std::string::npos 是字符串查找中表示“没找到”的特殊值 如果没找到最后一个点就直接返回；rfind(字符, 起始位置) 表示从指定位置开始，向左寻找该字符，起始位置也会参与检查 如果找到了最后一个点 就从 model_separator - 1 的位置(最后一个点的前一个字符位置) 开始找倒数第二个 .
     if (property_end == std::string::npos) // 如果找不到倒数第一个和倒数第二个点就报错
@@ -145,16 +148,16 @@ void PropertiesSystem::assign(int attribute, const std::string& model_name, cons
 void PropertiesSystem::assign_field_properties()
 {
     for (const std::string& field : field_names_)
-    for (const std::string& name : field_required_properties_.at(field))
-    {
-        const PropertyInfo& property = property_info(name);
-        const std::string model = name + "." + property.fixed_model;
-        const auto regions = property.scope == PropertyScope::Global ? std::vector<int>{0} : fem_system_.mesh_data().region_attributes();
-        for (int region : regions)
+        for (const std::string& name : field_required_properties_.at(field))
         {
-            assign(region, model, {});
+            const PropertyInfo& property = property_info(name);
+            const std::string model = name + "." + property.fixed_model;
+            const auto regions = property.scope == PropertyScope::Global ? std::vector<int>{0} : fem_system_.mesh_data().region_attributes();
+            for (int region : regions)
+            {
+                assign(region, model, {});
+            }
         }
-    }
 }
 
 void PropertiesSystem::prepare_dependencies() // 标记各个属性在各个区域依赖的场有哪些
@@ -451,7 +454,7 @@ bool PropertiesSystem::required_states_changed(int attribute, const std::vector<
             {
                 return true; // 新旧任一侧缺少这项属性，就返回 true
             }
-            const auto old_value = old_property->second.find(attribute); // 接着，在属性的内层表中查找指定位置 
+            const auto old_value = old_property->second.find(attribute); // 接着，在属性的内层表中查找指定位置
             const auto new_value = new_property->second.find(attribute); // 接着，在属性的内层表中查找指定位置
             if (old_value == old_property->second.end() || new_value == new_property->second.end() || old_value->second != new_value->second)
             {
@@ -509,7 +512,7 @@ void PropertiesSystem::evaluate_and_store_points(const Manager& manager, const P
         if (required_name == property.name) // 本属性的旧值在各积分点单独加载
         {
             continue;
-        } 
+        }
         if (field_state_owners_.count(required_name) != 0)
         {
             const auto trial_entry = trial_fields.find(required_name); // 为当前依赖的求解场选择数据来源: 有试探场就用试探场，否则用 FemSystem 中的正式场，并把选好的视图存入列表
@@ -610,9 +613,7 @@ void PropertiesSystem::update_material() // 更新不依赖场的材料属性
         {
             const int location = property.scope == PropertyScope::Global ? 0 : attribute;
             if (std::any_of(property.field_regions.begin(), property.field_regions.end(), [location](const auto& item)
-            {
-                return item.second.count(location) != 0;
-            }))
+                            { return item.second.count(location) != 0; }))
             {
                 continue;
             }
@@ -679,9 +680,7 @@ void PropertiesSystem::update_assembly() // 更新不依赖场的组装属性
         {
             const int location = property.scope == PropertyScope::Global ? 0 : attribute;
             if (std::any_of(property.field_regions.begin(), property.field_regions.end(), [location](const auto& item)
-            {
-                return item.second.count(location) != 0;
-            }))
+                            { return item.second.count(location) != 0; }))
             {
                 continue;
             }
@@ -727,14 +726,14 @@ bool PropertiesSystem::depends_on_field(const std::string& property_name, int re
 {
     const auto& tags = property_info(property_name).field_regions; // 判断: 某个属性在指定区域，是否已被标记为参与指定求解场的依赖更新
     const auto field = tags.find(field_name); // 取的 场名称 -> 依赖该场更新的区域编号集合
-    return field != tags.end() && field->second.count(region_attribute) != 0; // 若不存在该场或该区域没有被标记依赖该场 则返回 False 
+    return field != tags.end() && field->second.count(region_attribute) != 0; // 若不存在该场或该区域没有被标记依赖该场 则返回 False
 }
 
 bool PropertiesSystem::coupled_with_field(const std::string& property_name, int region_attribute, const std::string& field_name) const // 判断: 某个属性在指定区域，是否已被标记为参与指定求解场的耦合更新
 {
     const auto& tags = property_info(property_name).coupled_regions; // 取的 场名称 -> 参与该场耦合更新的区域编号集合
     const auto field = tags.find(field_name); // 取参与该场耦合更新的区域编号集合
-    return field != tags.end() && field->second.count(region_attribute) != 0; // 若不存在该场或该区域没有被标记参与耦合该场 则返回 False 
+    return field != tags.end() && field->second.count(region_attribute) != 0; // 若不存在该场或该区域没有被标记参与耦合该场 则返回 False
 }
 
 void PropertiesSystem::evaluate_and_store_interface(const PropertyInfo& property, int attribute, const std::vector<std::string>& required) // 按网格面片计算并保存界面属性
@@ -786,7 +785,7 @@ void PropertiesSystem::accept_current_state() // 把当前全部属性数据复�
     previous_field_data_ = properties_field_data_;
 }
 
-const PropertiesFieldData& PropertiesSystem::previous_field_data() const 
+const PropertiesFieldData& PropertiesSystem::previous_field_data() const
 {
     return previous_field_data_;
 }

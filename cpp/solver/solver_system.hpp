@@ -38,9 +38,7 @@ class SolverSystem
 {
 public:
     explicit SolverSystem(const std::vector<FieldSolverConfig>& configs);
-
     const NonlinearSolverConfig& nonlinear_config(const std::string& field_name) const;
-
     void solve_linear(const std::string& field_name, const mfem::Operator& matrix, const mfem::Vector& right_hand_side, mfem::Vector& solution, OutputManager& output_manager) const;
 
 private:

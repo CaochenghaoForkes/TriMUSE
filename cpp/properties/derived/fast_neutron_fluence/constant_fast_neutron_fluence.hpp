@@ -10,7 +10,6 @@ class ConstantFastNeutronFluence final : public FastNeutronFluenceModel, private
 {
 public:
     explicit ConstantFastNeutronFluence(const ModelParameterMap& parameters);
-    
     StateValue evaluate(const PropertiesStatePoint& point) const override;
 };
 

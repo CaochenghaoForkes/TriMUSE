@@ -10,7 +10,6 @@ class TimeSeriesSurfaceDisplacement final : public SurfaceDisplacementModel, pri
 {
 public:
     explicit TimeSeriesSurfaceDisplacement(const ModelParameterMap& parameters);
-
     VectorValue evaluate(const PropertiesStatePoint& point) const override;
 };
 

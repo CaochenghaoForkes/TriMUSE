@@ -4,7 +4,8 @@ namespace trimuse
 {
 
 ConstantFastNeutronFluence::ConstantFastNeutronFluence(const ModelParameterMap& parameters)
-    : ConstantModel(parameters)
+    :
+    ConstantModel(parameters)
 {
 }
 

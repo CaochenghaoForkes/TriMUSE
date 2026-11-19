@@ -4,7 +4,8 @@ namespace trimuse
 {
 
 TimeSeriesSurfaceTraction::TimeSeriesSurfaceTraction(const ModelParameterMap& parameters)
-    : TimeSeriesModel(parameters, "vector")
+    :
+    TimeSeriesModel(parameters, "vector")
 {
 }
 

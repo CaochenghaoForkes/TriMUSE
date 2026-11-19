@@ -10,7 +10,6 @@ class TimeSeriesPorosity final : public PorosityModel, private TimeSeriesModel
 {
 public:
     explicit TimeSeriesPorosity(const ModelParameterMap& parameters);
-
     double evaluate(const PropertiesStatePoint& point) const override;
 };
 

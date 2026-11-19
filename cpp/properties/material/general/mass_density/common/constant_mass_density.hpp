@@ -10,7 +10,6 @@ class ConstantMassDensity final : public MassDensityModel, private ConstantModel
 {
 public:
     explicit ConstantMassDensity(const ModelParameterMap& parameters);
-
     double evaluate(const PropertiesStatePoint& point) const override;
 };
 

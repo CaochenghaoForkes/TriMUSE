@@ -4,7 +4,8 @@ namespace trimuse
 {
 
 TimeSeriesSpecificHeat::TimeSeriesSpecificHeat(const ModelParameterMap& parameters)
-    : TimeSeriesModel(parameters)
+    :
+    TimeSeriesModel(parameters)
 {
 }
 

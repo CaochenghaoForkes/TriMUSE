@@ -24,12 +24,7 @@ void PrecomputedManager::initialize_precomputed(PropertiesSystem& properties, co
     // 场需要的预计算参数
     for (const auto& initializer : conditional_initializers_)
     {
-        const bool needed = std::any_of(field_required_properties.begin(), field_required_properties.end(),
-            [&initializer](const auto& field)
-            {
-                const auto& required = field.second;
-                return field.first == initializer.requirement || std::find(required.begin(), required.end(), initializer.requirement) != required.end();
-            });
+        const bool needed = std::any_of(field_required_properties.begin(), field_required_properties.end(), [&initializer](const auto& field) { const auto& required = field.second; return field.first == initializer.requirement || std::find(required.begin(), required.end(), initializer.requirement) != required.end(); });
         if (needed)
         {
             initializer.initialize(properties, fem);

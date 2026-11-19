@@ -56,12 +56,12 @@ void ThermalInterfaceManager::update(const PropertiesFieldData& properties) // �
     }
     const auto& values = properties.interface_values.at("assembly.interface_thermal_resistance"); // 取得热阻属性表的只读引用
     for (auto& [attribute, assignment] : interface_heat_transfer_assignments_)
-    for (auto& face : assignment.faces) // 内层遍历这个界面上登记的热阻面片
-    {
-        const double resistance = std::get<double>(values.at(face.interface->face).value()); // 得到热阻
-        assignment.dirty = assignment.dirty || face.resistance != resistance; // 更新该界面的 dirty
-        face.resistance = resistance;
-    }
+        for (auto& face : assignment.faces) // 内层遍历这个界面上登记的热阻面片
+        {
+            const double resistance = std::get<double>(values.at(face.interface->face).value()); // 得到热阻
+            assignment.dirty = assignment.dirty || face.resistance != resistance; // 更新该界面的 dirty
+            face.resistance = resistance;
+        }
 }
 
 std::vector<int> ThermalInterfaceManager::interface_heat_transfer_attributes() const // 返回所有有热阻面片的界面编号列表

@@ -25,13 +25,9 @@ class ExternalModelManager
 {
 public:
     ExternalModelManager();
-
     void register_models();
-
     void assign(const std::string& name, int attribute, const std::string& model_name, const ModelParameterMap& parameters, const std::string& value_type = "scalar");
-
     StateValue evaluate(const std::string& name, const PropertiesStatePoint& point) const;
-
     const std::vector<std::string>& required_states(const std::string& name, const std::string& model_name) const;
 
 private:

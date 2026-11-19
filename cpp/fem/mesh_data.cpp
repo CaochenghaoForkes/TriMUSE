@@ -8,7 +8,8 @@ namespace trimuse
 {
 
 MeshData::MeshData(const std::string& mesh_path)
-    : mfem_mesh_(mesh_path, 1, 1, true) // 网格路径, 生成边, 准备细化数据, 修正反向单元
+    :
+    mfem_mesh_(mesh_path, 1, 1, true) // 网格路径, 生成边, 准备细化数据, 修正反向单元
 {
     build_region_elements(); // 建立体积区域编号与其中包含的域内单元编号列表的关系
     build_interfaces(); // 遍历网格中的所有面，找出两侧属于不同 region 的内部面，并把它们保存到 interfaces_
@@ -40,7 +41,7 @@ int MeshData::boundary_element_count() const // 边界单元总数，不包含�
     return mfem_mesh_.GetNBE();
 }
 
-std::vector<int> MeshData::region_attributes() const // 网格中所有域区域属性编号的列表 (同一区域包含很多单元) 
+std::vector<int> MeshData::region_attributes() const // 网格中所有域区域属性编号的列表 (同一区域包含很多单元)
 {
     return attributes_to_vector(mfem_mesh_.attributes);
 }
@@ -55,14 +56,14 @@ const std::unordered_map<int, double>& MeshData::region_volumes() const // 各�
     return region_volumes_;
 }
 
-const std::vector<int>& MeshData::region_elements(int region_attribute) const // 指定材料区域的域内单元编号 
+const std::vector<int>& MeshData::region_elements(int region_attribute) const // 指定材料区域的域内单元编号
 {
     return region_elements_.at(region_attribute);
 }
 
 RegionMeshData& MeshData::region_mesh(int region_attribute) // 按区域编号取得子网格管理对象：没有就创建，有了就直接返回
 {
-    auto& mesh = region_meshes_[region_attribute]; 
+    auto& mesh = region_meshes_[region_attribute];
     if (!mesh) // 判断智能指针是否为空 则需要初始化
     {
         if (mfem_mesh_.Nonconforming()) // 当前实现不支持带悬挂节点等非协调连接的网格，所以明确报错
@@ -91,7 +92,7 @@ mfem::FaceElementTransformations& MeshData::interface_transformations(int interf
     // Elem1、Elem2：两侧参考单元 → 实际空间的映射
     // Loc1、Loc2：同一个参考面积分点 → 两侧参考单元中的对应坐标
     // Elem1No、Elem2No：两侧的原网格单元编号
-    return *mfem_mesh_.GetFaceElementTransformations(interfaces_[interface_index].face); 
+    return *mfem_mesh_.GetFaceElementTransformations(interfaces_[interface_index].face);
 }
 
 void MeshData::build_interfaces() // 遍历网格中的所有面，找出两侧属于不同 region 的内部面，并把它们保存到 interfaces_
@@ -104,7 +105,7 @@ void MeshData::build_interfaces() // 遍历网格中的所有面，找出两侧�
     // boundary_attributes 记录了 原始网格面单元索引 -> 人为定义的交界面 interface 的 id (对于非材料界面的 face 其对应 0)
     for (int face = 0; face < mfem_mesh_.GetNumFaces(); ++face) // 遍历全部网格面 包括外边界面、同区域内部面，以及不同区域之间的界面
     {
-        int first, second; // 声明两个变量，用于接收这个面两侧的域单元编号 
+        int first, second; // 声明两个变量，用于接收这个面两侧的域单元编号
         mfem_mesh_.GetFaceElements(face, &first, &second); // 查询当前面连接的两个域单元，将编号写入 first、second
         if (second < 0 || mfem_mesh_.GetAttribute(first) == mfem_mesh_.GetAttribute(second)) // second<0 没有第二侧域单元，是外边界面 两侧单元的区域属性相同：属于同一 region 内部，不是区域界面
         {
@@ -137,7 +138,7 @@ void MeshData::calculate_region_volumes()
         radial_origin_x = mesh.GetVertex(0)[0]; // mesh.GetVertex(0)取网格第0个顶点的坐标 [0]取它的 x 分量
         for (int vertex = 1; vertex < mesh.GetNV(); ++vertex) // 遍历其余顶点 GetNV() 是网格顶点总数
         {
-            radial_origin_x = std::min(radial_origin_x, mesh.GetVertex(vertex)[0]); // 持续更新最小值 
+            radial_origin_x = std::min(radial_origin_x, mesh.GetVertex(vertex)[0]); // 持续更新最小值
         }
     }
 
@@ -147,13 +148,11 @@ void MeshData::calculate_region_volumes()
         mfem::ElementTransformation* transformation = mesh.GetElementTransformation(element); // transformation 参考单元坐标向网格单元实际位置坐标的映射对象 x=x_e(\zeta)
         const int integration_order = 2 * transformation->OrderW() + 4; // OrderW() 当前单元几何映射的雅可比权重 (当前参考单元维数与实际坐标维数相同: det(J) 或 如三维空间中的二维曲面时: sqrt[det(J^TJ)]) 的多项式阶次估计(雅可比的行列式是关于参考坐标\zeta\eta\psi的多项式，这里估计\zeta\eta\psi构成项的最高次阶),考虑到真正的被积函数还可能有2*\pi*r或4\pi*r**2，所以还加了4以及2倍关系
         const mfem::IntegrationRule& rule = mfem::IntRules.Get(mesh.GetElementBaseGeometry(element), integration_order); // mesh.GetElementBaseGeometry(element) 当前积单元的基本形状, IntRules 返回的 rule 包含该形状该阶次精度积分的参考坐标下的积分点与权重
-
         for (int point_index = 0; point_index < rule.GetNPoints(); ++point_index)
         {
             const mfem::IntegrationPoint& point = rule.IntPoint(point_index); // 只读引用访问当前求积规则中的第 point_index 个积分点，信息包含其参考单元坐标和求积权
             transformation->SetIntPoint(&point); // 告诉 transformation，接下来要在参考单元的这个积分点计算雅可比等几何量
             double weight = point.weight * transformation->Weight(); // w_q * 雅可比权重 (把参考单元的权重转换到实际单元上) transformation->Weight() 是 det(J) 或 sqrt[det(J^TJ)]
-
             if (dimension < 3)
             {
                 transformation->Transform(point, position); // Transform 利用当前单元的几何映射，把 point 的参考单元坐标换成实际坐标，并写入 position

@@ -17,7 +17,6 @@ class Fink2000Uo2SpecificHeat final : public SpecificHeatModel
 {
 public:
     explicit Fink2000Uo2SpecificHeat(const ModelParameterMap& parameters);
-
     double evaluate(const PropertiesStatePoint& state_point) const override;
 
 private:

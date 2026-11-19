@@ -10,7 +10,6 @@ class TimeSeriesConductivity final : public ConductivityModel, private TimeSerie
 {
 public:
     explicit TimeSeriesConductivity(const ModelParameterMap& parameters);
-
     double evaluate(const PropertiesStatePoint& point) const override;
 };
 

@@ -19,7 +19,6 @@ class MechanicsInterfaceModel // 每个模型处理一块界面面片，登记�
 {
 public:
     virtual ~MechanicsInterfaceModel() = default;
-
     virtual void assemble(const InterfaceContext& context, DofConstraints& constraints) const = 0;
 };
 

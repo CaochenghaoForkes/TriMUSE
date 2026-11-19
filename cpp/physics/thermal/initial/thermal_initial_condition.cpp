@@ -14,7 +14,9 @@ namespace
 class InitialTemperatureCoefficient final : public mfem::Coefficient // 把"区域编号->初始温度"映射表 包装为 MFEM 能在积分时调用的系数对象
 {
 public:
-    explicit InitialTemperatureCoefficient(const std::unordered_map<int, double>& region_values) : region_values_(region_values) // 构造时接收区域初温表 region_values 区域名 -> 温度
+    explicit InitialTemperatureCoefficient(const std::unordered_map<int, double>& region_values)
+    :
+    region_values_(region_values) // 构造时接收区域初温表 region_values 区域名 -> 温度
     {
     }
 
@@ -27,10 +29,13 @@ private:
     const std::unordered_map<int, double>& region_values_; // 初始温度表 区域编号 -> 初温
 };
 
-class ProjectionMassIntegrator final : public mfem::MassIntegrator // 初始场 L2 投影的质量矩阵积分器(int_Omega_e c(x)NiNj dOmega) 沿用 MFEM 的质量矩阵计算方法 并指定使用程序统一的域内求积规则 
+class ProjectionMassIntegrator final : public mfem::MassIntegrator // 初始场 L2 投影的质量矩阵积分器(int_Omega_e c(x)NiNj dOmega) 沿用 MFEM 的质量矩阵计算方法 并指定使用程序统一的域内求积规则
 {
 public:
-    ProjectionMassIntegrator(mfem::Coefficient& coefficient, const FemSystem& fem_system) : mfem::MassIntegrator(coefficient), fem_system_(fem_system) // mfem::MassIntegrator(coefficient) 使用已经包含降维几何权重的单位系数 初始化父类 让它在积分时使用这个系数 fem_system 保存有限元系统的引用，用于查询求积规则
+    ProjectionMassIntegrator(mfem::Coefficient& coefficient, const FemSystem& fem_system)
+    :
+    mfem::MassIntegrator(coefficient),
+          fem_system_(fem_system) // mfem::MassIntegrator(coefficient) 使用已经包含降维几何权重的单位系数 初始化父类 让它在积分时使用这个系数 fem_system 保存有限元系统的引用，用于查询求积规则
     {
     }
 
@@ -47,7 +52,10 @@ private:
 class ProjectionLFIntegrator final : public mfem::DomainLFIntegrator
 {
 public:
-    ProjectionLFIntegrator(mfem::Coefficient& coefficient, const FemSystem& fem_system) : mfem::DomainLFIntegrator(coefficient), fem_system_(fem_system) // 组装初始场 L2 投影的右端向量 int_Omega T_initial Ni dOmega
+    ProjectionLFIntegrator(mfem::Coefficient& coefficient, const FemSystem& fem_system)
+    :
+    mfem::DomainLFIntegrator(coefficient),
+          fem_system_(fem_system) // 组装初始场 L2 投影的右端向量 int_Omega T_initial Ni dOmega
     {
     }
 
@@ -69,9 +77,9 @@ void initialize_temperature(RegionFieldData& accepted_temperature_field, const s
 {
     for (const auto& config : initial_configs)
     {
-        if (config.model_name != "uniform") 
-        { 
-            throw std::invalid_argument("尚未支持的初始温度模型: " + config.model_name); 
+        if (config.model_name != "uniform")
+        {
+            throw std::invalid_argument("尚未支持的初始温度模型: " + config.model_name);
         }
         // 分域场两侧的自由度独立，所以这里可以直接逐域赋值 若界面采用理想接触，后续再由约束下的初值投影处理两侧初温的一致性
         accepted_temperature_field.field_data(config.region_attribute).assign(std::get<double>(config.parameters.at("uniform_value"))); // field_data(config.region_attribute): 取得指定区域的 FieldData parameters.at("uniform_value")：从参数字典取出初温参数 std::get<double>(...)：从 variant 中取出 double 数值 .assign(...)：把该区域场向量的全部自由度设为这个温度
@@ -90,7 +98,8 @@ void initialize_temperature(const FemSystem& fem_system, FieldData& accepted_tem
         region_values[config.region_attribute] = std::get<double>(config.parameters.at("uniform_value"));
     }
     const double uniform_value = region_values.begin()->second; // 先取任意一项的温度作为比较基准
-    if (std::all_of(region_values.begin(), region_values.end(), [uniform_value](const auto& item) { return item.second == uniform_value; })) // 检查每一项的温度是否都等于基准值 若全部相同
+    if (std::all_of(region_values.begin(), region_values.end(), [uniform_value](const auto& item)
+                    { return item.second == uniform_value; })) // 检查每一项的温度是否都等于基准值 若全部相同
     {
         accepted_temperature_field.assign(uniform_value); // 直接给全部自由度赋相同温度，初始化完成
         return;

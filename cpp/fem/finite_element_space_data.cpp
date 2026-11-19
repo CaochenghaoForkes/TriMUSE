@@ -4,19 +4,21 @@ namespace trimuse
 {
 
 FiniteElementSpaceData::FiniteElementSpaceData(MeshData& mesh_data, int order, int vector_dimension)
-    : FiniteElementSpaceData(mesh_data.mfem_mesh(), order, vector_dimension)
+    :
+    FiniteElementSpaceData(mesh_data.mfem_mesh(), order, vector_dimension)
 {
 }
 
 FiniteElementSpaceData::FiniteElementSpaceData(mfem::Mesh& mesh, int order, int vector_dimension)
-    : mesh_(mesh),
-      order_(order),
-      vector_dimension_(vector_dimension)
+    :
+    mesh_(mesh),
+    order_(order),
+    vector_dimension_(vector_dimension)
 {
     // std::make_unique<...> 创建某个类型的对象并返回它的智能指针
 
     // 创建一套指定插值阶次、指定单元维数的 H1 协调有限元集合
-    // H1: 一个函数空间的名字 
+    // H1: 一个函数空间的名字
     // H1 函数本身及其一阶弱导数都平方可积 \[H^1(\Omega)=\left\{u:\ u\in L^2(\Omega),\\frac{\partial u}{\partial x_i}\in L^2(\Omega)\right\}\]
     // H1 表现为: 1.每个单元内部用多项式插值 2.相邻单元共享界面上的场值，保证整体连续 3.不要求梯度跨单元连续
     collection_ = std::make_unique<mfem::H1_FECollection>(order_, mesh_.Dimension());

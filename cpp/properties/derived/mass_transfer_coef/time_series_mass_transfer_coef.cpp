@@ -4,7 +4,8 @@ namespace trimuse
 {
 
 TimeSeriesMassTransferCoef::TimeSeriesMassTransferCoef(const ModelParameterMap& parameters)
-    : TimeSeriesModel(parameters)
+    :
+    TimeSeriesModel(parameters)
 {
 }
 

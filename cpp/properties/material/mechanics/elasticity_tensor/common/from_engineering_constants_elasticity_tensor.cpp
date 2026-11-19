@@ -35,8 +35,7 @@ ElasticityTensorValue FromEngineeringConstantsElasticityTensor::evaluate(const P
         {c12, c23, c22, 0.0, 0.0, 0.0},
         {0.0, 0.0, 0.0, 2.0 * g_tt, 0.0, 0.0},
         {0.0, 0.0, 0.0, 0.0, 2.0 * g_rt, 0.0},
-        {0.0, 0.0, 0.0, 0.0, 0.0, 2.0 * g_rt}
-    };
+        {0.0, 0.0, 0.0, 0.0, 0.0, 2.0 * g_rt}};
 
     const auto& transform = state_point.elasticity_tensor("precomputed.tensor_transform");
     const auto& inverse = state_point.elasticity_tensor("precomputed.tensor_transform_inverse");

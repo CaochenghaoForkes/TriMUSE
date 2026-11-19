@@ -10,7 +10,6 @@ class ConstantNuclideFlux final : public NuclideFluxModel, private ConstantModel
 {
 public:
     explicit ConstantNuclideFlux(const ModelParameterMap& parameters, const std::string& value_type);
-
     StateValue evaluate(const PropertiesStatePoint& point) const override;
 };
 

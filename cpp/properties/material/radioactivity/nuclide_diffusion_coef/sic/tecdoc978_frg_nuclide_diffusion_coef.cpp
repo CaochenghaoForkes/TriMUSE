@@ -28,8 +28,7 @@ double TecDoc978FRGSiCNuclideDiffusionCoef::evaluate(const PropertiesStatePoint&
 
     // TECDOC-978 中 Γ 以 10^25 m^-2 为单位，Cs 第一项乘 exp(Γ/5)
     const double gamma = state_point.scalar("derived.fast_neutron_fluence") / 1e25;
-    return evaluate_arrhenius_term(terms_[0].first * std::exp(gamma / 5.0), terms_[0].second, temperature)
-         + evaluate_arrhenius_term(terms_[1].first, terms_[1].second, temperature);
+    return evaluate_arrhenius_term(terms_[0].first * std::exp(gamma / 5.0), terms_[0].second, temperature) + evaluate_arrhenius_term(terms_[1].first, terms_[1].second, temperature);
 }
 
 }

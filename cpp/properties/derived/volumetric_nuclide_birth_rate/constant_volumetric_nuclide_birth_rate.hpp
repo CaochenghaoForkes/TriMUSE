@@ -10,7 +10,6 @@ class ConstantVolumetricNuclideBirthRate final : public VolumetricNuclideBirthRa
 {
 public:
     explicit ConstantVolumetricNuclideBirthRate(const ModelParameterMap& parameters);
-
     StateValue evaluate(const PropertiesStatePoint& point) const override;
 };
 

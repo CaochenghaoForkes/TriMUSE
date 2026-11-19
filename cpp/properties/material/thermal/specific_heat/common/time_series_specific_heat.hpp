@@ -10,7 +10,6 @@ class TimeSeriesSpecificHeat final : public SpecificHeatModel, private TimeSerie
 {
 public:
     explicit TimeSeriesSpecificHeat(const ModelParameterMap& parameters);
-
     double evaluate(const PropertiesStatePoint& point) const override;
 };
 

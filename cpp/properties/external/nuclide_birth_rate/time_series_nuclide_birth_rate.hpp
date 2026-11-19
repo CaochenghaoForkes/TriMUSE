@@ -10,7 +10,6 @@ class TimeSeriesNuclideBirthRate final : public NuclideBirthRateModel, private T
 {
 public:
     explicit TimeSeriesNuclideBirthRate(const ModelParameterMap& parameters, const std::string& value_type);
-
     StateValue evaluate(const PropertiesStatePoint& point) const override;
 };
 

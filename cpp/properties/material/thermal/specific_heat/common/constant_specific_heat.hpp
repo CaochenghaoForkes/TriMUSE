@@ -10,7 +10,6 @@ class ConstantSpecificHeat final : public SpecificHeatModel, private ConstantMod
 {
 public:
     explicit ConstantSpecificHeat(const ModelParameterMap& parameters);
-
     double evaluate(const PropertiesStatePoint& point) const override;
 };
 

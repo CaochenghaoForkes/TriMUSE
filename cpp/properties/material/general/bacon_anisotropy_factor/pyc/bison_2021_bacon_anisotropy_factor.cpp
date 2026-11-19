@@ -7,6 +7,7 @@ namespace trimuse
 
 namespace
 {
+
 // Jiang et al., Journal of Nuclear Materials 548 (2021) 152795, Table 5
 const std::vector<double> fluences{0.0, 1.0, 2.0, 3.0, 3.5, 4.0, 4.5, 5.0};
 const std::vector<double> ratios{1.0, 1.0019, 1.0114, 1.0219, 1.0286, 1.0324, 1.0362, 1.0381};

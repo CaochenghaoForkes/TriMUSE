@@ -4,7 +4,8 @@ namespace trimuse
 {
 
 ConstantMassDensity::ConstantMassDensity(const ModelParameterMap& parameters)
-    : ConstantModel(parameters)
+    :
+    ConstantModel(parameters)
 {
 }
 

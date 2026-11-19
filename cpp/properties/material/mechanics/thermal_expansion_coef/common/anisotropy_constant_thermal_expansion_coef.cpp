@@ -4,7 +4,8 @@ namespace trimuse
 {
 
 AnisotropyConstantThermalExpansionCoef::AnisotropyConstantThermalExpansionCoef(const ModelParameterMap& parameters)
-    : ConstantModel(VectorValue{std::get<double>(parameters.at("r_constant_value")), std::get<double>(parameters.at("t_constant_value"))}, "vector")
+    :
+    ConstantModel(VectorValue{std::get<double>(parameters.at("r_constant_value")), std::get<double>(parameters.at("t_constant_value"))}, "vector")
 {
 }
 

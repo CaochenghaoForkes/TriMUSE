@@ -4,7 +4,8 @@ namespace trimuse
 {
 
 ConstantSurfaceTraction::ConstantSurfaceTraction(const ModelParameterMap& parameters)
-    : ConstantModel(parameters, "vector")
+    :
+    ConstantModel(parameters, "vector")
 {
 }
 

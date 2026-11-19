@@ -4,7 +4,8 @@ namespace trimuse
 {
 
 IsotropyConstantThermalExpansionCoef::IsotropyConstantThermalExpansionCoef(const ModelParameterMap& parameters)
-    : ConstantModel(parameters.at("isotropy_constant_value"), "scalar")
+    :
+    ConstantModel(parameters.at("isotropy_constant_value"), "scalar")
 {
 }
 

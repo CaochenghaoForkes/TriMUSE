@@ -10,7 +10,6 @@ class TecDoc978RussianSiCNuclideDiffusionCoef final : public NuclideDiffusionCoe
 {
 public:
     explicit TecDoc978RussianSiCNuclideDiffusionCoef(const ModelParameterMap& parameters);
-    
     double evaluate(const PropertiesStatePoint& state_point) const override;
 
 private:

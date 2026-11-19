@@ -12,15 +12,10 @@ class MechanicsProblem // 调度当前线弹性与热膨胀模型的准静态平
 {
 public:
     MechanicsProblem(FemSystem& fem, FieldData& accepted_displacement, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output_manager, const MechanicsRegionConfigs& regions, const MechanicsBoundaryConfigs& boundaries, const MechanicsInterfaceConfigs& interfaces);
-
     MechanicsProblem(FemSystem& fem, RegionFieldData& accepted_displacement, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output_manager, const MechanicsRegionConfigs& regions, const MechanicsBoundaryConfigs& boundaries, const MechanicsInterfaceConfigs& interfaces);
-
     void solve(); // 按当前温度、属性和载荷求解平衡，提交位移与求积点状态，并记录求解信息
-
     void save_output(int cycle, double time, double time_step); // 保存当前正式状态的最大主应力和最大剪应力，单位 Pa
-
     const MechanicsState::Values& accepted_state() const; // 已接受的求积点总应变与应力，只读访问
-
     const MechanicsAssembly::Counts& assembly_counts() const;
 
 private:

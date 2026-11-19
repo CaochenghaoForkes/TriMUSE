@@ -11,7 +11,7 @@ TecDoc978FRGUO2NuclideDiffusionCoef::TecDoc978FRGUO2NuclideDiffusionCoef(const M
         {"Cs", {{5.6e-8, 209e3}, {5.2e-4, 362e3}}},
         {"Sr", {{2.2e-3, 488e3}}},
         {"Ag", {{6.7e-9, 165e3}}},
-        {"I",  {{1.3e-12, 126e3}}},
+        {"I", {{1.3e-12, 126e3}}},
         {"Kr", {{1.3e-12, 126e3}}},
         {"Xe", {{1.3e-12, 126e3}}},
     };

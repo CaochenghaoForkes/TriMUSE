@@ -8,15 +8,25 @@ namespace trimuse
 {
 
 RadioactivityProblem::RadioactivityProblem(FemSystem& fem, FieldData& accepted_concentration, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output_manager, const std::string& problem_type, const std::vector<RadioactivityInitialConfig>& initial, const RadioactivityRegionConfigs& regions, const RadioactivityBoundaryConfigs& boundaries, const RadioactivityInterfaceConfigs& interfaces)
-    : RadioactivityProblem(fem, TrialField(fem, accepted_concentration), properties, solver, output_manager, problem_type, initial, regions, boundaries, interfaces) // 连续正式场包装为独立试探场，再交给统一构造函数
+    :
+    RadioactivityProblem(fem, TrialField(fem, accepted_concentration), properties, solver, output_manager, problem_type, initial, regions, boundaries, interfaces) // 连续正式场包装为独立试探场，再交给统一构造函数
 {
 }
+
 RadioactivityProblem::RadioactivityProblem(FemSystem& fem, RegionFieldData& accepted_concentration, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output_manager, const std::string& problem_type, const std::vector<RadioactivityInitialConfig>& initial, const RadioactivityRegionConfigs& regions, const RadioactivityBoundaryConfigs& boundaries, const RadioactivityInterfaceConfigs& interfaces)
-    : RadioactivityProblem(fem, TrialField(fem, accepted_concentration), properties, solver, output_manager, problem_type, initial, regions, boundaries, interfaces) // 分域正式场同样包装为试探场
+    :
+    RadioactivityProblem(fem, TrialField(fem, accepted_concentration), properties, solver, output_manager, problem_type, initial, regions, boundaries, interfaces) // 分域正式场同样包装为试探场
 {
 }
+
 RadioactivityProblem::RadioactivityProblem(FemSystem& fem, TrialField trial_concentration, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output_manager, const std::string& problem_type, const std::vector<RadioactivityInitialConfig>& initial, const RadioactivityRegionConfigs& regions, const RadioactivityBoundaryConfigs& boundaries, const RadioactivityInterfaceConfigs& interfaces)
-    : trial_concentration_(std::move(trial_concentration)), properties_(properties), solver_(solver), output_manager_(output_manager), transient_(problem_type == "transient"), assembly_(fem, trial_concentration_, regions, boundaries, interfaces)
+    :
+    trial_concentration_(std::move(trial_concentration)),
+    properties_(properties),
+    solver_(solver),
+    output_manager_(output_manager),
+    transient_(problem_type == "transient"),
+    assembly_(fem, trial_concentration_, regions, boundaries, interfaces)
 {
     assembly_.mark_coupled(properties_); // 登记扩散、源和边界所需属性与浓度场的耦合关系
     if (trial_concentration_.regional())
@@ -56,13 +66,11 @@ void RadioactivityProblem::solve(double time_step, double theta) // 每个时刻
         return;
     }
     iterate(time_step, theta); // 稳态求解或瞬态时间推进
-    output_manager_.append_solve_information("concentration", "solve_elapsed_seconds",
-        std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count());
+    output_manager_.append_solve_information("concentration", "solve_elapsed_seconds", std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count());
     for (const auto& [name, count] : assembly_.counts())
     {
         const auto old = before.find(name);
-        output_manager_.append_solve_information("concentration", name + "_assemblies",
-            count - (old == before.end() ? 0 : old->second));
+        output_manager_.append_solve_information("concentration", name + "_assemblies", count - (old == before.end() ? 0 : old->second));
     }
 }
 
@@ -76,7 +84,8 @@ void RadioactivityProblem::iterate(double time_step, double theta) // 在完整�
 {
     const mfem::Vector previous_step_values = trial_concentration_.values(); // 保存已接受的 c_n
     RadioactivityAssembly::State old; // 旧时刻的只读 M、K、F
-    mfem::Vector old_load(trial_concentration_.size()); old_load = 0.0; // 旧时刻显式贡献
+    mfem::Vector old_load(trial_concentration_.size());
+    old_load = 0.0; // 旧时刻显式贡献
     if (transient_ && theta < 1.0) // theta=1 时不需要旧时刻的 K_n 和 F_n
     {
         old = assembly_.update(properties_.previous_field_data()); // 按 t_n 已接受属性取得旧矩阵和右端
@@ -134,7 +143,10 @@ void RadioactivityProblem::iterate(double time_step, double theta) // 在完整�
         const auto trial_values = trial_concentration_.values();
         iteration_delta -= trial_values; // 旧试探值 - 新试探值，用于收敛判据
         const double increment = iteration_delta.Normlinf(); // 相邻两轮试探浓度的最大差值
-        if (!std::isfinite(increment)) { throw std::runtime_error("核素扩散迭代产生非有限浓度"); }
+        if (!std::isfinite(increment))
+        {
+            throw std::runtime_error("核素扩散迭代产生非有限浓度");
+        }
         if (!nonlinear || increment <= picard.absolute_tolerance + picard.relative_tolerance * trial_values.Normlinf())
         {
             accept_concentration(); // 满足 Picard 判据后提交正式场

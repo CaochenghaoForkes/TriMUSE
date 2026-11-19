@@ -1,9 +1,12 @@
 #include "physics/radioactivity/common/radioactivity_domain_manager.hpp"
+
 namespace trimuse
 {
 
 RadioactivityDomainManager::RadioactivityDomainManager(const FemSystem& fem) // 系数数组按全域求积点总数分配
-    : fem_(fem), values_(fem.domain_quadrature_point_count(), 0.0)
+    :
+    fem_(fem),
+    values_(fem.domain_quadrature_point_count(), 0.0)
 {
 }
 
@@ -19,26 +22,25 @@ void RadioactivityDomainManager::assign(const std::vector<RadioactivityDomainCon
 void RadioactivityDomainManager::update(const PropertiesFieldData& properties) // 重新求系数并与已缓存积分点值比较，累计区域重组标记
 {
     for (auto& [region, assignment] : models_)
-    for (int element : fem_.mesh_data().region_elements(region))
-    for (std::size_t point = fem_.domain_quadrature_offset(element);
-         point < fem_.domain_quadrature_offset(element + 1); ++point)
-    {
-        const double value = assignment.model->evaluate(properties, point);
-        assignment.dirty = assignment.dirty || value != values_[point]; // 任一积分点变化则整区域需要重组
-        values_[point] = value; // 下标为原网格单元偏移 + 局部积分点编号
-    }
+        for (int element : fem_.mesh_data().region_elements(region))
+            for (std::size_t point = fem_.domain_quadrature_offset(element); point < fem_.domain_quadrature_offset(element + 1); ++point)
+            {
+                const double value = assignment.model->evaluate(properties, point);
+                assignment.dirty = assignment.dirty || value != values_[point]; // 任一积分点变化则整区域需要重组
+                values_[point] = value; // 下标为原网格单元偏移 + 局部积分点编号
+            }
 }
 
 bool RadioactivityDomainManager::coupled(const PropertiesSystem& properties, const std::string& field) const // 任一所需属性参与指定场耦合即返回 true
 {
     for (const auto& [region, assignment] : models_)
-    for (const auto& name : assignment.required)
-    {
-        if (properties.coupled_with_field(name, region, field))
+        for (const auto& name : assignment.required)
         {
-            return true;
+            if (properties.coupled_with_field(name, region, field))
+            {
+                return true;
+            }
         }
-    }
     return false;
 }
 

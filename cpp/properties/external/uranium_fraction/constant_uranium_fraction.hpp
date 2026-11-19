@@ -10,7 +10,6 @@ class ConstantUraniumFraction final : public UraniumFractionModel, private Const
 {
 public:
     explicit ConstantUraniumFraction(const ModelParameterMap& parameters, const std::string& value_type);
-
     StateValue evaluate(const PropertiesStatePoint& point) const override;
 };
 

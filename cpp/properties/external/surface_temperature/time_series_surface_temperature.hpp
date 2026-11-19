@@ -10,7 +10,6 @@ class TimeSeriesSurfaceTemperature final : public SurfaceTemperatureModel, priva
 {
 public:
     explicit TimeSeriesSurfaceTemperature(const ModelParameterMap& parameters, const std::string& value_type);
-
     StateValue evaluate(const PropertiesStatePoint& point) const override;
 };
 

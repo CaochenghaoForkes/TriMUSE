@@ -3,11 +3,15 @@
 namespace trimuse
 {
 
-FieldView::FieldView(const mfem::GridFunction* field) : field_(field)
+FieldView::FieldView(const mfem::GridFunction* field)
+    :
+    field_(field)
 {
 }
 
-FieldView::FieldView(const RegionFieldData* field) : field_(field)
+FieldView::FieldView(const RegionFieldData* field)
+    :
+    field_(field)
 {
 }
 

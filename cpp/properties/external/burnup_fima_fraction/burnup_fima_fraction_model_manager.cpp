@@ -22,7 +22,10 @@ void BurnupFimaFractionModelManager::assign(const std::string& model_name, const
 
 StateValue BurnupFimaFractionModelManager::evaluate(const PropertiesStatePoint& point) const
 {
-    if (!model_) { throw std::logic_error("尚未设置 burnup_fima_fraction 模型"); }
+    if (!model_)
+    {
+        throw std::logic_error("尚未设置 burnup_fima_fraction 模型");
+    }
     return model_->evaluate(point);
 }
 

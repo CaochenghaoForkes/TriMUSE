@@ -4,7 +4,8 @@ namespace trimuse
 {
 
 TimeSeriesMassDensity::TimeSeriesMassDensity(const ModelParameterMap& parameters)
-    : TimeSeriesModel(parameters)
+    :
+    TimeSeriesModel(parameters)
 {
 }
 

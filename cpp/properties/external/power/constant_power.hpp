@@ -10,7 +10,6 @@ class ConstantPower final : public PowerModel, private ConstantModel
 {
 public:
     explicit ConstantPower(const ModelParameterMap& parameters, const std::string& value_type);
-
     StateValue evaluate(const PropertiesStatePoint& point) const override;
 };
 

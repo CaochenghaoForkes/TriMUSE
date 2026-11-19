@@ -10,7 +10,6 @@ class TimeSeriesFastNeutronFluence final : public FastNeutronFluenceModel, priva
 {
 public:
     explicit TimeSeriesFastNeutronFluence(const ModelParameterMap& parameters);
-    
     StateValue evaluate(const PropertiesStatePoint& point) const override;
 };
 

@@ -9,7 +9,6 @@ class UniformInterfaceThermalResistance final : public InterfaceThermalResistanc
 {
 public:
     explicit UniformInterfaceThermalResistance(const ModelParameterMap& parameters);
-
     std::optional<double> evaluate(const PropertiesStatePoint& point) const override;
 
 private:

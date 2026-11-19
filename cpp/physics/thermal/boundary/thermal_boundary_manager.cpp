@@ -33,21 +33,21 @@ void ThermalBoundaryManager::update(const PropertiesFieldData& properties) // �
 void ThermalBoundaryManager::mark_coupled(PropertiesSystem& properties, const std::string& field) const // 向属性系统登记: 边界模型所依赖的属性，哪些需要随指定求解场更新
 {
     for (const auto& [zone, assignment] : models_) // 遍历各边界分区及其模型记录
-    { 
-        properties.mark_coupled(field, assignment.required); 
+    {
+        properties.mark_coupled(field, assignment.required);
     }
 }
 
 bool ThermalBoundaryManager::coupled(const PropertiesSystem& properties, const std::string& field) const // 判断场与依赖属性是否存在耦合关系
 {
     for (const auto& [zone, assignment] : models_)
-    for (const auto& name : assignment.required)
-    {
-        if (properties.coupled_with_field(name, zone, field)) 
-        { 
-            return true; 
+        for (const auto& name : assignment.required)
+        {
+            if (properties.coupled_with_field(name, zone, field))
+            {
+                return true;
+            }
         }
-    }
     return false;
 }
 
@@ -64,21 +64,21 @@ void ThermalBoundaryManager::assembled(int zone, BoundaryPart part) // models_ �
 std::vector<int> ThermalBoundaryManager::zones() const // 返回当前边界管理器中，已配置边界模型的所有 zone 编号
 {
     std::vector<int> result;
-    for (const auto& [zone, assignment] : models_) 
-    { 
-        result.push_back(zone); 
+    for (const auto& [zone, assignment] : models_)
+    {
+        result.push_back(zone);
     }
     return result;
 }
 
 const ThermalBoundaryValues& ThermalBoundaryManager::values(int zone) const // 返回指定区域的 values.matrix: 边界矩阵系数 values.load 边界右端系数 values.temperature 指定表面温度
-{ 
-    return models_.at(zone).values; 
+{
+    return models_.at(zone).values;
 }
 
 bool ThermalBoundaryManager::essential(int zone) const // 判断指定区域是否是一类边界条件需要约束
-{ 
-    return models_.at(zone).model->essential(); 
+{
+    return models_.at(zone).model->essential();
 }
 
 }

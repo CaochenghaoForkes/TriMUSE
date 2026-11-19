@@ -8,8 +8,7 @@ namespace trimuse
 TecDoc978JapanUO2NuclideDiffusionCoef::TecDoc978JapanUO2NuclideDiffusionCoef(const ModelParameterMap& parameters)
 {
     static const std::unordered_map<std::string, ArrheniusTerms> coefficients{
-        {"Cs", {{4.7e-10, 177e3}}}
-    };
+        {"Cs", {{4.7e-10, 177e3}}}};
     terms_ = coefficients.at(std::get<std::string>(parameters.at("nuclide_symbol")));
 }
 

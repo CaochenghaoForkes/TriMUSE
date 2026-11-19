@@ -9,9 +9,7 @@
 namespace trimuse
 {
 
-void solve_cg(const LinearSolverConfig& config, const mfem::Operator& matrix,
-              const mfem::Vector& right_hand_side, mfem::Vector& solution,
-              const std::string& field_name, OutputManager& output_manager)
+void solve_cg(const LinearSolverConfig& config, const mfem::Operator& matrix, const mfem::Vector& right_hand_side, mfem::Vector& solution, const std::string& field_name, OutputManager& output_manager)
 {
     const auto started = std::chrono::steady_clock::now();
     std::unique_ptr<mfem::Solver> preconditioner;

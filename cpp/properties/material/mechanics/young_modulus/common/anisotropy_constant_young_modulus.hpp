@@ -11,7 +11,6 @@ class AnisotropyConstantYoungModulus final : public YoungModulusModel, private C
 {
 public:
     explicit AnisotropyConstantYoungModulus(const ModelParameterMap& parameters);
-
     VectorValue evaluate(const PropertiesStatePoint& point) const override;
 };
 

@@ -9,7 +9,6 @@ class Bison2021BaconAnisotropyFactor final : public BaconAnisotropyFactorModel
 {
 public:
     explicit Bison2021BaconAnisotropyFactor(const ModelParameterMap&);
-
     double evaluate(const PropertiesStatePoint& point) const override;
 };
 

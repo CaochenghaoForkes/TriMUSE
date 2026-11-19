@@ -5,8 +5,9 @@ namespace trimuse
 {
 
 ArrheniusNuclideDiffusionCoef::ArrheniusNuclideDiffusionCoef(const ModelParameterMap& parameters)
-    : D0_(std::get<double>(parameters.at("D0"))),
-      Q_(std::get<double>(parameters.at("Q")))
+    :
+    D0_(std::get<double>(parameters.at("D0"))),
+    Q_(std::get<double>(parameters.at("Q")))
 {
 }
 

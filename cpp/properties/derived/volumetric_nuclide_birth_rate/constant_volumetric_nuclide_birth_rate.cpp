@@ -4,7 +4,8 @@ namespace trimuse
 {
 
 ConstantVolumetricNuclideBirthRate::ConstantVolumetricNuclideBirthRate(const ModelParameterMap& parameters)
-    : ConstantModel(parameters)
+    :
+    ConstantModel(parameters)
 {
 }
 

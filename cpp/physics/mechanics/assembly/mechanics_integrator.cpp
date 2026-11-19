@@ -4,22 +4,26 @@
 
 namespace trimuse
 {
+
 namespace
 {
 
-const mfem::DenseMatrix strain_weights({ // 张量双点乘对应的对角矩阵 W
-    {1.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-    {0.0, 1.0, 0.0, 0.0, 0.0, 0.0},
-    {0.0, 0.0, 1.0, 0.0, 0.0, 0.0},
-    {0.0, 0.0, 0.0, 2.0, 0.0, 0.0},
-    {0.0, 0.0, 0.0, 0.0, 2.0, 0.0},
-    {0.0, 0.0, 0.0, 0.0, 0.0, 2.0}
-});
+const mfem::DenseMatrix strain_weights({// 张量双点乘对应的对角矩阵 W
+                                        {1.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+                                        {0.0, 1.0, 0.0, 0.0, 0.0, 0.0},
+                                        {0.0, 0.0, 1.0, 0.0, 0.0, 0.0},
+                                        {0.0, 0.0, 0.0, 2.0, 0.0, 0.0},
+                                        {0.0, 0.0, 0.0, 0.0, 2.0, 0.0},
+                                        {0.0, 0.0, 0.0, 0.0, 0.0, 2.0}});
 
 }
 
 MechanicsIntegrator::MechanicsIntegrator(FemSystem& fem, const TrialField& trial_field) // 初始化并缓存所有域内求积点的应变矩阵 B
-    : fem_(fem), trial_field_(trial_field), dimension_(fem.mesh_data().dimension()), strain_matrices_(make_strain_matrices(fem, trial_field))
+    :
+    fem_(fem),
+    trial_field_(trial_field),
+    dimension_(fem.mesh_data().dimension()),
+    strain_matrices_(make_strain_matrices(fem, trial_field))
 {
 }
 
@@ -83,10 +87,10 @@ std::shared_ptr<mfem::Vector> MechanicsIntegrator::domain_load(int region, const
             const auto& force = values[offset + q]; // 直接读取体积力，如重力模型已包含 rho*g
             const double weight = point.weight * transformation.Weight() * fem_.geometric_weight(transformation, point);
             for (int c = 0; c < dimension_; ++c) // 遍历维度
-            for (int i = 0; i < shape.Size(); ++i) // 遍历插值节点
-            {
-                local[c * shape.Size() + i] += weight * shape[i] * force[c]; // f^e_{c,i} += wq Jq gq Ni b_c
-            }
+                for (int i = 0; i < shape.Size(); ++i) // 遍历插值节点
+                {
+                    local[c * shape.Size() + i] += weight * shape[i] * force[c]; // f^e_{c,i} += wq Jq gq Ni b_c
+                }
         }
         trial_field_.element_dofs(element, dofs); // 连续场或分域场的完整自由度编号，局部按分量分块排列
         result->AddElementVector(dofs, local);
@@ -150,8 +154,8 @@ std::shared_ptr<mfem::Vector> MechanicsIntegrator::boundary_load(const std::vect
             fe->CalcShape(transformation->GetElement1IntPoint(), shape); // 在这个对应的参考域单元坐标处计算域形函数
             if (prescribed_traction)
             {
-                for (int c = 0; c < dimension_; ++c) 
-                { 
+                for (int c = 0; c < dimension_; ++c)
+                {
                     traction[c] = (*prescribed_traction)[c]; // 若用户直接指定了面力，则直接复制其分量
                 }
             }
@@ -172,10 +176,10 @@ std::shared_ptr<mfem::Vector> MechanicsIntegrator::boundary_load(const std::vect
             }
             const double weight = point.weight * transformation->Weight() * fem_.geometric_weight(*transformation, point);
             for (int c = 0; c < dimension_; ++c) // 遍历位移方向
-            for (int i = 0; i < shape.Size(); ++i) // 遍历插值节点
-            {
-                local[c * shape.Size() + i] += weight * shape[i] * traction[c]; // += wq Jq hq Ni(xq)tc(xq)
-            }
+                for (int i = 0; i < shape.Size(); ++i) // 遍历插值节点
+                {
+                    local[c * shape.Size() + i] += weight * shape[i] * traction[c]; // += wq Jq hq Ni(xq)tc(xq)
+                }
         }
         trial_field_.element_dofs(element, dofs);
         result->AddElementVector(dofs, local);
@@ -190,7 +194,7 @@ void MechanicsIntegrator::recover_state(const std::vector<ElasticityTensorValue>
     mfem::Vector local_displacement; // 按这些编号提取出的单元位移向量 d^e
     for (int element = 0; element < fem_.mesh_data().element_count(); ++element) // 遍历原网格域单元，提取单元位移
     {
-        trial_field_.element_dofs(element, dofs);  // 取得当前单元的完整自由度编号
+        trial_field_.element_dofs(element, dofs); // 取得当前单元的完整自由度编号
         displacement.GetSubVector(dofs, local_displacement); // 按 dofs 从完整位移向量中提取当前单元的位移 如 d^e=[u_{r,1},u_{r,2},u_{r,3},u_{z,1},u_{z,2},u_{z,3}]^T
         for (std::size_t point = fem_.domain_quadrature_offset(element); point < fem_.domain_quadrature_offset(element + 1); ++point) // 遍历当前求积点
         {

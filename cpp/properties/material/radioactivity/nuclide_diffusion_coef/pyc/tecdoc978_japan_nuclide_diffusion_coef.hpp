@@ -9,7 +9,6 @@ class TecDoc978JapanPyCNuclideDiffusionCoef final : public NuclideDiffusionCoefM
 {
 public:
     explicit TecDoc978JapanPyCNuclideDiffusionCoef(const ModelParameterMap& parameters);
-    
     double evaluate(const PropertiesStatePoint& state_point) const override;
 };
 

@@ -13,6 +13,7 @@
 
 namespace trimuse
 {
+
 using RadioactivityRegionConfigs = std::unordered_map<std::string, std::vector<RadioactivityDomainConfig>>;
 using RadioactivityBoundaryConfigs = std::unordered_map<std::string, std::vector<RadioactivityBoundaryConfig>>;
 using RadioactivityInterfaceConfigs = std::unordered_map<std::string, std::vector<RadioactivityInterfaceNuclideTransferConfig>>;
@@ -25,6 +26,7 @@ public:
         std::shared_ptr<const mfem::SparseMatrix> mass, matrix; // 时间导数项矩阵 M，以及扩散、边界和衰变合并的总矩阵 K
         std::shared_ptr<const mfem::Vector> load; // F=F_birth+F_boundary
     };
+
     using Counts = std::map<std::string, int>; // 贡献名称 -> 已组装区域或边界的次数
 
     RadioactivityAssembly(FemSystem& fem, TrialField& trial_field, const RadioactivityRegionConfigs& regions, const RadioactivityBoundaryConfigs& boundaries, const RadioactivityInterfaceConfigs& interfaces); // 配置贡献管理器、界面约束和外边界索引
@@ -59,7 +61,6 @@ private:
     AssemblyCache<mfem::SparseMatrix> diffusion_matrix_cache_, capacity_matrix_cache_, decay_matrix_cache_, boundary_matrix_cache_; // 按区域或分区缓存扩散、容量、衰变与边界矩阵
     AssemblyCache<mfem::Vector> source_load_cache_, boundary_load_cache_; // 按区域或分区缓存体积源和边界右端
     State state_; // 最近一次汇总的 M、K、F
-
     std::shared_ptr<const mfem::SparseMatrix> last_diffusion_matrix_cache_sum_, last_decay_matrix_cache_sum_, last_boundary_matrix_cache_sum_; // 上次组成 K 时使用的扩散、衰变和边界矩阵缓存指针
     std::shared_ptr<const mfem::Vector> last_source_load_cache_sum_, last_boundary_load_cache_sum_; // 上次组成 F 时使用的 source_load_cache_.sum 与 boundary_load_cache_.sum
     Counts counts_; // 各类贡献的累计组装次数

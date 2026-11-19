@@ -10,7 +10,6 @@ class Bison2021PycYoungModulus final : public YoungModulusModel
 {
 public:
     explicit Bison2021PycYoungModulus(const ModelParameterMap& parameters);
-
     VectorValue evaluate(const PropertiesStatePoint& state_point) const override;
 };
 

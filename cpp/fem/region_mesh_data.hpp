@@ -11,15 +11,10 @@ class RegionMeshData
 {
 public:
     RegionMeshData(const mfem::Mesh& parent, int region_attribute); // // 从原网格提取指定 region 的子网格，并建立原网格与子网格之间的编号映射
-
     mfem::Mesh& mfem_mesh(); // 返回当前区域的子网格对象的引用
-
     const mfem::Mesh& mfem_mesh() const; // 返回当前区域的子网格对象的引用
-
     int parent_element(int local_element) const; // 根据子网格域单元编号，返回对应的原网格域单元编号
-
     int local_element(int parent_element) const; // 反向查询：根据原网格域单元编号，返回它在当前子网格中的编号
-
     int local_face(int parent_face) const; // 根据原网格面编号，返回它在当前子网格中的面编号
 
 private:

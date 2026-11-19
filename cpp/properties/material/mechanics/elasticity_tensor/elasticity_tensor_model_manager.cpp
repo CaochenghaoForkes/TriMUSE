@@ -8,10 +8,7 @@ ElasticityTensorModel::~ElasticityTensorModel() = default;
 
 void ElasticityTensorModelManager::register_models()
 {
-    registry_.register_model<FromEngineeringConstantsElasticityTensor>(
-        "common.from_engineering_constants",
-        {"material.mechanics.young_modulus", "material.mechanics.poisson_ratio", "material.mechanics.shear_modulus",
-         "precomputed.tensor_transform", "precomputed.tensor_transform_inverse"});
+    registry_.register_model<FromEngineeringConstantsElasticityTensor>( "common.from_engineering_constants", {"material.mechanics.young_modulus", "material.mechanics.poisson_ratio", "material.mechanics.shear_modulus", "precomputed.tensor_transform", "precomputed.tensor_transform_inverse"});
 }
 
 void ElasticityTensorModelManager::assign(int region_attribute, const std::string& model_name, const ModelParameterMap& parameters)

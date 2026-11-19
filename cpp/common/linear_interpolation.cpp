@@ -11,7 +11,7 @@ LinearInterpolator::Interval LinearInterpolator::find_interval(const std::vector
 {
     if (coordinate <= coordinates.front())
     {
-        return {0, 0, 0.0}; 
+        return {0, 0, 0.0};
     }
     if (coordinate >= coordinates.back())
     {
@@ -48,7 +48,7 @@ StateValue LinearInterpolator::evaluate(const std::vector<double>& coordinates, 
 StateValue LinearInterpolator::interpolate(const StateValue& left, const StateValue& right, double fraction)
 {
     return std::visit([&right, fraction](const auto& left_value) -> StateValue
-    {
+                      {
         using ValueType = std::decay_t<decltype(left_value)>;
         const ValueType& right_value = std::get<ValueType>(right);
         if constexpr (std::is_same_v<ValueType, double>)
@@ -81,8 +81,7 @@ StateValue LinearInterpolator::interpolate(const StateValue& left, const StateVa
                 }
             }
             return result;
-        }
-    }, left);
+        } }, left);
 }
 
 }

@@ -22,15 +22,10 @@ public:
     };
 
     explicit MechanicsState(std::size_t point_count); // 按全域求积点总数准备试探与已接受状态的存储
-
     void update(const MechanicsIntegrator& integrator, const std::vector<ElasticityTensorValue>& elasticity, const std::vector<VectorValue>& eigenstrain_coefficients); // 调用积分器，根据当前试探位移和传入的本构系数，更新各求积点的试探应变、应力及其主值和最大剪应力
-
     void load(); // 加载 试探应力、总应变及其主值和最大剪应力 <- 对应正式状态
-
     void accept(); // 接收 正式应力、总应变及其主值和最大剪应力 <- 对应试探状态
-
     const Values& trial_values() const; // 输出试探应力、总应变及其主值和最大剪应力
-
     const Values& accepted_values() const; // 输出正式应力、总应变及其主值和最大剪应力
 
 private:

@@ -5,7 +5,8 @@ namespace trimuse
 {
 
 RadioactivityDecayManager::RadioactivityDecayManager(const FemSystem& fem, const std::vector<RadioactivityDomainConfig>& configs)
-    : RadioactivityDomainManager(fem)
+    :
+    RadioactivityDomainManager(fem)
 {
     registry_.register_model<PurDecay>("pur_decay", {"precomputed.half_life"});
     assign(configs);

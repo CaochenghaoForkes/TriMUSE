@@ -10,7 +10,6 @@ class TimeSeriesEnvironmentTemperature final : public EnvironmentTemperatureMode
 {
 public:
     explicit TimeSeriesEnvironmentTemperature(const ModelParameterMap& parameters, const std::string& value_type);
-
     StateValue evaluate(const PropertiesStatePoint& point) const override;
 };
 

@@ -10,7 +10,6 @@ class TimeSeriesSurfacePressure final : public SurfacePressureModel, private Tim
 {
 public:
     explicit TimeSeriesSurfacePressure(const ModelParameterMap& parameters);
-
     double evaluate(const PropertiesStatePoint& point) const override;
 };
 

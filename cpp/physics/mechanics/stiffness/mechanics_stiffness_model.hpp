@@ -10,7 +10,6 @@ class MechanicsStiffnessModel
 {
 public:
     virtual ~MechanicsStiffnessModel() = default;
-
     virtual ElasticityTensorValue evaluate(const PropertiesFieldData& properties, std::size_t point) const = 0;
 };
 

@@ -10,7 +10,6 @@ class TecDoc978FRGPyCNuclideDiffusionCoef final : public NuclideDiffusionCoefMod
 {
 public:
     explicit TecDoc978FRGPyCNuclideDiffusionCoef(const ModelParameterMap& parameters);
-
     double evaluate(const PropertiesStatePoint& state_point) const override;
 
 private:

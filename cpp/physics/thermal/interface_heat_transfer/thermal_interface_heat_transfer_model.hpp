@@ -18,9 +18,7 @@ class ThermalInterfaceModel // 所有热界面模型的抽象基类
 {
 public:
     virtual ~ThermalInterfaceModel() = default; // 虚析构函数
-    
     virtual bool requires_region_field() const { return true; } // 判断该模型是否要求分域场，默认要求
-
     virtual bool is_perfect_contact(const InterfaceContext& context) const = 0;
 };
 

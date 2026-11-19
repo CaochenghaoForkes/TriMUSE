@@ -10,7 +10,6 @@ class ConstantMassTransferCoef final : public MassTransferCoefModel, private Con
 {
 public:
     explicit ConstantMassTransferCoef(const ModelParameterMap& parameters);
-
     StateValue evaluate(const PropertiesStatePoint& point) const override;
 };
 

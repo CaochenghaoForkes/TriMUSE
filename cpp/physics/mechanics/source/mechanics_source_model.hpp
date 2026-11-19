@@ -10,7 +10,6 @@ class MechanicsSourceModel // 模型返回求积点上的体积力向量，单�
 {
 public:
     virtual ~MechanicsSourceModel() = default;
-
     virtual VectorValue evaluate(const PropertiesFieldData& properties, std::size_t point) const = 0;
 };
 

@@ -8,4 +8,8 @@ MechanicsBoundaryValue MechanicsFromSurfaceTraction::evaluate(const PropertiesFi
     return std::get<VectorValue>(properties.zone_values.at("external.surface_traction").at(zone).value());
 }
 
+MechanicsFromSurfaceTraction::MechanicsFromSurfaceTraction(const ModelParameterMap&)
+{
+}
+
 }

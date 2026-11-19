@@ -4,7 +4,8 @@ namespace trimuse
 {
 
 ConstantMassTransferCoef::ConstantMassTransferCoef(const ModelParameterMap& parameters)
-    : ConstantModel(parameters)
+    :
+    ConstantModel(parameters)
 {
 }
 

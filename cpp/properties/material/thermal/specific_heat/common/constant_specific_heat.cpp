@@ -4,7 +4,8 @@ namespace trimuse
 {
 
 ConstantSpecificHeat::ConstantSpecificHeat(const ModelParameterMap& parameters)
-    : ConstantModel(parameters)
+    :
+    ConstantModel(parameters)
 {
 }
 

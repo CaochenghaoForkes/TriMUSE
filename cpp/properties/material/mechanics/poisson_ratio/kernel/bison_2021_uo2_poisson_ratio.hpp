@@ -10,7 +10,6 @@ class Bison2021Uo2PoissonRatio final : public PoissonRatioModel
 {
 public:
     explicit Bison2021Uo2PoissonRatio(const ModelParameterMap& parameters);
-
     VectorValue evaluate(const PropertiesStatePoint& state_point) const override;
 };
 

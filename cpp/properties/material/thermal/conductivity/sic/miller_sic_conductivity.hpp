@@ -20,7 +20,6 @@ class MillerSicConductivity final : public ConductivityModel
 {
 public:
     explicit MillerSicConductivity(const ModelParameterMap& parameters);
-
     double evaluate(const PropertiesStatePoint& state_point) const override;
 };
 

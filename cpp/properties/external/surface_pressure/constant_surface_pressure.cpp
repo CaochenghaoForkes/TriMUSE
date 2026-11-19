@@ -4,7 +4,8 @@ namespace trimuse
 {
 
 ConstantSurfacePressure::ConstantSurfacePressure(const ModelParameterMap& parameters)
-    : ConstantModel(parameters, "scalar")
+    :
+    ConstantModel(parameters, "scalar")
 {
 }
 

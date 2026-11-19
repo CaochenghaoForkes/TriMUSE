@@ -17,7 +17,6 @@ class Ineri2004Uo2KernelConductivity final : public ConductivityModel
 {
 public:
     explicit Ineri2004Uo2KernelConductivity(const ModelParameterMap& parameters);
-
     double evaluate(const PropertiesStatePoint& state_point) const override;
 };
 

@@ -21,25 +21,21 @@ inline void initialize_tensor_transform(PropertiesSystem& properties, const FemS
         const double q31 = q.data[2][0], q32 = q.data[2][1], q33 = q.data[2][2];
 
         // A_global = Q A_local Q^T -> a_global = T a_local
-        const ElasticityTensorValue transform{{
-            {q11*q11, q12*q12, q13*q13, 2*q12*q13, 2*q11*q13, 2*q11*q12},
-            {q21*q21, q22*q22, q23*q23, 2*q22*q23, 2*q21*q23, 2*q21*q22},
-            {q31*q31, q32*q32, q33*q33, 2*q32*q33, 2*q31*q33, 2*q31*q32},
-            {q21*q31, q22*q32, q23*q33, q22*q33+q23*q32, q21*q33+q23*q31, q21*q32+q22*q31},
-            {q11*q31, q12*q32, q13*q33, q12*q33+q13*q32, q11*q33+q13*q31, q11*q32+q12*q31},
-            {q11*q21, q12*q22, q13*q23, q12*q23+q13*q22, q11*q23+q13*q21, q11*q22+q12*q21}
-        }};
+        const ElasticityTensorValue transform{{{q11 * q11, q12 * q12, q13 * q13, 2 * q12 * q13, 2 * q11 * q13, 2 * q11 * q12},
+                                               {q21 * q21, q22 * q22, q23 * q23, 2 * q22 * q23, 2 * q21 * q23, 2 * q21 * q22},
+                                               {q31 * q31, q32 * q32, q33 * q33, 2 * q32 * q33, 2 * q31 * q33, 2 * q31 * q32},
+                                               {q21 * q31, q22 * q32, q23 * q33, q22 * q33 + q23 * q32, q21 * q33 + q23 * q31, q21 * q32 + q22 * q31},
+                                               {q11 * q31, q12 * q32, q13 * q33, q12 * q33 + q13 * q32, q11 * q33 + q13 * q31, q11 * q32 + q12 * q31},
+                                               {q11 * q21, q12 * q22, q13 * q23, q12 * q23 + q13 * q22, q11 * q23 + q13 * q21, q11 * q22 + q12 * q21}}};
 
         // A_local = Q^T A_global Q -> a_local = T^{-1} a_global
         // 将上式中的 Q 换成 Q^T，逐项展开；T^{-1} 一般不等于 T^T
-        const ElasticityTensorValue inverse{{
-            {q11*q11, q21*q21, q31*q31, 2*q21*q31, 2*q11*q31, 2*q11*q21},
-            {q12*q12, q22*q22, q32*q32, 2*q22*q32, 2*q12*q32, 2*q12*q22},
-            {q13*q13, q23*q23, q33*q33, 2*q23*q33, 2*q13*q33, 2*q13*q23},
-            {q12*q13, q22*q23, q32*q33, q22*q33+q32*q23, q12*q33+q32*q13, q12*q23+q22*q13},
-            {q11*q13, q21*q23, q31*q33, q21*q33+q31*q23, q11*q33+q31*q13, q11*q23+q21*q13},
-            {q11*q12, q21*q22, q31*q32, q21*q32+q31*q22, q11*q32+q31*q12, q11*q22+q21*q12}
-        }};
+        const ElasticityTensorValue inverse{{{q11 * q11, q21 * q21, q31 * q31, 2 * q21 * q31, 2 * q11 * q31, 2 * q11 * q21},
+                                             {q12 * q12, q22 * q22, q32 * q32, 2 * q22 * q32, 2 * q12 * q32, 2 * q12 * q22},
+                                             {q13 * q13, q23 * q23, q33 * q33, 2 * q23 * q33, 2 * q13 * q33, 2 * q13 * q23},
+                                             {q12 * q13, q22 * q23, q32 * q33, q22 * q33 + q32 * q23, q12 * q33 + q32 * q13, q12 * q23 + q22 * q13},
+                                             {q11 * q13, q21 * q23, q31 * q33, q21 * q33 + q31 * q23, q11 * q33 + q31 * q13, q11 * q23 + q21 * q13},
+                                             {q11 * q12, q21 * q22, q31 * q32, q21 * q32 + q31 * q22, q11 * q32 + q31 * q12, q11 * q22 + q21 * q12}}};
         transforms[point] = transform;
         inverses[point] = inverse;
     }

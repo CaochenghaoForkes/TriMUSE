@@ -39,13 +39,13 @@ void MechanicsBoundaryManager::mark_coupled(PropertiesSystem& properties, const 
 bool MechanicsBoundaryManager::coupled(const PropertiesSystem& properties, const std::string& field) const // 判断属性是否因边界值而与位移场耦合
 {
     for (const auto& [zone, assignment] : models_)
-    for (const auto& name : assignment.required)
-    {
-        if (properties.coupled_with_field(name, zone, field)) 
-        { 
-            return true; 
+        for (const auto& name : assignment.required)
+        {
+            if (properties.coupled_with_field(name, zone, field))
+            {
+                return true;
+            }
         }
-    }
     return false;
 }
 
@@ -62,9 +62,9 @@ void MechanicsBoundaryManager::assembled(int zone) // 将 region 处的 dirty �
 std::vector<int> MechanicsBoundaryManager::zones() const // 返回当前管理器中已经配置模型的所有边界区域编号
 {
     std::vector<int> result;
-    for (const auto& [zone, assignment] : models_) 
-    { 
-        result.push_back(zone); 
+    for (const auto& [zone, assignment] : models_)
+    {
+        result.push_back(zone);
     }
     return result;
 }

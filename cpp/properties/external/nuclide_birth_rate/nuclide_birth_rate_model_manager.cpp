@@ -22,7 +22,10 @@ void NuclideBirthRateModelManager::assign(const std::string& model_name, const M
 
 StateValue NuclideBirthRateModelManager::evaluate(const PropertiesStatePoint& point) const
 {
-    if (!model_) { throw std::logic_error("尚未设置 nuclide_birth_rate 模型"); }
+    if (!model_)
+    {
+        throw std::logic_error("尚未设置 nuclide_birth_rate 模型");
+    }
     return model_->evaluate(point);
 }
 

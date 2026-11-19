@@ -10,7 +10,6 @@ class ConstantPorosity final : public PorosityModel, private ConstantModel
 {
 public:
     explicit ConstantPorosity(const ModelParameterMap& parameters);
-
     double evaluate(const PropertiesStatePoint& point) const override;
 };
 

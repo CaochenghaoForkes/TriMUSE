@@ -4,7 +4,10 @@ namespace trimuse
 {
 
 ThermalInterfaceAssembly::ThermalInterfaceAssembly(FemSystem& fem, const TrialField& trial_field, DofConstraints& constraints)
-    : fem_(fem), trial_field_(trial_field), constraints_(constraints) // 传入有限元系统、试探场，以及由 ThermalAssembly 持有的约束对象
+    :
+    fem_(fem),
+    trial_field_(trial_field),
+    constraints_(constraints) // 传入有限元系统、试探场，以及由 ThermalAssembly 持有的约束对象
 {
 }
 
@@ -38,7 +41,8 @@ void ThermalInterfaceAssembly::add_transfer(const InterfaceContext& context, mfe
     const auto& rule = context.quadrature_rule(); // 取得当前参考面上的求积规则，包含积分点坐标和权重
     auto& transformation = context.transformations(); // 取得当前面的双侧几何变换，用来将参考面点映射到两侧参考单元，并计算几何积分权重
     mfem::Vector shape[2], jump(joined.Size()); // shape: 长度为2(代表两侧)的数组,每个元素都是 mfem::Vector jump: 长度等于两侧单元自由度之和的 mfem::Vector
-    mfem::DenseMatrix local(joined.Size()); local = 0.0; // 创建一个方阵并清零 规模与两侧单元自由度之和相同
+    mfem::DenseMatrix local(joined.Size());
+    local = 0.0; // 创建一个方阵并清零 规模与两侧单元自由度之和相同
     for (int q = 0; q < rule.GetNPoints(); ++q) // 遍历界面积分点
     {
         const auto& point = rule.IntPoint(q); // 取得参考面上第 q 个积分点 point

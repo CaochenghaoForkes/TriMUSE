@@ -10,7 +10,6 @@ class TecDoc978FRGUO2NuclideDiffusionCoef final : public NuclideDiffusionCoefMod
 {
 public:
     explicit TecDoc978FRGUO2NuclideDiffusionCoef(const ModelParameterMap& parameters);
-
     double evaluate(const PropertiesStatePoint& state_point) const override;
 
 private:

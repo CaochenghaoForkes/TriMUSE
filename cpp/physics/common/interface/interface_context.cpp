@@ -4,7 +4,9 @@ namespace trimuse
 {
 
 InterfaceContext::InterfaceContext(const MeshData::Interface& interface, FemSystem& fem) // 一个网格界面片的数据访问入口 把界面信息与有限元系统联系起来，提供当前界面片及两侧区域、单元信息、几何变换、求积规则，以及同一个积分点的实际坐标和两侧参考坐标
-    : interface_(interface), fem_(fem) 
+    :
+    interface_(interface),
+    fem_(fem)
 {
 }
 

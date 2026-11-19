@@ -10,7 +10,6 @@ class ConstantShearModulus final : public ShearModulusModel, private ConstantMod
 {
 public:
     explicit ConstantShearModulus(const ModelParameterMap& parameters);
-
     double evaluate(const PropertiesStatePoint& point) const override;
 };
 

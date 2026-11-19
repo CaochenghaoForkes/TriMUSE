@@ -10,7 +10,6 @@ class ConstantFastNeutronFlux final : public FastNeutronFluxModel, private Const
 {
 public:
     explicit ConstantFastNeutronFlux(const ModelParameterMap& parameters, const std::string& value_type);
-
     StateValue evaluate(const PropertiesStatePoint& point) const override;
 };
 

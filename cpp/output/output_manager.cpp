@@ -8,7 +8,9 @@ namespace trimuse
 {
 
 OutputManager::OutputManager(FemSystem& fem_system, const std::string& output_directory)
-    : fem_system_(fem_system), output_directory_(output_directory)
+    :
+    fem_system_(fem_system),
+    output_directory_(output_directory)
 {
 }
 
@@ -20,9 +22,7 @@ void OutputManager::add_field(const std::string& field_name, const std::string& 
     if (!project_to_l2) // 未显式要求 L2 输出时，读取已有计算场的阶次；连续场复用原空间，分域场另建同阶 L2 输出空间
     {
         const bool regional = fem_system_.has_region_field(field_name); // 判断这个场是否为分域场
-        const auto& field_space = regional // 取得计算场的有限元空间信息
-            ? fem_system_.region_field(field_name).finite_element_space(fem_system_.mesh_data().region_attributes().front()) // 分域场取第一个区域，是因为当前各区域使用相同阶次
-            : fem_system_.finite_element_space(field_name); // 连续场直接根据场名返回其唯一有限元空间
+        const auto& field_space = regional ? fem_system_.region_field(field_name).finite_element_space(fem_system_.mesh_data().region_attributes().front()) : fem_system_.finite_element_space(field_name); // 连续场直接根据场名返回其唯一有限元空间
         discontinuous = regional; // 分域场：设为 true，后面在原网格上创建 L2 输出空间，保留两侧不同的值 连续场：设为 false，直接复用原计算空间
         order = field_space.order(); // 让输出使用与计算场相同的插值阶次
         if (!regional) // 对于不需要做 L2 投影的连续场，输出场为 H1，取得原计算空间的指针，供后面创建独立的输出 GridFunction 使用，
@@ -43,7 +43,7 @@ void OutputManager::add_field(const std::string& field_name, const std::string& 
     output->SetOwnData(false); // 表示输出对象不负责销毁登记的网格和场值
     output->SetPrefixPath(directory.string()); // 设置输出目录
     output->RegisterField(field_name, field_output.values.get()); // 把场名和场值对应起来
-    const auto* nodes = fem_system_.mesh_data().mfem_mesh().GetNodes(); 
+    const auto* nodes = fem_system_.mesh_data().mfem_mesh().GetNodes();
     const int geometry_order = nodes ? nodes->FESpace()->GetMaxElementOrder() : 1; // 取得几何映射阶次
     output->SetLevelsOfDetail(std::max(geometry_order, order)); // 配置输出细节级别
     output->SetHighOrderOutput(true); // 启用高阶 VTK 输出以表示曲边几何和高阶场
@@ -66,7 +66,7 @@ void OutputManager::write_field(const std::string& field_name, int cycle, double
     mfem::ParaViewDataCollection& output = *field_output.collection_output; // 取得该场的 ParaView 输出对象引用
     output.SetCycle(cycle); // 设置本次输出的编号，用于区分各帧
     output.SetTime(time); // 设置当前物理时间
-    output.SetTimeStep(time_step); // 设置当前物理时间步长 
+    output.SetTimeStep(time_step); // 设置当前物理时间步长
     output.Save(); // 实际写入结果文件，并更新 ParaView 数据集合中的时间序列信息
     if (output.Error() != mfem::DataCollection::No_Error)
     {
@@ -95,8 +95,12 @@ void OutputManager::save(const std::string& field_name, const std::vector<double
         // \sum_{j=1}^{n_e} (int_{Omega_e} NiNj dV) uj = int_{Omega_e} Ni^e * v dV
         const auto* fe = space->GetFE(element);
         const int count = fe->GetDof(); // 插值节点数
-        shape.SetSize(count); rhs.SetSize(count); local.SetSize(count);
-        mass.SetSize(count); mass = 0.0; rhs = 0.0;
+        shape.SetSize(count);
+        rhs.SetSize(count);
+        local.SetSize(count);
+        mass.SetSize(count);
+        mass = 0.0;
+        rhs = 0.0;
         mesh.GetElementTransformation(element, &transformation); // 取得单元几何映射
         const auto* rule = fem_system_.domain_quadrature_rule(fe->GetGeomType()); // 取得积分规则
         const auto offset = fem_system_.domain_quadrature_offset(element); // 取得全域积分点偏移

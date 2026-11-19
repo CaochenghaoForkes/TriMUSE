@@ -9,9 +9,7 @@ namespace trimuse
 class RadioactivityInterfaceNuclideTransferManager // 为每片内部界面选模型，并持有最终自由度约束矩阵 P
 {
 public:
-    RadioactivityInterfaceNuclideTransferManager(FemSystem& fem, const TrialField& trial_field,
-        const std::vector<RadioactivityInterfaceNuclideTransferConfig>& configs);
-
+    RadioactivityInterfaceNuclideTransferManager(FemSystem& fem, const TrialField& trial_field, const std::vector<RadioactivityInterfaceNuclideTransferConfig>& configs);
     const DofConstraints& constraints() const { return constraints_; } // 提供约化、恢复等约束操作
     const mfem::SparseMatrix& prolongation() const { return constraints_.prolongation(); } // P：独立浓度自由度 -> 完整自由度
 

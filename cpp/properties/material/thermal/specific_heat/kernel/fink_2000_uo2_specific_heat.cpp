@@ -13,8 +13,7 @@ double Fink2000Uo2SpecificHeat::evaluate(const PropertiesStatePoint& state_point
 {
     const double reduced_temperature = state_point.scalar("temperature") / 1000.0;
     const double t2 = reduced_temperature * reduced_temperature;
-    const double molar_specific_heat = 52.1743 + 87.951 * reduced_temperature - 84.2411 * t2
-        + 31.542 * t2 * reduced_temperature - 2.6334 * t2 * t2 - 0.71391 / t2;
+    const double molar_specific_heat = 52.1743 + 87.951 * reduced_temperature - 84.2411 * t2 + 31.542 * t2 * reduced_temperature - 2.6334 * t2 * t2 - 0.71391 / t2;
     return molar_specific_heat / molar_mass_;
 }
 

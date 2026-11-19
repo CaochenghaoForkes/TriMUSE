@@ -4,7 +4,8 @@ namespace trimuse
 {
 
 TimeSeriesBaconAnisotropyFactor::TimeSeriesBaconAnisotropyFactor(const ModelParameterMap& parameters)
-    : TimeSeriesModel(parameters)
+    :
+    TimeSeriesModel(parameters)
 {
 }
 

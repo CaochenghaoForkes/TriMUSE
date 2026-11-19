@@ -4,7 +4,8 @@ namespace trimuse
 {
 
 ConstantShearModulus::ConstantShearModulus(const ModelParameterMap& parameters)
-    : ConstantModel(parameters)
+    :
+    ConstantModel(parameters)
 {
 }
 

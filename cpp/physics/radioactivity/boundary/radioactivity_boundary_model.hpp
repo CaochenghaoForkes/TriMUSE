@@ -20,22 +20,22 @@ struct RadioactivityBoundaryValues // 边界模型统一返回矩阵系数、右
     double concentration = 0.0; // Dirichlet 指定浓度，atom/m³
 };
 
-enum class RadioactivityBoundaryPart { Matrix, Load, Essential }; // 分别跟踪三部分是否变化
+enum class RadioactivityBoundaryPart
+{
+    Matrix,
+    Load,
+    Essential
+}; // 分别跟踪三部分是否变化
 
 class RadioactivityBoundaryModel // 具体边界模型将属性转换成弱式系数或指定浓度
 {
 public:
     virtual ~RadioactivityBoundaryModel() = default;
-
     virtual bool essential() const { return false; } // 默认是自然边界；Dirichlet 覆盖为 true
-
     virtual RadioactivityBoundaryValues evaluate(const PropertiesFieldData& properties, int zone) const = 0; // 按分区属性求边界值
 
 protected:
-    static double scalar(const PropertiesFieldData& properties, const std::string& name, int zone) // 读取该边界分区上的标量属性
-    {
-        return std::get<double>(properties.zone_values.at(name).at(zone).value());
-    }
+    static double scalar(const PropertiesFieldData& properties, const std::string& name, int zone); // 读取该边界分区上的标量属性
 };
 
 }

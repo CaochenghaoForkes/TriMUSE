@@ -9,8 +9,10 @@
 
 namespace trimuse
 {
+
 namespace
 {
+
 constexpr double pi = 3.14159265358979323846;
 using Direction = std::array<double, 3>;
 
@@ -42,7 +44,9 @@ void normalize(Direction& direction) // 将向量归一化为长度为 1 的单�
 }
 
 MaterialCoordinateSystem::MaterialCoordinateSystem(const std::string& geometry_method, int dimension, const std::array<double, 3>& center, const RegionLayerGeometryMap& region_layers) // 确定几何并保存各区域内外侧的 Profile
-    : dimension_(dimension), center_(center)
+    :
+    dimension_(dimension),
+    center_(center)
 {
     if (geometry_method == "ideal_multilayer_sphere")
     {
@@ -54,7 +58,9 @@ MaterialCoordinateSystem::MaterialCoordinateSystem(const std::string& geometry_m
     }
     else if (geometry_method == "stochastic_multilayer_particle")
     {
-        geometry_ = dimension == 1 ? Geometry::Sphere : dimension == 2 ? Geometry::Legendre : Geometry::SphericalHarmonics;
+        geometry_ = dimension == 1 ? Geometry::Sphere : dimension == 2 ? Geometry::Legendre
+    :
+    Geometry::SphericalHarmonics;
     }
     else
     {
@@ -87,11 +93,11 @@ MaterialCoordinateSystem::Profile MaterialCoordinateSystem::make_profile(const M
     {
         const int N = profile.N, width = 2 * N + 1;
         for (int n = 1; n <= N; ++n)
-        for (int m = 1; m <= n; ++m)
-        {   // m=0 的基函数为 L_n0；m>0 的实球谐基函数为 sqrt(2)*L_nm*cos/sin
-            profile.coefficients[n * width + N + m] *= std::sqrt(2.0); // A_nm = sqrt(2)*a_nm^c；[n,N] 对应 m=0
-            profile.coefficients[n * width + N - m] *= std::sqrt(2.0); // B_nm = sqrt(2)*a_nm^s
-        }
+            for (int m = 1; m <= n; ++m)
+            { // m=0 的基函数为 L_n0；m>0 的实球谐基函数为 sqrt(2)*L_nm*cos/sin
+                profile.coefficients[n * width + N + m] *= std::sqrt(2.0); // A_nm = sqrt(2)*a_nm^c；[n,N] 对应 m=0
+                profile.coefficients[n * width + N - m] *= std::sqrt(2.0); // B_nm = sqrt(2)*a_nm^s
+            }
     }
     if (geometry_ == Geometry::Flat)
     {
@@ -168,8 +174,10 @@ MaterialCoordinateSystem::Sample MaterialCoordinateSystem::stochastic_sample_2d(
         surface.dR_dtheta += a_n * d_n;
         const double p_next = ((2 * n + 1) * cos_theta * p_n - n * p_previous) / (n + 1);
         const double d_next = ((2 * n + 1) * (-sin_theta * p_n + cos_theta * d_n) - n * d_previous) / (n + 1);
-        p_previous = p_n; p_n = p_next;
-        d_previous = d_n; d_n = d_next;
+        p_previous = p_n;
+        p_n = p_next;
+        d_previous = d_n;
+        d_n = d_next;
     }
     return surface;
 }
@@ -246,12 +254,10 @@ Tensor3DValue MaterialCoordinateSystem::basis(int region_attribute, const std::a
     const double phi = dimension_ == 2 ? 0.0 : std::atan2(relative[1], relative[0]);
     const auto& profiles = profiles_.at(region_attribute);
     const Sample inner = sample(profiles[0], theta, phi), outer = sample(profiles[1], theta, phi);
-
     // s_0=(r-R_in)/(R_out-R_in)；固定 s_0 后，R_s0=(1-s_0)R_in+s_0*R_out
     const double s0 = (r - inner.R) / (outer.R - inner.R);
     const double dR_s0_dtheta = (1.0 - s0) * inner.dR_dtheta + s0 * outer.dR_dtheta;
     const double dR_s0_dphi_over_sin = (1.0 - s0) * inner.dR_dphi_over_sin + s0 * outer.dR_dphi_over_sin;
-
     const double sin_theta = std::sin(theta), cos_theta = std::cos(theta), cos_phi = std::cos(phi), sin_phi = std::sin(phi);
     const Direction e_r = dimension_ == 2 ? Direction{sin_theta, cos_theta, 0.0} : Direction{sin_theta * cos_phi, sin_theta * sin_phi, cos_theta};
     const Direction e_theta = dimension_ == 2 ? Direction{cos_theta, -sin_theta, 0.0} : Direction{cos_theta * cos_phi, cos_theta * sin_phi, -sin_theta};

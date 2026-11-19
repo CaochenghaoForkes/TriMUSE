@@ -8,17 +8,25 @@ namespace trimuse
 {
 
 MechanicsProblem::MechanicsProblem(FemSystem& fem, FieldData& accepted_displacement, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output_manager, const MechanicsRegionConfigs& regions, const MechanicsBoundaryConfigs& boundaries, const MechanicsInterfaceConfigs& interfaces) // 接收连续场交给第三个构造函数委托构造
-    : MechanicsProblem(fem, TrialField(fem, accepted_displacement), properties, solver, output_manager, regions, boundaries, interfaces)
+    :
+    MechanicsProblem(fem, TrialField(fem, accepted_displacement), properties, solver, output_manager, regions, boundaries, interfaces)
 {
 }
 
 MechanicsProblem::MechanicsProblem(FemSystem& fem, RegionFieldData& accepted_displacement, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output_manager, const MechanicsRegionConfigs& regions, const MechanicsBoundaryConfigs& boundaries, const MechanicsInterfaceConfigs& interfaces) // 接收分域场生成试探场交给第三个构造函数委托构造
-    : MechanicsProblem(fem, TrialField(fem, accepted_displacement), properties, solver, output_manager, regions, boundaries, interfaces)
+    :
+    MechanicsProblem(fem, TrialField(fem, accepted_displacement), properties, solver, output_manager, regions, boundaries, interfaces)
 {
 }
 
 MechanicsProblem::MechanicsProblem(FemSystem& fem, TrialField trial_displacement, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output_manager, const MechanicsRegionConfigs& regions, const MechanicsBoundaryConfigs& boundaries, const MechanicsInterfaceConfigs& interfaces) // 真正的构造函数，初始化各对象，标记耦合，为输出对象添加待输出场值信息
-    : trial_displacement_(std::move(trial_displacement)), properties_(properties), solver_(solver), output_manager_(output_manager), assembly_(fem, trial_displacement_, regions, boundaries, interfaces), mechanics_state_(fem.domain_quadrature_point_count())
+    :
+    trial_displacement_(std::move(trial_displacement)),
+    properties_(properties),
+    solver_(solver),
+    output_manager_(output_manager),
+    assembly_(fem, trial_displacement_, regions, boundaries, interfaces),
+    mechanics_state_(fem.domain_quadrature_point_count())
 {
     assembly_.mark_coupled(properties_);
     const int region = fem.mesh_data().region_attributes().front();
@@ -46,7 +54,6 @@ void MechanicsProblem::solve()
     assembly_.update_state(mechanics_state_); // 用同一次组装的 C、beta 和新位移恢复试探总应变、应力
     trial_displacement_.accept();
     mechanics_state_.accept(); // 位移与求积点状态一起提交
-
     output_manager_.append_solve_information("displacement", "solve_elapsed_seconds", std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count());
     for (const auto& [name, count] : assembly_.counts())
     {

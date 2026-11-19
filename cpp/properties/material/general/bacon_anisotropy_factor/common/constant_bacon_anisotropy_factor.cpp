@@ -4,7 +4,8 @@ namespace trimuse
 {
 
 ConstantBaconAnisotropyFactor::ConstantBaconAnisotropyFactor(const ModelParameterMap& parameters)
-    : ConstantModel(parameters)
+    :
+    ConstantModel(parameters)
 {
 }
 

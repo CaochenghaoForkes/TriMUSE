@@ -10,7 +10,6 @@ class TimeSeriesShearModulus final : public ShearModulusModel, private TimeSerie
 {
 public:
     explicit TimeSeriesShearModulus(const ModelParameterMap& parameters);
-
     double evaluate(const PropertiesStatePoint& point) const override;
 };
 

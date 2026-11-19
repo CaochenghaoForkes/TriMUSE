@@ -7,10 +7,11 @@ namespace trimuse
 {
 
 FemSystem::FemSystem(const std::string& mesh_path, int domain_quadrature_order, int boundary_quadrature_order, const std::string& geometry_method, const std::array<double, 3>& center, const RegionLayerGeometryMap& region_layers)
-    : mesh_data_(mesh_path),
-      geometry_center_(center),
-      domain_quadrature_rules_(make_quadrature_rules(mesh_data_, mesh_data_.dimension(), domain_quadrature_order)), // 建立域中单元类型的求积规则表
-      boundary_quadrature_rules_(make_quadrature_rules(mesh_data_, mesh_data_.dimension() - 1, boundary_quadrature_order)) // 建立边界中单元类型的求积规则表
+    :
+    mesh_data_(mesh_path),
+    geometry_center_(center),
+    domain_quadrature_rules_(make_quadrature_rules(mesh_data_, mesh_data_.dimension(), domain_quadrature_order)), // 建立域中单元类型的求积规则表
+    boundary_quadrature_rules_(make_quadrature_rules(mesh_data_, mesh_data_.dimension() - 1, boundary_quadrature_order)) // 建立边界中单元类型的求积规则表
 {
     if (mesh_data_.dimension() < 3)
     {
@@ -42,7 +43,8 @@ const Tensor3DValue& FemSystem::material_basis(std::size_t point_index) const
 }
 
 FemSystem::FieldObjects::FieldObjects(MeshData& mesh_data, int order, int vector_dimension) // 创建一个场所需的对象组合，包含有限元空间(该场的有限元空间，确定插值阶次、分量数及自由度组织)，以及场数据(依附于上述空间，存储该场的全部自由度值)
-    : finite_element_space(mesh_data, order, vector_dimension), // 先建立空间
+    :
+    finite_element_space(mesh_data, order, vector_dimension), // 先建立空间
       field_data(finite_element_space) // 再用这个空间初始化场数据
 {
 }

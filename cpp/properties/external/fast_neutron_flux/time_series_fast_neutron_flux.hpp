@@ -10,7 +10,6 @@ class TimeSeriesFastNeutronFlux final : public FastNeutronFluxModel, private Tim
 {
 public:
     explicit TimeSeriesFastNeutronFlux(const ModelParameterMap& parameters, const std::string& value_type);
-
     StateValue evaluate(const PropertiesStatePoint& point) const override;
 };
 

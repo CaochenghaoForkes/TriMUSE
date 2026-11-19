@@ -16,7 +16,6 @@ class Bison2021UcoKernelConductivity final : public ConductivityModel
 {
 public:
     explicit Bison2021UcoKernelConductivity(const ModelParameterMap& parameters);
-
     double evaluate(const PropertiesStatePoint& state_point) const override;
 };
 

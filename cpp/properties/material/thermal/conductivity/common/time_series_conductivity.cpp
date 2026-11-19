@@ -4,7 +4,8 @@ namespace trimuse
 {
 
 TimeSeriesConductivity::TimeSeriesConductivity(const ModelParameterMap& parameters)
-    : TimeSeriesModel(parameters)
+    :
+    TimeSeriesModel(parameters)
 {
 }
 

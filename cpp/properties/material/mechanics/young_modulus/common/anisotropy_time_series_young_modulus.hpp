@@ -10,7 +10,6 @@ class AnisotropyTimeSeriesYoungModulus final : public YoungModulusModel
 {
 public:
     explicit AnisotropyTimeSeriesYoungModulus(const ModelParameterMap& parameters);
-
     VectorValue evaluate(const PropertiesStatePoint& point) const override;
 
 private:

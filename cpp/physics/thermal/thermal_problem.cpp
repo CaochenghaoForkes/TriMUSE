@@ -7,19 +7,26 @@
 namespace trimuse
 {
 
-
 ThermalProblem::ThermalProblem(FemSystem& fem, FieldData& accepted_temperature, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output_manager, const std::string& problem_type, const std::vector<ThermalInitialConfig>& initial, const ThermalRegionConfigs& regions, const ThermalBoundaryConfigs& boundaries, const ThermalInterfaceConfigs& interfaces) // 接收连续场
-    : ThermalProblem(fem, TrialField(fem, accepted_temperature), properties, solver, output_manager, problem_type, initial, regions, boundaries, interfaces) // 包装成 TrialField 调用第三个构造函数进行委托构造
+    :
+    ThermalProblem(fem, TrialField(fem, accepted_temperature), properties, solver, output_manager, problem_type, initial, regions, boundaries, interfaces) // 包装成 TrialField 调用第三个构造函数进行委托构造
 {
 }
 
 ThermalProblem::ThermalProblem(FemSystem& fem, RegionFieldData& accepted_temperature, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output_manager, const std::string& problem_type, const std::vector<ThermalInitialConfig>& initial, const ThermalRegionConfigs& regions, const ThermalBoundaryConfigs& boundaries, const ThermalInterfaceConfigs& interfaces) // 接收分域场
-    : ThermalProblem(fem, TrialField(fem, accepted_temperature), properties, solver, output_manager, problem_type, initial, regions, boundaries, interfaces) // 包装成 TrialField 调用第三个构造函数进行委托构造
+    :
+    ThermalProblem(fem, TrialField(fem, accepted_temperature), properties, solver, output_manager, problem_type, initial, regions, boundaries, interfaces) // 包装成 TrialField 调用第三个构造函数进行委托构造
 {
 }
 
 ThermalProblem::ThermalProblem(FemSystem& fem, TrialField trial_temperature, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output_manager, const std::string& problem_type, const std::vector<ThermalInitialConfig>& initial, const ThermalRegionConfigs& regions, const ThermalBoundaryConfigs& boundaries, const ThermalInterfaceConfigs& interfaces)
-    : trial_temperature_(std::move(trial_temperature)), properties_(properties), solver_(solver), output_manager_(output_manager), transient_(problem_type == "transient"), assembly_(fem, trial_temperature_, regions, boundaries, interfaces) // trial_temperature_(std::move(trial_temperature)) 把传入试探场的资源移动给成员 trial_temperature_ assembly_(fem, trial_temperature_, regions, boundaries, interfaces) 创建组装器 让它使用成员试探场及模型配置
+    :
+    trial_temperature_(std::move(trial_temperature)),
+    properties_(properties),
+    solver_(solver),
+    output_manager_(output_manager),
+    transient_(problem_type == "transient"),
+    assembly_(fem, trial_temperature_, regions, boundaries, interfaces) // trial_temperature_(std::move(trial_temperature)) 把传入试探场的资源移动给成员 trial_temperature_ assembly_(fem, trial_temperature_, regions, boundaries, interfaces) 创建组装器 让它使用成员试探场及模型配置
 {
     assembly_.mark_coupled(properties_, transient_); // 登记热方程所需属性与温度之间的耦合关系
     if (trial_temperature_.regional())
@@ -28,7 +35,7 @@ ThermalProblem::ThermalProblem(FemSystem& fem, TrialField trial_temperature, Pro
     }
     else
     {
-        initialize_temperature(fem, *trial_temperature_.accepted_continuous_field(), initial);  // 连续场直接设置初温或投影
+        initialize_temperature(fem, *trial_temperature_.accepted_continuous_field(), initial); // 连续场直接设置初温或投影
     }
     trial_temperature_.load(); // 将正式场的初温复制到试探场
     assembly_.project_initial(); // 必要时投影初温，使分域场满足理想接触等连续约束
@@ -76,7 +83,8 @@ void ThermalProblem::iterate(double time_step, double theta) // 准备旧时刻�
 {
     const mfem::Vector previous_step_values = trial_temperature_.values(); // 保存进入本次求解时的完整温度向量
     ThermalAssembly::State old; // 准备旧时刻的组装状态
-    mfem::Vector old_load(trial_temperature_.size()); old_load = 0.0; // 准备旧时刻的右端贡献
+    mfem::Vector old_load(trial_temperature_.size());
+    old_load = 0.0; // 准备旧时刻的右端贡献
     if (transient_ && theta < 1.0) // 只有是瞬态且 theta < 1 时才会需要旧时刻的 Kn Fn
     {
         old = assembly_.update(properties_.previous_field_data(), true); // properties_.previous_field_data()是上一时刻 tn 已按当时的最终温度 Tn 更新接收的属性快照，根据这些旧属性取得 M_n,K_n,F_n 这里 true 表示需要容量矩阵；内部仍按缓存判断是否重新组装 温度不依赖材料的情况下，这里相当于把上一时间步末的材料属性放进去再次取得上一时间步末的矩阵与向量，但如果温度依赖属性，则上一时间步最后一次迭代用的是“求解前的试探温度组装的”，求得最终 Tn 后，accept_temperature 会按照 Tn 更新属性，却不会随即重新组装，因此下一步读取旧属性快照时，若系数与缓存中的值不同，就会重组对应区域

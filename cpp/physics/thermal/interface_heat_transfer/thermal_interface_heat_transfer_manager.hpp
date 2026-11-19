@@ -16,15 +16,10 @@ class ThermalInterfaceManager
 {
 public:
     ThermalInterfaceManager(FemSystem& fem, TrialField& trial_field, DofConstraints& constraints, const std::vector<ThermalInterfaceConfig>& interface_heat_transfer_configs);
-
     void update(const PropertiesFieldData& properties);
-
     std::vector<int> interface_heat_transfer_attributes() const;
-
     bool required_no_change(int attribute) const;
-
     void assembled(int attribute);
-
     std::unique_ptr<mfem::SparseMatrix> assemble_matrix(int attribute, FemSystem& fem, const TrialField& trial_field, DofConstraints& constraints) const;
 
 private:

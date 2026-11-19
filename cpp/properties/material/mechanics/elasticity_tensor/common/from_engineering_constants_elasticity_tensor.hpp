@@ -10,7 +10,6 @@ class FromEngineeringConstantsElasticityTensor final : public ElasticityTensorMo
 {
 public:
     explicit FromEngineeringConstantsElasticityTensor(const ModelParameterMap&);
-
     ElasticityTensorValue evaluate(const PropertiesStatePoint& state_point) const override;
 };
 

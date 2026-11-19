@@ -4,7 +4,8 @@ namespace trimuse
 {
 
 ConstantNuclideDiffusionCoef::ConstantNuclideDiffusionCoef(const ModelParameterMap& parameters)
-    : ConstantModel(parameters)
+    :
+    ConstantModel(parameters)
 {
 }
 

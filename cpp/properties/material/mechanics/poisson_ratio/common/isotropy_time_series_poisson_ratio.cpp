@@ -5,8 +5,9 @@ namespace trimuse
 {
 
 IsotropyTimeSeriesPoissonRatio::IsotropyTimeSeriesPoissonRatio(const ModelParameterMap& parameters)
-    : times_(std::get<VectorValue>(parameters.at("times"))),
-      values_(std::get<VectorValue>(parameters.at("values")))
+    :
+    times_(std::get<VectorValue>(parameters.at("times"))),
+    values_(std::get<VectorValue>(parameters.at("values")))
 {
 }
 

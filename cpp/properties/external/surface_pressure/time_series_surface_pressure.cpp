@@ -4,7 +4,8 @@ namespace trimuse
 {
 
 TimeSeriesSurfacePressure::TimeSeriesSurfacePressure(const ModelParameterMap& parameters)
-    : TimeSeriesModel(parameters, "scalar")
+    :
+    TimeSeriesModel(parameters, "scalar")
 {
 }
 

@@ -7,12 +7,13 @@ namespace trimuse
 {
 
 DofConstraints::DofConstraints(FemSystem& fem, const TrialField& trial_field) // 传入试探场；只管理其自由度连接关系，不执行物理积分 如果是连续场直接结束构造 如果是分域场则初始化 representative_ 让完整自由度中每个自由度指向其自己的编号
-    : trial_field_(trial_field) 
+    :
+    trial_field_(trial_field)
 {
     if (!trial_field.regional()) // 连续场已经共享界面自由度，不需要后面的辅助配对空间和分组数组，直接结束构造函数体
-    { 
-        return; 
-    } 
+    {
+        return;
+    }
     const auto& space = trial_field.space(fem.mesh_data().region_attributes().front()); // 第一个区域编号 → 该区域的场空间
     const int order = space.GetMaxElementOrder(); // 最高单元插值阶次
     collection_ = std::make_unique<mfem::H1_FECollection>(order, fem.mesh_data().dimension()); // 建立同阶次、对应问题维数的 H1 有限元集合
@@ -38,19 +39,22 @@ int DofConstraints::root(int dof) // 找到完整自由度中某个自由度所�
 
 void DofConstraints::connect(const MeshData::Interface& interface) // 找出理想接触界面两侧对应的自由度，并把它们登记为同一组，后续由同一个场值未知量表示
 {
-    if (!trial_field_.regional()) { return; } // 如果是连续场，相邻单元已经共享界面自由度，不需要额外连接
+    if (!trial_field_.regional())
+    {
+        return;
+    } // 如果是连续场，相邻单元已经共享界面自由度，不需要额外连接
     // 当前界面片的信息包括原网格面编号，以及两侧区域、域单元编号。
-    mfem::Array<int> dofs[2]; // dofs 包含两个 mfem::Array<int> 的数组, 每个的长度可变; 取得两侧整个域单元的自由度编号 dofs[0] 第一侧单元 采用分域场整体编号 dofs[1] 第二侧单元 采用分域场整体编号 
-    for (int side = 0; side < 2; ++side) 
-    { 
+    mfem::Array<int> dofs[2]; // dofs 包含两个 mfem::Array<int> 的数组, 每个的长度可变; 取得两侧整个域单元的自由度编号 dofs[0] 第一侧单元 采用分域场整体编号 dofs[1] 第二侧单元 采用分域场整体编号
+    for (int side = 0; side < 2; ++side)
+    {
         trial_field_.element_dofs(interface.sides[side].element, dofs[side]); // interface.sides[side].element side 侧域单元编号(原网格编号)
     }
     // 以父连续空间的自由度编号配对, 不比较坐标或假定两侧面的局部排列相同
     std::unordered_map<int, int> first; // 后续将保存 父连续空间的自由度编号 -> 第一侧分域场的整体自由度编号
     mfem::Array<int> parent_dofs, face_dofs; // 创建两个长度可变的整数数组 parent_dofs(接收某个域单元在父连续空间中的自由度编号) face_dofs(接收当前界面片在父连续空间中的自由度编号，后面才会填入)
     parent_space_->GetElementVDofs(interface.sides[0].element, parent_dofs); // interface.sides[0].element 取得界面第一侧的原网格域单元编号 parent_space_->GetElementVDofs(单元编号, parent_dofs); 在辅助父连续空间中，查找这个单元的全部分量的自由度编号，并自动调整、填充 parent_dofs
-    for (int j = 0; j < parent_dofs.Size(); ++j) 
-    { 
+    for (int j = 0; j < parent_dofs.Size(); ++j)
+    {
         first[parent_dofs[j]] = dofs[0][j]; // 按单元内部的对应排列, 建立第一个单元中的自由度在父连续空间编号 -> 第一侧分域场整体编号
     }
     parent_space_->GetFaceVDofs(interface.face, face_dofs); // 取得当前界面上的父空间自由度存入 face_dofs
@@ -64,7 +68,7 @@ void DofConstraints::connect(const MeshData::Interface& interface) // 找出理�
     }
 }
 
-void DofConstraints::finalize() // 取得映射 P x_full = P * x_independent 中的 P 保存为 prolongation_ 并释放构造它所需要的内存 
+void DofConstraints::finalize() // 取得映射 P x_full = P * x_independent 中的 P 保存为 prolongation_ 并释放构造它所需要的内存
 {
     prolongation_ = make_prolongation(); // 固定约束构建完毕，只需保留 P；辅助空间和分组数组不再参与求解
     parent_space_.reset();
@@ -77,14 +81,14 @@ std::unique_ptr<mfem::SparseMatrix> DofConstraints::make_prolongation() // 根�
     if (!trial_field_.regional()) // 先处理连续场
     {
         const auto* conforming = trial_field_.space(0).GetConformingProlongation(); // 取得 MFEM 自身的协调约束映射，例如用于处理悬挂节点
-        if (conforming) 
-        { 
+        if (conforming)
+        {
             return std::make_unique<mfem::SparseMatrix>(*conforming); // 如果存在这个映射，就复制一份返回 原矩阵由 MFEM 管理，返回的副本由我们自己的 unique_ptr 管理
         }
         auto identity = std::make_unique<mfem::SparseMatrix>(trial_field_.size()); // 如果没有额外协调约束，完整自由度与独立自由度一致，创建单位矩阵
         for (int i = 0; i < trial_field_.size(); ++i)
-        { 
-            identity->Add(i, i, 1.0); 
+        {
+            identity->Add(i, i, 1.0);
         }
         identity->Finalize(); // 整理稀疏存储格式，并返回
         return identity;
@@ -96,19 +100,19 @@ std::unique_ptr<mfem::SparseMatrix> DofConstraints::make_prolongation() // 根�
     {
         const int representative = root(i); // 通过 root(i) 找到它所属组的最终代表
         if (!columns.count(representative)) // 如果这个组还没有独立编号，就给它安排一个新的编号
-        { 
+        {
             // 例如
             // 完整自由度 i：  0  1  2  3  4
             // root(i)：      0  1  0  3  1
-            // 代表 0 → 独立编号 0 
+            // 代表 0 → 独立编号 0
             // 代表 1 → 独立编号 1
             // 代表 3 → 独立编号 2
             columns.emplace(representative, columns.size()); // columns.size() 是插入前已有的分组数量，因此编号从 0 开始连续递增
         }
-    } 
+    }
     auto prolongation = std::make_unique<mfem::SparseMatrix>(trial_field_.size(), columns.size()); // 建立“独立向量 -> 完整向量”的矩阵 行数=完整自由度数 列数=独立未知量数
     for (int i = 0; i < trial_field_.size(); ++i)
-    { 
+    {
         prolongation->Add(i, columns.at(root(i)), 1.0); // root(i) 找到所属组 columns.at(...) 找到该组的独立编号 在对应行列写上 1
         // 例如：完整自由度 0、2 属于同一组，1、4 属于同一组，3 单独成组
         // 共有 5 个完整自由度、3 个独立未知量，因此 P 是 5×3 矩阵：
@@ -136,16 +140,16 @@ mfem::Vector DofConstraints::reduced_values() const // 用于把试探场的完�
     if (!trial_field_.regional()) // 如果是连续场
     {
         const auto* restriction = trial_field_.space(0).GetConformingRestriction(); // 取得 MFEM 的限制矩阵 R，用于将完整自由度转换为协调约束下的独立自由度
-        if (restriction) 
-        { 
+        if (restriction)
+        {
             restriction->Mult(full, reduced); // 存在约束时计算 x独立 = Rx完整
-            return reduced; 
+            return reduced;
         }
         return full;
     }
     if (p.Height() == p.Width()) // 分域场没有自由度合并时直接返回 例如所有界面均保留两侧独立自由度时，就属于这种情况
-    { 
-        return full; 
+    {
+        return full;
     }
     ones = 1.0; // 辅助向量全部元素设为1
     p.MultTranspose(full, reduced); // 计算 reduced = P^T full
@@ -153,10 +157,10 @@ mfem::Vector DofConstraints::reduced_values() const // 用于把试探场的完�
     // 原始关系 x_full = Pu
     // P^T x_full = P^TPu
     // u = (P^T P)^{-1} P^T x_full
-    // P^T P 是对角阵,对角值就是各组成员数, 所以 reduced 还得除 weights 
+    // P^T P 是对角阵,对角值就是各组成员数, 所以 reduced 还得除 weights
     for (int i = 0; i < reduced.Size(); ++i)
-    { 
-        reduced[i] /= weights[i]; 
+    {
+        reduced[i] /= weights[i];
     }
     // 例：区域 a、b 各有两个自由度，完整向量按 [a0, a1, b0, b1] 排列。
     // 相等约束要求 x_a1 == x_b0，因此独立向量为 [x_a0, x_interface, x_b1]。
@@ -204,7 +208,8 @@ void DofConstraints::form_system(const mfem::SparseMatrix& matrix, const mfem::V
         // 因为是对任意的 z 都成立 所以 P^T A P u = P^T b
         std::unique_ptr<mfem::SparseMatrix> reduced(mfem::RAP(p, matrix, p)); // 该方法计算 A独立 = P^T A P
         system = *reduced; // 将约化矩阵保存到输出 system
-        system_load.SetSize(p.Width()); p.MultTranspose(load, system_load); // 右端转换为 b独立 = P^T b 这里右端不除以组成员数，因为约化方程需要将同组自由度的方程贡献相加，与前面构造场值初始猜测时的组内平均不同
+        system_load.SetSize(p.Width());
+        p.MultTranspose(load, system_load); // 右端转换为 b独立 = P^T b 这里右端不除以组成员数，因为约化方程需要将同组自由度的方程贡献相加，与前面构造场值初始猜测时的组内平均不同
     }
     solution = reduced_values(); // 将当前完整试探场值转换为独立自由度向量
     // 指定值由物理模块收集：独立自由度编号 → 指定场值
@@ -223,7 +228,7 @@ void DofConstraints::form_system(const mfem::SparseMatrix& matrix, const mfem::V
     }
 }
 
-mfem::Vector DofConstraints::recover(const mfem::Vector& solution) const // 传入独立自由度场向量 把独立自由度场值恢复成完整场向量，并返回完整向量 
+mfem::Vector DofConstraints::recover(const mfem::Vector& solution) const // 传入独立自由度场向量 把独立自由度场值恢复成完整场向量，并返回完整向量
 {
     mfem::Vector full(trial_field_.size()); // 创建长度等于完整自由度数的向量
     prolongation().Mult(solution, full); // 执行矩阵乘法 x完整 = P x独立

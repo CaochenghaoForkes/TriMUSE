@@ -10,7 +10,6 @@ class Bison2021BufferYoungModulus final : public YoungModulusModel
 {
 public:
     explicit Bison2021BufferYoungModulus(const ModelParameterMap& parameters);
-
     VectorValue evaluate(const PropertiesStatePoint& state_point) const override;
 };
 

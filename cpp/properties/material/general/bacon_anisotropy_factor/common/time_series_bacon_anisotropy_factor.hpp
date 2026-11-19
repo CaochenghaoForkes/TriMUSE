@@ -10,7 +10,6 @@ class TimeSeriesBaconAnisotropyFactor final : public BaconAnisotropyFactorModel,
 {
 public:
     explicit TimeSeriesBaconAnisotropyFactor(const ModelParameterMap& parameters);
-
     double evaluate(const PropertiesStatePoint& point) const override;
 };
 

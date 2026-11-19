@@ -16,12 +16,17 @@ VectorValue LinearThermalExpansion::evaluate(const PropertiesFieldData& properti
         {coefficients[0] * temperature_difference},
         {coefficients[1] * temperature_difference},
         {coefficients[1] * temperature_difference},
-        {0.0}, {0.0}, {0.0}
-    }; // \varepsilon_{th,local} = diag(alpha_r, alpha_t, alpha_t) * (T - T_ref)
+        {0.0},
+        {0.0},
+        {0.0}}; // \varepsilon_{th,local} = diag(alpha_r, alpha_t, alpha_t) * (T - T_ref)
     double global_strain[6][1], thermal_load[6][1];
-    matrix_multiply(transform.data, local_strain, global_strain); // \varepsilon_{th,global} = Transform * \varepsilon_{th,local} 
+    matrix_multiply(transform.data, local_strain, global_strain); // \varepsilon_{th,global} = Transform * \varepsilon_{th,local}
     matrix_multiply(elasticity.data, global_strain, thermal_load); // \sigma_{th,global} = C:\varepsilon_{th,global} = C_{global} * \varepsilon_{th,global}
     return {thermal_load[0][0], thermal_load[1][0], thermal_load[2][0], thermal_load[3][0], thermal_load[4][0], thermal_load[5][0]};
+}
+
+LinearThermalExpansion::LinearThermalExpansion(const ModelParameterMap&)
+{
 }
 
 }

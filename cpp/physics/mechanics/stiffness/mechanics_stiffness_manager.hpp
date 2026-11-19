@@ -15,19 +15,12 @@ class MechanicsStiffnessManager // 按区域管理模型，缓存全域积分点
 {
 public:
     explicit MechanicsStiffnessManager(const FemSystem& fem, const std::vector<MechanicsDomainConfig>& configs = {}); // 注册并按排弹性张量模型
-
     void update(const PropertiesFieldData& properties); // 更新弹性张量全局积分点向量以及对应的 dirty
-
     bool coupled(const PropertiesSystem& properties, const std::string& field) const; // 判断: 当前管理器负责的模型中，是否有任何一个模型的依赖属性与指定求解场耦合
-
     void mark_coupled(PropertiesSystem& properties, const std::string& field) const; // 把当前管理器所依赖的属性，交给属性系统登记与指定场的耦合关系
-
     bool required_no_change(int region) const; // 根据 dirty 判断指定区域的系数是否与最近一次组装时一致(dirty是否为False)，因而可以复用已有矩阵或向量
-
     void assembled(int region); // 将 region 处的 dirty 记为 false
-
     const std::vector<ElasticityTensorValue>& values() const { return values_; } // 取得全求积点向量
-
     std::vector<int> regions() const; // 返回当前管理器中已经配置模型的所有区域编号
 
 private:

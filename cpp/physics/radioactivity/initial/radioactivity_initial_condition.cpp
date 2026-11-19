@@ -14,7 +14,11 @@ namespace
 class InitialConcentrationCoefficient final : public mfem::Coefficient // 将区域编号 -> 初始浓度表包装为 MFEM 可积分的系数
 {
 public:
-    explicit InitialConcentrationCoefficient(const std::unordered_map<int, double>& region_values) : region_values_(region_values) {}
+    explicit InitialConcentrationCoefficient(const std::unordered_map<int, double>& region_values)
+    :
+    region_values_(region_values)
+    {
+    }
 
     double Eval(mfem::ElementTransformation& transformation, const mfem::IntegrationPoint&) override // 区域内初值恒定，无须使用积分点坐标
     {
@@ -29,7 +33,11 @@ class ProjectionMassIntegrator final : public mfem::MassIntegrator // 使用统�
 {
 public:
     ProjectionMassIntegrator(mfem::Coefficient& coefficient, const FemSystem& fem_system)
-        : mfem::MassIntegrator(coefficient), fem_system_(fem_system) {}
+    :
+    mfem::MassIntegrator(coefficient),
+          fem_system_(fem_system)
+    {
+    }
 
     void AssembleElementMatrix(const mfem::FiniteElement& element, mfem::ElementTransformation& transformation, mfem::DenseMatrix& matrix) override
     {
@@ -45,7 +53,11 @@ class ProjectionLFIntegrator final : public mfem::DomainLFIntegrator // 使用�
 {
 public:
     ProjectionLFIntegrator(mfem::Coefficient& coefficient, const FemSystem& fem_system)
-        : mfem::DomainLFIntegrator(coefficient), fem_system_(fem_system) {}
+    :
+    mfem::DomainLFIntegrator(coefficient),
+          fem_system_(fem_system)
+    {
+    }
 
     using mfem::DomainLFIntegrator::AssembleRHSElementVect; // 保留基类同名重载
 
@@ -59,8 +71,7 @@ private:
     const FemSystem& fem_system_;
 };
 
-std::unordered_map<int, double> initial_values(const FemSystem& fem_system, // 将输入的区域盘存转换为区域均匀浓度
-    const std::vector<RadioactivityInitialConfig>& initial_configs)
+std::unordered_map<int, double> initial_values(const FemSystem& fem_system, const std::vector<RadioactivityInitialConfig>& initial_configs) // 将输入的区域盘存转换为区域均匀浓度
 {
     std::unordered_map<int, double> region_values;
     for (const RadioactivityInitialConfig& config : initial_configs)
@@ -81,7 +92,8 @@ void initialize_concentration(const FemSystem& fem_system, FieldData& accepted_c
 {
     const auto region_values = initial_values(fem_system, initial_configs);
     const double uniform_value = region_values.begin()->second; // 用第一项检查各区域初值是否一致
-    if (std::all_of(region_values.begin(), region_values.end(), [uniform_value](const auto& item) { return item.second == uniform_value; }))
+    if (std::all_of(region_values.begin(), region_values.end(), [uniform_value](const auto& item)
+                    { return item.second == uniform_value; }))
     {
         accepted_concentration_field.assign(uniform_value);
         return;
@@ -123,8 +135,7 @@ void initialize_concentration(const FemSystem& fem_system, FieldData& accepted_c
     mass_form.RecoverFEMSolution(true_concentration, right_hand_side, accepted_concentration_values); // 恢复并写回正式 GridFunction
 }
 
-void initialize_concentration(const FemSystem& fem_system, RegionFieldData& accepted_concentration_field,
-    const std::vector<RadioactivityInitialConfig>& initial_configs) // 分域场各区域自由度独立，可直接按区域设置均匀初值
+void initialize_concentration(const FemSystem& fem_system, RegionFieldData& accepted_concentration_field, const std::vector<RadioactivityInitialConfig>& initial_configs) // 分域场各区域自由度独立，可直接按区域设置均匀初值
 {
     for (const auto& [region, value] : initial_values(fem_system, initial_configs))
     {

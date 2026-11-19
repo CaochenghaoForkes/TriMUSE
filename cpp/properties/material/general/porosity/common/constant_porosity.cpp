@@ -4,7 +4,8 @@ namespace trimuse
 {
 
 ConstantPorosity::ConstantPorosity(const ModelParameterMap& parameters)
-    : ConstantModel(parameters)
+    :
+    ConstantModel(parameters)
 {
 }
 

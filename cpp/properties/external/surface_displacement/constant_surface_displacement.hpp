@@ -10,7 +10,6 @@ class ConstantSurfaceDisplacement final : public SurfaceDisplacementModel, priva
 {
 public:
     explicit ConstantSurfaceDisplacement(const ModelParameterMap& parameters);
-
     VectorValue evaluate(const PropertiesStatePoint& point) const override;
 };
 

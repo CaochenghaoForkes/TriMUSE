@@ -4,7 +4,8 @@ namespace trimuse
 {
 
 ConstantCrystalliteDiameter::ConstantCrystalliteDiameter(const ModelParameterMap& parameters)
-    : ConstantModel(parameters)
+    :
+    ConstantModel(parameters)
 {
 }
 

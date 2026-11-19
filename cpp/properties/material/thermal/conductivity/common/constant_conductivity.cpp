@@ -4,7 +4,8 @@ namespace trimuse
 {
 
 ConstantConductivity::ConstantConductivity(const ModelParameterMap& parameters)
-    : ConstantModel(parameters)
+    :
+    ConstantModel(parameters)
 {
 }
 

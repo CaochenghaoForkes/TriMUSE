@@ -10,7 +10,6 @@ class ConstantConductivity final : public ConductivityModel, private ConstantMod
 {
 public:
     explicit ConstantConductivity(const ModelParameterMap& parameters);
-
     double evaluate(const PropertiesStatePoint& point) const override;
 };
 

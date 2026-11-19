@@ -10,7 +10,6 @@ class TimeSeriesBurnupFimaFraction final : public BurnupFimaFractionModel, priva
 {
 public:
     explicit TimeSeriesBurnupFimaFraction(const ModelParameterMap& parameters, const std::string& value_type);
-
     StateValue evaluate(const PropertiesStatePoint& point) const override;
 };
 

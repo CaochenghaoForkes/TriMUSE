@@ -4,7 +4,8 @@ namespace trimuse
 {
 
 UniformInterfaceThermalResistance::UniformInterfaceThermalResistance(const ModelParameterMap& parameters)
-    : resistance_(std::get<double>(parameters.at("constant_value")))
+    :
+    resistance_(std::get<double>(parameters.at("constant_value")))
 {
 }
 

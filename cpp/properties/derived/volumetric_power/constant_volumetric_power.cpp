@@ -4,7 +4,8 @@ namespace trimuse
 {
 
 ConstantVolumetricPower::ConstantVolumetricPower(const ModelParameterMap& parameters)
-    : ConstantModel(parameters)
+    :
+    ConstantModel(parameters)
 {
 }
 

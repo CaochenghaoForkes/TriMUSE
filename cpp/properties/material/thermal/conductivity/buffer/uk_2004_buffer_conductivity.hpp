@@ -17,7 +17,6 @@ class Uk2004BufferConductivity final : public ConductivityModel
 {
 public:
     explicit Uk2004BufferConductivity(const ModelParameterMap& parameters);
-
     double evaluate(const PropertiesStatePoint& state_point) const override;
 };
 

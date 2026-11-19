@@ -4,13 +4,17 @@ namespace trimuse
 {
 
 RegionFieldData::RegionObjects::RegionObjects(RegionMeshData& mesh, int order, int vector_dimension, int block) // 把一个 region 对应的网格、有限元空间和场数据组织在一起
-    : mesh(mesh), finite_element_space(mesh.mfem_mesh(), order, vector_dimension),
-      field_data(finite_element_space), block(block)
+    :
+    mesh(mesh),
+    finite_element_space(mesh.mfem_mesh(), order, vector_dimension),
+    field_data(finite_element_space),
+    block(block)
 {
 }
 
 RegionFieldData::RegionFieldData(MeshData& mesh_data, int order, int vector_dimension) // 为每个区域建立独立的空间和场数据，并计算各区域自由度在整体向量中的起始位置
-    : mesh_data_(mesh_data)
+    :
+    mesh_data_(mesh_data)
 {
     const auto attributes = mesh_data.region_attributes(); // 获取全部区域编号
     // 分配自由度偏移表 长度加 1，是为了让最后一项存放总自由度数

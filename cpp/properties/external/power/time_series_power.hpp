@@ -10,7 +10,6 @@ class TimeSeriesPower final : public PowerModel, private TimeSeriesModel
 {
 public:
     explicit TimeSeriesPower(const ModelParameterMap& parameters, const std::string& value_type);
-
     StateValue evaluate(const PropertiesStatePoint& point) const override;
 };
 

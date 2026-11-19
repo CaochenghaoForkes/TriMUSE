@@ -5,7 +5,8 @@ namespace trimuse
 {
 
 ThermalResistanceFromProperty::ThermalResistanceFromProperty(const ModelParameterMap& parameters)
-    : angles_(parameters) // 把 Python 传来的角域参数整理成 AngularRanges 角域列表
+    :
+    angles_(parameters) // 把 Python 传来的角域参数整理成 AngularRanges 角域列表
 {
 }
 

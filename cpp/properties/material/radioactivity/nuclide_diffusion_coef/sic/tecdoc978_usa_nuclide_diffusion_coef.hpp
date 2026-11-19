@@ -10,7 +10,6 @@ class TecDoc978USASiCNuclideDiffusionCoef final : public NuclideDiffusionCoefMod
 {
 public:
     explicit TecDoc978USASiCNuclideDiffusionCoef(const ModelParameterMap& parameters);
-
     double evaluate(const PropertiesStatePoint& state_point) const override;
 
 private:
@@ -21,7 +20,6 @@ class TecDoc978USALowerSiCNuclideDiffusionCoef final : public NuclideDiffusionCo
 {
 public:
     explicit TecDoc978USALowerSiCNuclideDiffusionCoef(const ModelParameterMap& parameters);
-
     double evaluate(const PropertiesStatePoint& state_point) const override;
 };
 
@@ -29,7 +27,6 @@ class TecDoc978USAUpperSiCNuclideDiffusionCoef final : public NuclideDiffusionCo
 {
 public:
     explicit TecDoc978USAUpperSiCNuclideDiffusionCoef(const ModelParameterMap& parameters);
-    
     double evaluate(const PropertiesStatePoint& state_point) const override;
 };
 

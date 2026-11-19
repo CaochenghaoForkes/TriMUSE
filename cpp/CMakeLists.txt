@@ -94,3 +94,9 @@ if(TRIMUSE_BUILD_THERMAL_TESTS)
     add_executable(trimuse_thermal_test ../tests/thermal_regression.cpp)
     target_link_libraries(trimuse_thermal_test PRIVATE trimuse_core)
 endif()
+
+target_sources(trimuse_core PRIVATE
+    fem/geometric_weighted_coefficient.cpp
+    common/angular_range.cpp
+    common/state_value.cpp
+)

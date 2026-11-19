@@ -11,7 +11,6 @@ class IsotropyConstantThermalExpansionCoef final : public ThermalExpansionCoefMo
 {
 public:
     explicit IsotropyConstantThermalExpansionCoef(const ModelParameterMap& parameters);
-
     VectorValue evaluate(const PropertiesStatePoint& point) const override;
 };
 

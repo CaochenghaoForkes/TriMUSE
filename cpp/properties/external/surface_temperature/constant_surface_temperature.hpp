@@ -10,7 +10,6 @@ class ConstantSurfaceTemperature final : public SurfaceTemperatureModel, private
 {
 public:
     explicit ConstantSurfaceTemperature(const ModelParameterMap& parameters, const std::string& value_type);
-
     StateValue evaluate(const PropertiesStatePoint& point) const override;
 };
 

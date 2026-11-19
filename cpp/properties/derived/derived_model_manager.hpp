@@ -16,13 +16,9 @@ class DerivedModelManager
 {
 public:
     DerivedModelManager();
-
     void register_models();
-
     void assign(const std::string& name, int attribute, const std::string& model_name, const ModelParameterMap& parameters);
-
     StateValue evaluate(const std::string& name, const PropertiesStatePoint& point) const;
-
     const std::vector<std::string>& required_states(const std::string& name, const std::string& model_name) const;
 
 private:
@@ -31,7 +27,6 @@ private:
     MassTransferCoefModelManager mass_transfer_coef_model_manager_;
     VolumetricNuclideBirthRateModelManager volumetric_nuclide_birth_rate_model_manager_;
     FastNeutronFluenceModelManager fast_neutron_fluence_model_manager_;
-
 };
 
 }

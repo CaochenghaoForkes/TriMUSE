@@ -10,7 +10,6 @@ class Bison2021PycThermalExpansionCoef final : public ThermalExpansionCoefModel
 {
 public:
     explicit Bison2021PycThermalExpansionCoef(const ModelParameterMap& parameters);
-
     VectorValue evaluate(const PropertiesStatePoint& state_point) const override;
 };
 

@@ -4,7 +4,8 @@ namespace trimuse
 {
 
 TimeSeriesVolumetricPower::TimeSeriesVolumetricPower(const ModelParameterMap& parameters)
-    : TimeSeriesModel(parameters)
+    :
+    TimeSeriesModel(parameters)
 {
 }
 

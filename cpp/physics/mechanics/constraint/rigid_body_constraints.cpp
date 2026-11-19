@@ -11,7 +11,8 @@ namespace trimuse
 
 namespace
 {
-struct NodalDof // value{component,position} component:当前位移分量 position:当前节点坐标 
+
+struct NodalDof // value{component,position} component:当前位移分量 position:当前节点坐标
 {
     int component;
     std::array<double, 3> position;
@@ -34,16 +35,16 @@ std::map<int, NodalDof> independent_nodal_dofs(const FemSystem& fem, const Trial
         const auto& nodes = fe->GetNodes(); // 取得当前有限元在参考单元上的全部插值节点位置
         mesh.GetElementTransformation(element, &transformation); // 取得几何映射
         trial_field.element_dofs(element, dofs); // 当前单元中的全部自由度
-        for (int node = 0; node < nodes.GetNPoints(); ++node) // 遍历插值节点 
+        for (int node = 0; node < nodes.GetNPoints(); ++node) // 遍历插值节点
         {
             transformation.Transform(nodes.IntPoint(node), position); // 取得当前插值节点的位置
             for (int component = 0; component < dimension; ++component) // 遍历方向分量 建立独立自由度编号 → {位移分量, 节点实际坐标}
             {
                 const int full_dof = dofs[component * fe->GetDof() + node]; // 找到“当前节点、当前分量”在数组中的位置，再从 dofs 取出其完整自由度编号
                 const int begin = prolongation.GetI()[full_dof]; // 完整自由度对应稀疏约束矩阵 P 的 full_dof 行对应的起始偏移
-                NodalDof value{component, {}}; //创建记录 component:当前位移分量 position:当前节点坐标 
-                for (int c = 0; c < dimension; ++c) 
-                { 
+                NodalDof value{component, {}}; //创建记录 component:当前位移分量 position:当前节点坐标
+                for (int c = 0; c < dimension; ++c)
+                {
                     value.position[c] = position[c]; // 插入其位置分量
                 }
                 result.emplace(prolongation.GetJ()[begin], value); // prolongation.GetJ()[begin] 取得对应的独立自由度编号 当前 P 每行只有一个 1，其列号就是独立自由度编号
@@ -86,20 +87,18 @@ RigidMode rigid_mode(const NodalDof& dof, int dimension, const std::array<double
     //                               [   0     ]
     //                               [   0     ]
     //                               [   0     ]
-    if (dimension == 2) 
-    { 
-        return {0.0, dof.component == 1 ? 1.0 : 0.0, 0.0, 0.0, 0.0, 0.0}; 
+    if (dimension == 2)
+    {
+        return {0.0, dof.component == 1 ? 1.0 : 0.0, 0.0, 0.0, 0.0, 0.0};
     }
     // 以网格尺度归一化转动列，避免微米级坐标影响平移和转动的秩判断
     const double x = (dof.position[0] - center[0]) / length;
     const double y = (dof.position[1] - center[1]) / length;
     const double z = (dof.position[2] - center[2]) / length;
     // u = a + omega × (x-c)，列顺序为 [ax, ay, az, omega_x, omega_y, omega_z]
-    const std::array<RigidMode, 3> rows{{
-        {1.0, 0.0, 0.0, 0.0, z, -y},
-        {0.0, 1.0, 0.0, -z, 0.0, x},
-        {0.0, 0.0, 1.0, y, -x, 0.0}
-    }};
+    const std::array<RigidMode, 3> rows{{{1.0, 0.0, 0.0, 0.0, z, -y},
+                                         {0.0, 1.0, 0.0, -z, 0.0, x},
+                                         {0.0, 0.0, 1.0, y, -x, 0.0}}};
     return rows[dof.component];
 }
 
@@ -114,21 +113,21 @@ bool add_independent_mode(RigidMode row, std::vector<RigidMode>& basis) // 判�
     //
     // 本质上是判断新向量是否属于已有向量张成的空间，如果属于的话就无事发生，如果不属于，就把它正交化、归一化后加入到基函数空间
     for (int pass = 0; pass < 2; ++pass)
-    for (const auto& direction : basis) // direction 是单位向量
-    {
-        const double projection = std::inner_product(row.begin(), row.end(), direction.begin(), 0.0); // 执行点积 p = r.q （将 r 在 q 上做投影得到 p）
-        for (int i = 0; i < 6; ++i) 
-        { 
-            row[i] -= projection * direction[i]; // r <- r - (r.q)*q 已有约束没有覆盖的新方向
+        for (const auto& direction : basis) // direction 是单位向量
+        {
+            const double projection = std::inner_product(row.begin(), row.end(), direction.begin(), 0.0); // 执行点积 p = r.q （将 r 在 q 上做投影得到 p）
+            for (int i = 0; i < 6; ++i)
+            {
+                row[i] -= projection * direction[i]; // r <- r - (r.q)*q 已有约束没有覆盖的新方向
+            }
         }
-    }
     const double norm = std::sqrt(std::inner_product(row.begin(), row.end(), row.begin(), 0.0)); // 计算剩余向量长度
-    if (norm <= 1e-10) 
-    {  
+    if (norm <= 1e-10)
+    {
         return false; // 如果几乎为零，说明当前行可以由已有基线性组合，增加它不能继续消除刚体模态
     }
-    for (double& value : row) 
-    { 
+    for (double& value : row)
+    {
         value /= norm; // 把剩余向量归一化
     }
     basis.push_back(row); // 加入正交基
@@ -142,16 +141,16 @@ void add_rigid_body_constraints(const FemSystem& fem, const TrialField& trial_fi
     const int dimension = mesh.Dimension(); // 维度
     const auto dofs = independent_nodal_dofs(fem, trial_field, constraints.prolongation()); // 独立自由度 -> {哪个方向分量,哪个位置}
     std::array<double, 3> minimum{}, maximum{}, center{}; // 计算包围盒、参考中心和归一化长度
-    for (int c = 0; c < dimension; ++c) 
-    { 
+    for (int c = 0; c < dimension; ++c)
+    {
         minimum[c] = maximum[c] = mesh.GetVertex(0)[c]; // 用第一个网格顶点初始化
     }
     for (int vertex = 1; vertex < mesh.GetNV(); ++vertex) // 再遍历其余顶点更新
-    for (int c = 0; c < dimension; ++c)
-    {
-        minimum[c] = std::min(minimum[c], mesh.GetVertex(vertex)[c]);
-        maximum[c] = std::max(maximum[c], mesh.GetVertex(vertex)[c]);
-    }
+        for (int c = 0; c < dimension; ++c)
+        {
+            minimum[c] = std::min(minimum[c], mesh.GetVertex(vertex)[c]);
+            maximum[c] = std::max(maximum[c], mesh.GetVertex(vertex)[c]);
+        }
     double length = 0.0; // 初始化包围盒长度
     for (int c = 0; c < dimension; ++c)
     {
@@ -160,7 +159,7 @@ void add_rigid_body_constraints(const FemSystem& fem, const TrialField& trial_fi
     }
 
     // 判断 dof 是否位于中心或轴线 1D 对应球心 2D 对应旋转轴
-    const auto on_axis = [&](const NodalDof& dof) 
+    const auto on_axis = [&](const NodalDof& dof)
     {
         return std::abs(dof.position[0] - minimum[0]) <= 1e-10 * length; // 1e-10 * length 是随网格尺度变化的坐标容差
     };
@@ -170,15 +169,15 @@ void add_rigid_body_constraints(const FemSystem& fem, const TrialField& trial_fi
         for (const auto& [index, dof] : dofs)
         {
             if (dof.component == 0 && on_axis(dof)) // 如果当前自由度是径向位移且位于1D中心或2D轴线
-            { 
+            {
                 essential.try_emplace(index, 0.0); // 若本质自由度列表中没它，就把它添加进去并设置值为 0.0 对应 ur=0 (1D球心) ur=0 (2D对称轴)
             }
         }
     }
-    if (dimension == 1) 
-    { 
+    if (dimension == 1)
+    {
         return; // 对于 1D 球对称位移空间没有整体平移或转动，仅需中心正则性条件，至此已完成固定
-    } 
+    }
 
     const std::size_t mode_count = dimension == 2 ? 1 : 6; // 判断当前维度需要消除几个独立的刚体模态
     std::vector<RigidMode> basis;
@@ -186,23 +185,23 @@ void add_rigid_body_constraints(const FemSystem& fem, const TrialField& trial_fi
     {
         add_independent_mode(rigid_mode(dofs.at(index), dimension, center, length), basis);
         if (basis.size() == mode_count) // basis.size() 表示这些约束行的秩 即它们已经限制了多少个独立刚体运动参数 若已有条件已经足够，就直接结束
-        { 
-            return; 
+        {
+            return;
         }
     }
     for (const auto& [index, dof] : dofs) // 逐个尝试候选自由度
     {
         if (dimension == 2 && !on_axis(dof)) // 二维额外限定候选节点在轴线上，因此轴向定位会选在轴线上
-        { 
-            continue; 
-        } 
+        {
+            continue;
+        }
         if (add_independent_mode(rigid_mode(dof, dimension, center, length), basis)) // 若它的系数行能被已有基表示，就跳过 若它提供新的独立方向，就把该自由度指定为零
         {
             essential.try_emplace(index, 0.0);
         }
-        if (basis.size() == mode_count)  // 秩达到目标值后停止
-        { 
-            break; 
+        if (basis.size() == mode_count) // 秩达到目标值后停止
+        {
+            break;
         }
     }
 }
