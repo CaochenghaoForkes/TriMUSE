@@ -25,6 +25,7 @@ class PropertiesCardExamine:
         "external.nuclide_flux": COMMON_MODELS,
         "derived.heat_transfer_coef": COMMON_MODELS,
         "derived.mass_transfer_coef": COMMON_MODELS,
+        "derived.region_volume": {"common.undeformed"},
         "derived.volumetric_power": COMMON_MODELS | {"common.uniform_from_power"},
         "derived.volumetric_nuclide_birth_rate": COMMON_MODELS | {"common.uniform_from_birth_rate"},
         "derived.fast_neutron_fluence": COMMON_MODELS | {"common.accumulate_from_fast_neutron_flux"},
@@ -87,6 +88,13 @@ class PropertiesCardExamine:
         zone_names = [zone.name for zone in property_config.zone]
         if len(zone_names) != len(set(zone_names)):
             raise ValueError(f"{location}: 外表面分区名称不能重复")
+        if location == "derived.region_volume":
+            if not property_config.region or property_config.zone or property_config.global_ is not None:
+                raise ValueError(f"{location}: 请按 region 配置当前区域体积")
+            for region in property_config.region:
+                if region.parameters:
+                    raise ValueError(f"{location}.{region.name}: common.undeformed 不需要模型参数")
+            return
         if location == "external.energy_per_fission":
             if property_config.global_ is None or property_config.region or property_config.zone:
                 raise ValueError(f"{location}: 请按 global 配置单次裂变释热能量")

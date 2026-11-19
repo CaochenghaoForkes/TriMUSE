@@ -12,7 +12,7 @@ void VolumetricNuclideBirthRateModelManager::register_models()
 {
     registry_.register_model<ConstantVolumetricNuclideBirthRate>("common.constant");
     registry_.register_model<TimeSeriesVolumetricNuclideBirthRate>("common.time_series", {"external.time"});
-    registry_.register_model<UniformFromBirthRate>("common.uniform_from_birth_rate", {"external.nuclide_birth_rate", "external.uranium_fraction", "precomputed.region_volume"});
+    registry_.register_model<UniformFromBirthRate>("common.uniform_from_birth_rate", {"external.nuclide_birth_rate", "external.uranium_fraction", "derived.region_volume"});
 }
 
 void VolumetricNuclideBirthRateModelManager::assign(int region_attribute, const std::string& model_name, const ModelParameterMap& parameters)

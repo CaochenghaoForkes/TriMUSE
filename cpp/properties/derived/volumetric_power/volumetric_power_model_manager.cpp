@@ -12,7 +12,7 @@ void VolumetricPowerModelManager::register_models()
 {
     registry_.register_model<ConstantVolumetricPower>("common.constant");
     registry_.register_model<TimeSeriesVolumetricPower>("common.time_series", {"external.time"});
-    registry_.register_model<UniformFromPower>("common.uniform_from_power", {"external.power", "precomputed.region_volume"});
+    registry_.register_model<UniformFromPower>("common.uniform_from_power", {"external.power", "derived.region_volume"});
 }
 
 void VolumetricPowerModelManager::assign(int region_attribute, const std::string& model_name, const ModelParameterMap& parameters)

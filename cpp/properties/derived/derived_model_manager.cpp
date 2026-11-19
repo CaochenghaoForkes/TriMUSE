@@ -13,6 +13,7 @@ DerivedModelManager::DerivedModelManager()
 void DerivedModelManager::register_models()
 {
     burnup_fima_fraction_model_manager_.register_models();
+    region_volume_model_manager_.register_models();
     volumetric_power_model_manager_.register_models();
     heat_transfer_coef_model_manager_.register_models();
     mass_transfer_coef_model_manager_.register_models();
@@ -25,6 +26,11 @@ void DerivedModelManager::assign(const std::string& name, int attribute, const s
     if (name == "derived.burnup_fima_fraction")
     {
         burnup_fima_fraction_model_manager_.assign(model_name, parameters, "scalar");
+        return;
+    }
+    if (name == "derived.region_volume")
+    {
+        region_volume_model_manager_.assign(attribute, model_name, parameters);
         return;
     }
     if (name == "derived.volumetric_power")
@@ -61,6 +67,10 @@ StateValue DerivedModelManager::evaluate(const std::string& name, const Properti
     {
         return burnup_fima_fraction_model_manager_.evaluate(point);
     }
+    if (name == "derived.region_volume")
+    {
+        return region_volume_model_manager_.evaluate(point);
+    }
     if (name == "derived.volumetric_power")
     {
         return volumetric_power_model_manager_.evaluate(point);
@@ -89,6 +99,10 @@ const std::vector<std::string>& DerivedModelManager::required_states(const std::
     if (name == "derived.burnup_fima_fraction")
     {
         return burnup_fima_fraction_model_manager_.required_states(model_name);
+    }
+    if (name == "derived.region_volume")
+    {
+        return region_volume_model_manager_.required_states(model_name);
     }
     if (name == "derived.volumetric_power")
     {

@@ -78,6 +78,10 @@
         </zone>
         -->
     </external_property>
+    <!-- 当前区域体积，common.undeformed 直接使用 precomputed.initial_region_volume -->
+    <derived_property name="region_volume">
+        <region name="[str]" model="common.undeformed"/>
+    </derived_property>
     <!-- burnup_fima_fraction 使用 0 到 1 的 FIMA 份额, 例如 0.2 表示 20% FIMA -->
     <derived_property name="burnup_fima_fraction">
         <global model="common.constant">
@@ -92,7 +96,7 @@
     </derived_property>
     <derived_property name="volumetric_power">
         <!-- 可选 common.constant、common.time_series、common.uniform_from_power -->
-        <!-- 仅 common.uniform_from_power 需要同一区域的 external.power 和 precomputed.region_volume -->
+        <!-- 仅 common.uniform_from_power 需要同一区域的 external.power 和 derived.region_volume -->
         <region name="[str]" model="common.uniform_from_power"/>
         <!-- 直接给定体积功率密度时, 用下列常数或时间表模型替换上面的 region, 不需要 external.power。
         <region name="[str]" model="common.constant">

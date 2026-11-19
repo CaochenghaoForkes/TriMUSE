@@ -87,7 +87,7 @@ private:
     bool required_states_changed(int attribute, const std::vector<std::string>& required_states) const; // 判断: 某个区域或边界分区所依赖的属性，相比之前保存的快照，是否发生变化
 
     std::vector<PropertyInfo> properties_ = {
-        {"precomputed.region_volume", PropertyType::Precomputed, PropertyScope::Region},
+        {"precomputed.initial_region_volume", PropertyType::Precomputed, PropertyScope::Region},
         {"precomputed.geometry_center", PropertyType::Precomputed, PropertyScope::Global}, // m，颗粒中心坐标
         {"precomputed.thermal_expansion_reference_temperature", PropertyType::Precomputed, PropertyScope::Global}, // K, 来自力学卡的固定热膨胀参考温度
         {"precomputed.tensor_transform", PropertyType::Precomputed, PropertyScope::IntegrationPoint}, // 六分量张量 local -> global 的 T
@@ -113,6 +113,7 @@ private:
         {"external.nuclide_birth_rate", PropertyType::External, PropertyScope::Global}, // atom/s, 全局核素产生率
         {"external.fast_neutron_flux", PropertyType::External, PropertyScope::Global}, // 1/(m²·s), 全局快中子通量
         {"external.uranium_fraction", PropertyType::External, PropertyScope::Region}, // 各区域占全局产生率的份额
+        {"derived.region_volume", PropertyType::Derived, PropertyScope::Region}, // m³，当前区域体积
         {"derived.burnup_fima_fraction", PropertyType::Derived, PropertyScope::Global}, // 0～1 的 FIMA 份额
         {"derived.heat_transfer_coef", PropertyType::Derived, PropertyScope::Zone},
         {"derived.mass_transfer_coef", PropertyType::Derived, PropertyScope::Zone}, // m/s

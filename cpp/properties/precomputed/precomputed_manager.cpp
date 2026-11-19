@@ -3,7 +3,7 @@
 #include <algorithm>
 
 #include "properties/precomputed/geometry_center.hpp"
-#include "properties/precomputed/region_volume.hpp"
+#include "properties/precomputed/initial_region_volume.hpp"
 #include "properties/properties_system.hpp"
 
 namespace trimuse
@@ -18,7 +18,7 @@ void PrecomputedManager::initialize_precomputed(PropertiesSystem& properties, co
     }
 
     // 必定需要的预计算参数
-    initialize_region_volume(properties, fem);
+    initialize_initial_region_volume(properties, fem);
     initialize_geometry_center(properties, fem);
 
     // 场需要的预计算参数

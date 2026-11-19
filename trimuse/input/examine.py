@@ -168,6 +168,7 @@ class InputCardsExamine:
                     dimension = 2 if "theta_mins" in interface.parameters else 3
                     if geometry_mesh.model.dimension != dimension:
                         raise ValueError(f"{location}: 局部界面属性角度参数与 2D/3D 几何维数不一致")
+        volume_regions = {region.name for property_config in properties.derived_property if property_config.name == "derived.region_volume" for region in property_config.region}
         power_regions = {region.name for property_config in properties.external_property if property_config.name == "external.power" for region in property_config.region}
         birth_rate = next((item for item in properties.external_property if item.name == "external.nuclide_birth_rate"), None)
         fast_neutron_flux = next((item for item in properties.external_property if item.name == "external.fast_neutron_flux"), None)
@@ -187,6 +188,10 @@ class InputCardsExamine:
                     components = count if zone.model == "common.constant" else count // len(zone.parameters["times"])
                     if components != geometry_mesh.model.dimension:
                         raise ValueError(f"{property_config.name}.{zone.name}: 分量数必须等于问题维数 {geometry_mesh.model.dimension}")
+            volume_required = {region.name for region in property_config.region if region.model in ("common.uniform_from_power", "common.uniform_from_birth_rate")}
+            missing_volumes = volume_required - volume_regions
+            if missing_volumes:
+                raise ValueError(f"{property_config.name} 缺少当前区域体积 region_volume: {', '.join(sorted(missing_volumes))}")
             if property_config.name == "derived.volumetric_power":
                 uniform_regions = {region.name for region in property_config.region if region.model == "common.uniform_from_power"}
                 missing = uniform_regions - power_regions
