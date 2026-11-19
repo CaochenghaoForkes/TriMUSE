@@ -9,7 +9,7 @@ namespace trimuse
 class TimeSeriesBurnupFimaFraction final : public BurnupFimaFractionModel, private TimeSeriesModel
 {
 public:
-    explicit TimeSeriesBurnupFimaFraction(const ModelParameterMap& parameters, const std::string& value_type);
+    explicit TimeSeriesBurnupFimaFraction(const ModelParameterMap& parameters);
     StateValue evaluate(const PropertiesStatePoint& point) const override;
 };
 

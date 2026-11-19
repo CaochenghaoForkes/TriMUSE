@@ -9,7 +9,7 @@ namespace trimuse
 class ConstantBurnupFimaFraction final : public BurnupFimaFractionModel, private ConstantModel
 {
 public:
-    explicit ConstantBurnupFimaFraction(const ModelParameterMap& parameters, const std::string& value_type);
+    explicit ConstantBurnupFimaFraction(const ModelParameterMap& parameters);
     StateValue evaluate(const PropertiesStatePoint& point) const override;
 };
 

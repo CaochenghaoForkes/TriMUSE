@@ -90,6 +90,12 @@ class PropertiesCardExamine:
         zone_names = [zone.name for zone in property_config.zone]
         if len(zone_names) != len(set(zone_names)):
             raise ValueError(f"{location}: 外表面分区名称不能重复")
+        if location == "derived.burnup_fima_fraction":
+            if not property_config.region or property_config.zone or property_config.global_ is not None:
+                raise ValueError(f"{location}: 请按 region 配置 FIMA 份额")
+            for region in property_config.region:
+                cls.check_burnup(region, f"{location}.{region.name}")
+            return
         if location == "derived.region_volume":
             if not property_config.region or property_config.zone or property_config.global_ is not None:
                 raise ValueError(f"{location}: 请按 region 配置当前区域体积")
@@ -129,8 +135,6 @@ class PropertiesCardExamine:
                     raise ValueError(f"{location}.global: 参数值必须有限")
             if global_config.model == "common.constant" and not isinstance(global_config.parameters.get("constant_value"), float):
                 raise ValueError(f"{location}.global: constant_value 必须为标量")
-            if category == "derived_property" and property_config.name == "derived.burnup_fima_fraction":
-                cls.check_burnup(global_config, f"{location}.global")
         for region in property_config.region:
             region_location = f"{location}.{region.name}"
             for value in region.parameters.values():
@@ -234,20 +238,11 @@ class PropertiesCardExamine:
             raise ValueError(f"{location}: 不支持的模型 {region.model}")
 
     @staticmethod
-    def check_burnup(config: PropertiesCard.Global, location: str) -> None:
-        if config.model == "common.constant":
-            value = config.parameters.get("constant_value")
-            if not isinstance(value, float) or not 0 <= value <= 1:
-                raise ValueError(f"{location}: constant_value 必须为 [0,1] 内的标量")
-        elif config.model == "common.time_series":
-            times = config.parameters.get("times")
-            values = config.parameters.get("values")
-            if not isinstance(times, list) or not isinstance(values, list) or len(times) < 2 or len(times) != len(values) or any(right <= left for left, right in zip(times, times[1:])):
-                raise ValueError(f"{location}: times 和 values 必须为等长列表, times 至少有两个严格递增的值")
-            if any(not 0 <= value <= 1 for value in values):
-                raise ValueError(f"{location}: values 必须在 [0,1] 内")
-        else:
-            raise ValueError(f"{location}: 不支持的模型 {config.model}")
+    def check_burnup(config: PropertiesCard.Region, location: str) -> None:
+        PropertiesCardExamine.check_time_model(config, location)
+        values = [config.parameters["constant_value"]] if config.model == "common.constant" else config.parameters["values"]
+        if any(not 0 <= value <= 1 for value in values):
+            raise ValueError(f"{location}: FIMA 份额必须在 [0,1] 内")
 
     @staticmethod
     def check_time_model(config: PropertiesCard.Global | PropertiesCard.Region | PropertiesCard.Zone, location: str) -> None:

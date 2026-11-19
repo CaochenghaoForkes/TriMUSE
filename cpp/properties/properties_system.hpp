@@ -114,7 +114,7 @@ private:
         {"external.fast_neutron_flux", PropertyType::External, PropertyScope::Global}, // 1/(m²·s), 全局快中子通量
         {"external.uranium_fraction", PropertyType::External, PropertyScope::Region}, // 各区域占全局产生率的份额
         {"derived.region_volume", PropertyType::Derived, PropertyScope::Region}, // m³，当前区域体积
-        {"derived.burnup_fima_fraction", PropertyType::Derived, PropertyScope::Global}, // 0～1 的 FIMA 份额
+        {"derived.burnup_fima_fraction", PropertyType::Derived, PropertyScope::Region}, // 0～1 的 FIMA 份额
         {"derived.heat_transfer_coef", PropertyType::Derived, PropertyScope::Zone},
         {"derived.mass_transfer_coef", PropertyType::Derived, PropertyScope::Zone}, // m/s
         {"derived.average_volumetric_fission_rate", PropertyType::Derived, PropertyScope::Region}, // 1/(m³·s)，区域平均体积裂变率

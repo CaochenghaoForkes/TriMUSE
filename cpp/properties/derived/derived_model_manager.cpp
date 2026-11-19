@@ -26,7 +26,7 @@ void DerivedModelManager::assign(const std::string& name, int attribute, const s
 {
     if (name == "derived.burnup_fima_fraction")
     {
-        burnup_fima_fraction_model_manager_.assign(model_name, parameters, "scalar");
+        burnup_fima_fraction_model_manager_.assign(attribute, model_name, parameters);
         return;
     }
     if (name == "derived.region_volume")

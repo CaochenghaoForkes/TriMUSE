@@ -3,9 +3,9 @@
 namespace trimuse
 {
 
-TimeSeriesBurnupFimaFraction::TimeSeriesBurnupFimaFraction(const ModelParameterMap& parameters, const std::string& value_type)
+TimeSeriesBurnupFimaFraction::TimeSeriesBurnupFimaFraction(const ModelParameterMap& parameters)
     :
-    TimeSeriesModel(parameters, value_type)
+    TimeSeriesModel(parameters)
 {
 }
 

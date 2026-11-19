@@ -2,8 +2,6 @@
 #include "properties/derived/burnup_fima_fraction/constant_burnup_fima_fraction.hpp"
 #include "properties/derived/burnup_fima_fraction/time_series_burnup_fima_fraction.hpp"
 
-#include <stdexcept>
-
 namespace trimuse
 {
 
@@ -15,18 +13,14 @@ void BurnupFimaFractionModelManager::register_models()
     registry_.register_model<TimeSeriesBurnupFimaFraction>("common.time_series", {"external.time"});
 }
 
-void BurnupFimaFractionModelManager::assign(const std::string& model_name, const ModelParameterMap& parameters, const std::string& value_type)
+void BurnupFimaFractionModelManager::assign(int region_attribute, const std::string& model_name, const ModelParameterMap& parameters)
 {
-    model_ = registry_.registration(model_name).factory(parameters, value_type);
+    region_model_map_[region_attribute] = registry_.registration(model_name).factory(parameters);
 }
 
 StateValue BurnupFimaFractionModelManager::evaluate(const PropertiesStatePoint& point) const
 {
-    if (!model_)
-    {
-        throw std::logic_error("尚未设置 burnup_fima_fraction 模型");
-    }
-    return model_->evaluate(point);
+    return region_model_map_.at(point.region_attribute)->evaluate(point);
 }
 
 const std::vector<std::string>& BurnupFimaFractionModelManager::required_states(const std::string& model_name) const

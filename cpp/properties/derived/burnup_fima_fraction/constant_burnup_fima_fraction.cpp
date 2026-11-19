@@ -3,9 +3,9 @@
 namespace trimuse
 {
 
-ConstantBurnupFimaFraction::ConstantBurnupFimaFraction(const ModelParameterMap& parameters, const std::string& value_type)
+ConstantBurnupFimaFraction::ConstantBurnupFimaFraction(const ModelParameterMap& parameters)
     :
-    ConstantModel(parameters, value_type)
+    ConstantModel(parameters)
 {
 }
 
