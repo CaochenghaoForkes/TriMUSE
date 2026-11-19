@@ -12,6 +12,7 @@ class PropertiesCardExamine:
         "external.energy_per_fission": {"common.constant"},
         "derived.burnup_fima_fraction": COMMON_MODELS,
         "external.uranium_fraction": COMMON_MODELS,
+        "external.initial_heavy_metal_inventory": {"common.constant"},
         "external.nuclide_birth_rate": COMMON_MODELS,
         "external.fast_neutron_flux": COMMON_MODELS,
         "external.environment_temperature": COMMON_MODELS,
@@ -102,6 +103,14 @@ class PropertiesCardExamine:
             for region in property_config.region:
                 if region.parameters:
                     raise ValueError(f"{location}.{region.name}: common.undeformed 不需要模型参数")
+            return
+        if location == "external.initial_heavy_metal_inventory":
+            if not property_config.region or property_config.zone or property_config.global_ is not None:
+                raise ValueError(f"{location}: 请按 region 配置初始重金属盘存")
+            for region in property_config.region:
+                cls.check_time_model(region, f"{location}.{region.name}")
+                if region.parameters["constant_value"] <= 0.0:
+                    raise ValueError(f"{location}.{region.name}: 初始重金属原子总数必须为正数")
             return
         if location == "external.energy_per_fission":
             if property_config.global_ is None or property_config.region or property_config.zone:

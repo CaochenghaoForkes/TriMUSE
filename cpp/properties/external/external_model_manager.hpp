@@ -14,6 +14,7 @@
 #include "properties/external/surface_pressure/surface_pressure_model_manager.hpp"
 #include "properties/external/surface_nuclide_concentration/surface_nuclide_concentration_model_manager.hpp"
 #include "properties/external/nuclide_flux/nuclide_flux_model_manager.hpp"
+#include "properties/external/initial_heavy_metal_inventory/initial_heavy_metal_inventory_model_manager.hpp"
 #include "properties/external/uranium_fraction/uranium_fraction_model_manager.hpp"
 #include "properties/external/nuclide_birth_rate/nuclide_birth_rate_model_manager.hpp"
 #include "properties/external/energy_per_fission/energy_per_fission_model_manager.hpp"
@@ -42,6 +43,7 @@ private:
     HeatFluxModelManager heat_flux_model_manager_;
     NuclideFluxModelManager nuclide_flux_model_manager_;
     UraniumFractionModelManager uranium_fraction_model_manager_;
+    InitialHeavyMetalInventoryModelManager initial_heavy_metal_inventory_model_manager_;
     NuclideBirthRateModelManager nuclide_birth_rate_model_manager_;
     EnergyPerFissionModelManager energy_per_fission_model_manager_;
     FastNeutronFluxModelManager fast_neutron_flux_model_manager_;

@@ -112,6 +112,7 @@ private:
         {"external.energy_per_fission", PropertyType::External, PropertyScope::Global}, // J，每次裂变的释热能量
         {"external.nuclide_birth_rate", PropertyType::External, PropertyScope::Global}, // atom/s, 全局核素产生率
         {"external.fast_neutron_flux", PropertyType::External, PropertyScope::Global}, // 1/(m²·s), 全局快中子通量
+        {"external.initial_heavy_metal_inventory", PropertyType::External, PropertyScope::Region}, // atom，区域初始重金属原子总数
         {"external.uranium_fraction", PropertyType::External, PropertyScope::Region}, // 各区域占全局产生率的份额
         {"derived.region_volume", PropertyType::Derived, PropertyScope::Region}, // m³，当前区域体积
         {"derived.burnup_fima_fraction", PropertyType::Derived, PropertyScope::Region}, // 0～1 的 FIMA 份额

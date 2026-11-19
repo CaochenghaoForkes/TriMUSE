@@ -23,6 +23,7 @@ void ExternalModelManager::register_models()
     heat_flux_model_manager_.register_models();
     nuclide_flux_model_manager_.register_models();
     uranium_fraction_model_manager_.register_models();
+    initial_heavy_metal_inventory_model_manager_.register_models();
     nuclide_birth_rate_model_manager_.register_models();
     energy_per_fission_model_manager_.register_models();
     fast_neutron_flux_model_manager_.register_models();
@@ -53,6 +54,11 @@ void ExternalModelManager::assign(const std::string& name, int attribute, const 
     if (name == "external.uranium_fraction")
     {
         uranium_fraction_model_manager_.assign(attribute, model_name, parameters, value_type);
+        return;
+    }
+    if (name == "external.initial_heavy_metal_inventory")
+    {
+        initial_heavy_metal_inventory_model_manager_.assign(attribute, model_name, parameters);
         return;
     }
     if (name == "external.nuclide_birth_rate")
@@ -125,6 +131,10 @@ StateValue ExternalModelManager::evaluate(const std::string& name, const Propert
     {
         return uranium_fraction_model_manager_.evaluate(point);
     }
+    if (name == "external.initial_heavy_metal_inventory")
+    {
+        return initial_heavy_metal_inventory_model_manager_.evaluate(point);
+    }
     if (name == "external.nuclide_birth_rate")
     {
         return nuclide_birth_rate_model_manager_.evaluate(point);
@@ -185,6 +195,10 @@ const std::vector<std::string>& ExternalModelManager::required_states(const std:
     if (name == "external.uranium_fraction")
     {
         return uranium_fraction_model_manager_.required_states(model_name);
+    }
+    if (name == "external.initial_heavy_metal_inventory")
+    {
+        return initial_heavy_metal_inventory_model_manager_.required_states(model_name);
     }
     if (name == "external.nuclide_birth_rate")
     {
