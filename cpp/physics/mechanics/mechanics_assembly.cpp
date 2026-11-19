@@ -16,6 +16,7 @@ MechanicsAssembly::MechanicsAssembly(FemSystem& fem, TrialField& trial_field, co
     thermal_expansion_manager_(fem, regions.at("thermal_expansion")),
     source_manager_(fem, regions.at("source")),
     boundary_manager_(boundaries.at("mechanics_boundary")),
+    interface_pressure_manager_(fem, interfaces.at("interface_pressure")),
     interface_contact_manager_(fem, constraints_, interfaces.at("interface_contact"))
 {
     constraints_.finalize(); // 界面管理器已登记全部连接，统一生成 P （生成约束映射，界面连续约束的映射）
@@ -46,11 +47,12 @@ void MechanicsAssembly::mark_coupled(PropertiesSystem& properties) const // 标�
     thermal_expansion_manager_.mark_coupled(properties, "displacement");
     source_manager_.mark_coupled(properties, "displacement");
     boundary_manager_.mark_coupled(properties, "displacement");
+    interface_pressure_manager_.mark_coupled(properties, "displacement");
 }
 
 bool MechanicsAssembly::coupled(const PropertiesSystem& properties) const // 判断: 是否有任何一个模型的依赖属性与指定求解场耦合
 {
-    return stiffness_manager_.coupled(properties, "displacement") || thermal_expansion_manager_.coupled(properties, "displacement") || source_manager_.coupled(properties, "displacement") || boundary_manager_.coupled(properties, "displacement");
+    return stiffness_manager_.coupled(properties, "displacement") || thermal_expansion_manager_.coupled(properties, "displacement") || source_manager_.coupled(properties, "displacement") || boundary_manager_.coupled(properties, "displacement") || interface_pressure_manager_.coupled(properties, "displacement");
 }
 
 void MechanicsAssembly::refresh_stiffness() // 只重组需要更新的区域刚度矩阵，如果有更新，再把各区域贡献重新相加
@@ -137,24 +139,48 @@ void MechanicsAssembly::refresh_boundary()
     }
 }
 
+void MechanicsAssembly::refresh_interface_pressure()
+{
+    bool changed = !interface_pressure_load_cache_.sum;
+    for (int attribute : interface_pressure_manager_.interface_pressure_attributes())
+    {
+        if (interface_pressure_load_cache_.parts.count(attribute) && interface_pressure_manager_.required_no_change(attribute))
+        {
+            continue;
+        }
+        interface_pressure_load_cache_.parts[attribute] = interface_pressure_manager_.assemble_load(attribute, fem_, trial_field_);
+        interface_pressure_manager_.assembled(attribute);
+        ++counts_["interface_pressure"];
+        changed = true;
+    }
+    if (changed)
+    {
+        interface_pressure_load_cache_.sum = sum_vectors(interface_pressure_load_cache_.parts, trial_field_.size());
+    }
+}
+
 MechanicsAssembly::State MechanicsAssembly::update(const PropertiesFieldData& properties) // 更新各类系数，按变化情况刷新缓存，最后返回完整自由度上的刚度矩阵与总载荷：
 {
     stiffness_manager_.update(properties); // 读取各求积点的弹性矩阵 C，更新管理器中的系数数组，并检查更新 dirty
     thermal_expansion_manager_.update(properties); // 读取当前正式温度场，以及属性中的弹性矩阵、热膨胀系数和参考温度，计算热膨胀系数，并检查更新 dirty
     source_manager_.update(properties); // 更新各求积点点体积力向量，并检查更新 dirty
     boundary_manager_.update(properties); // 更新各边界分区的指定面力向量、压力标量或指定位移向量，并检查更新 dirty
+    interface_pressure_manager_.update(properties);
+    refresh_interface_pressure();
     refresh_stiffness(); // 根据 dirty 只重新组装发生变化或尚无缓存的区域刚度矩阵，必要时重新计算总刚度矩阵 并更换 cache_.sum 指针为新对象
     refresh_thermal_expansion(); // 根据 dirty 只重新组装发生变化或尚无缓存的区域热膨胀载荷，必要时重新计算总热膨胀载荷 并更换 cache_.sum 指针为新对象
     refresh_source(); // 根据 dirty 只重新组装发生变化或尚无缓存的区域体积力载荷，必要时重新计算总体积力载荷 并更换 cache_.sum 指针为新对象
     refresh_boundary(); // 根据 dirty 只重新组装发生变化或尚无缓存的表面边界表面力载荷，必要时重新计算表面边界表面力载荷 并更换 cache_.sum 指针为新对象
 
     state_.matrix = stiffness_matrix_cache_.sum; // 让 state_.matrix 与 stiffness_matrix_cache_.sum 共同持有同一张矩阵，不复制矩阵数值
-    if (last_thermal_expansion_load_cache_sum_ != thermal_expansion_load_cache_.sum || last_source_load_cache_sum_ != source_load_cache_.sum || last_boundary_load_cache_sum_ != boundary_load_cache_.sum) // 若总热膨胀载荷指针发生更换；或总体积力载荷指针发生更换；或总表面力载荷指针发生更换
+    if (last_thermal_expansion_load_cache_sum_ != thermal_expansion_load_cache_.sum || last_source_load_cache_sum_ != source_load_cache_.sum || last_boundary_load_cache_sum_ != boundary_load_cache_.sum || last_interface_pressure_load_cache_sum_ != interface_pressure_load_cache_.sum) // 若总热膨胀载荷指针发生更换；或总体积力载荷指针发生更换；或总表面力载荷指针发生更换
     {
         auto load = std::make_shared<mfem::Vector>(*thermal_expansion_load_cache_.sum); // 重新创建新总载荷向量 f = fth + fbody + fboundary
         *load += *source_load_cache_.sum;
         *load += *boundary_load_cache_.sum;
+        *load += *interface_pressure_load_cache_.sum;
         state_.load = std::move(load); // 把这个新向量的共享指针移交给 state_.load
+        last_interface_pressure_load_cache_sum_ = interface_pressure_load_cache_.sum;
         last_thermal_expansion_load_cache_sum_ = thermal_expansion_load_cache_.sum; // 记录本次使用的新缓存指针
         last_source_load_cache_sum_ = source_load_cache_.sum; // 记录本次使用的新缓存指针
         last_boundary_load_cache_sum_ = boundary_load_cache_.sum; // 记录本次使用的新缓存指针

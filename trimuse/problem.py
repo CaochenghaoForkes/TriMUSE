@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from .input.xml_loader import InputCards
     from .geometry.topology import MeshInfo
 
-ProblemConfigEntry = tuple[int, str, dict[str, float | list[float]]]
+ProblemConfigEntry = tuple[int, str, dict[str, float | list[float] | str]]
 
 def expand_locations(entries, names) -> dict: # 将输入中的名称列表和 residual，展开成“单个位置名称 → 配置对象”的字典
     """先展开全部显式位置，再将 residual 分配给其余位置"""
@@ -45,7 +45,7 @@ def prepare_configs(card, input_cards: InputCards, mesh_info: MeshInfo, terms: t
         group = {term: [] for term in group_terms} # 为当前类别的每种组装项建立空列表 group = {"conduction": [],"capacity": [],"source": []}
         for name, entry in expand_locations(((item.name, item) for item in entries), names).items(): # ((item.name, item) for item in entries) 得到位置字符串、配置对象 entries = [("residual", 配置B),("kernel buffer", 配置A)] -> {"kernel": 配置A,"buffer": 配置A,"ipyc": 配置B,"sic": 配置B,"opyc": 配置B}
             for model in entry.model:
-                group[model.name].append((attributes[name], model.model_name, {})) # group["conduction"].append((1, "fourier", {}))
+                group[model.name].append((attributes[name], model.model_name, dict(model.parameters))) # group["conduction"].append((1, "fourier", {}))
         configs.append(group)
     return tuple(configs) # (regions字典, boundaries字典, interfaces字典)
 
@@ -122,8 +122,16 @@ class Mechanics:
     def __init__(self, input_cards: InputCards, fem_manager: FemManager, properties_manager: PropertiesManager, solver_manager: SolverManager, output_manager: OutputManager) -> None:
         card = input_cards.mechanics
         mesh_info = fem_manager.mesh_info
-        regions, boundaries, interfaces = prepare_configs(card, input_cards, mesh_info, (('stiffness', 'thermal_expansion', 'source'), ('mechanics_boundary',), ('interface_contact',)))
+        regions, boundaries, interfaces = prepare_configs(card, input_cards, mesh_info, (('stiffness', 'thermal_expansion', 'source'), ('mechanics_boundary',), ('interface_contact', 'interface_pressure')))
+        self.fill_interface_pressure_parameters(interfaces["interface_pressure"], mesh_info.region_attributes)
         self.mechanics_problem = MechanicsProblem(fem_manager.fem_system, properties_manager.properties_system, solver_manager.solver_system, output_manager.field_output, regions, boundaries, interfaces)
+
+    @staticmethod
+    def fill_interface_pressure_parameters(configs: list[ProblemConfigEntry], region_attributes: dict[str, int]) -> None:
+        """单侧压力将受压区域名转为编号，双侧压力无需参数"""
+        for attribute, model, parameters in configs:
+            if model == "single_face":
+                parameters["region"] = float(region_attributes[parameters["region"]])
 
     def solve(self, time_step: float = 0.0, theta: float = 1.0) -> None:
         """保持统一调度接口，准静态方程本身不使用时间离散参数"""

@@ -13,6 +13,7 @@ AssemblyModelManager::AssemblyModelManager()
 void AssemblyModelManager::register_models()
 {
     interface_thermal_resistance_model_manager_.register_models();
+    interface_pressure_model_manager_.register_models();
 }
 
 void AssemblyModelManager::assign(const std::string& name, int attribute, const std::string& model_name, const ModelParameterMap& parameters)
@@ -20,6 +21,11 @@ void AssemblyModelManager::assign(const std::string& name, int attribute, const 
     if (name == "assembly.interface_thermal_resistance")
     {
         interface_thermal_resistance_model_manager_.assign(attribute, model_name, parameters);
+        return;
+    }
+    if (name == "assembly.interface_pressure")
+    {
+        interface_pressure_model_manager_.assign(attribute, model_name, parameters);
         return;
     }
     throw std::out_of_range("尚未支持的组装属性: " + name);
@@ -31,6 +37,10 @@ std::optional<StateValue> AssemblyModelManager::evaluate(const std::string& name
     {
         return interface_thermal_resistance_model_manager_.evaluate(point);
     }
+    if (name == "assembly.interface_pressure")
+    {
+        return interface_pressure_model_manager_.evaluate(point);
+    }
     throw std::out_of_range("尚未支持的组装属性: " + name);
 }
 
@@ -39,6 +49,10 @@ const std::vector<std::string>& AssemblyModelManager::required_states(const std:
     if (name == "assembly.interface_thermal_resistance")
     {
         return interface_thermal_resistance_model_manager_.required_states(model_name);
+    }
+    if (name == "assembly.interface_pressure")
+    {
+        return interface_pressure_model_manager_.required_states(model_name);
     }
     throw std::out_of_range("尚未支持的组装属性: " + name);
 }

@@ -6,6 +6,7 @@ from ..thermal.examine import ThermalCardExamine
 class PropertiesCardExamine:
     COMMON_MODELS = {"common.constant", "common.time_series"}
     MODELS = {
+        "assembly.interface_pressure": {"common.uniform_from_constant_value", "common.local_from_constant_value"},
         "assembly.interface_thermal_resistance": {"common.uniform_from_constant_value", "common.local_from_constant_value"},
         "external.power": COMMON_MODELS,
         "external.burnup_fima_fraction": COMMON_MODELS,
@@ -61,6 +62,9 @@ class PropertiesCardExamine:
         location = property_config.name
         if location not in cls.MODELS or not location.startswith(category.removesuffix("_property") + "."):
             raise ValueError(f"{location}: 不支持的 {category} 属性")
+        if location == "assembly.interface_pressure":
+            cls.check_interface_pressure(property_config)
+            return
         if location == "assembly.interface_thermal_resistance":
             cls.check_interface_thermal_resistance(property_config)
             return
@@ -126,6 +130,25 @@ class PropertiesCardExamine:
                     raise ValueError(f"{region_location}: common.uniform_from_power 不需要模型参数")
             else:
                 raise ValueError(f"{region_location}: 尚不支持的派生量")
+
+    @classmethod
+    def check_interface_pressure(cls, property_config: PropertiesCard.Property) -> None:
+        location = property_config.name
+        if not property_config.interface or property_config.region or property_config.zone or property_config.global_ is not None:
+            raise ValueError(f"{location}: 请按 interface 配置界面压力")
+        names = [item.name for item in property_config.interface]
+        if len(names) != len(set(names)):
+            raise ValueError(f"{location}: 界面名称不能重复")
+        for interface in property_config.interface:
+            context = f"{location}.{interface.name}"
+            parameters = interface.parameters
+            if interface.model not in cls.MODELS[location]:
+                raise ValueError(f"{context}: 不支持的模型 {interface.model}")
+            ThermalCardExamine.check_parameters(parameters, context)
+            if interface.model == "common.local_from_constant_value":
+                ThermalCardExamine.check_local_resistance(parameters, context, allow_zero=True)
+            elif set(parameters) != {"constant_value"} or not isinstance(parameters["constant_value"], float) or parameters["constant_value"] < 0:
+                raise ValueError(f"{context}: constant_value 必须为非负标量")
 
     @classmethod
     def check_interface_thermal_resistance(cls, property_config: PropertiesCard.Property) -> None:

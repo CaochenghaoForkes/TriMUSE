@@ -1,6 +1,7 @@
 #pragma once
 
 #include "properties/properties_state_point.hpp"
+#include "properties/assembly/interface_pressure/interface_pressure_model_manager.hpp"
 #include "properties/assembly/interface_thermal_resistance/interface_thermal_resistance_model_manager.hpp"
 
 namespace trimuse
@@ -17,6 +18,7 @@ public:
 
 private:
     InterfaceThermalResistanceModelManager interface_thermal_resistance_model_manager_;
+    InterfacePressureModelManager interface_pressure_model_manager_;
 };
 
 }

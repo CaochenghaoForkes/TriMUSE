@@ -185,7 +185,7 @@ PYBIND11_MODULE(_core, module)
             trimuse::MechanicsInterfaceConfigs interfaces;
             for (const auto& [term, entries] : interface_entries)
             {
-                interfaces.emplace(term, problem_configs<trimuse::MechanicsInterfaceContactConfig>(entries));
+                interfaces.emplace(term, problem_configs<trimuse::MechanicsInterfaceConfig>(entries));
             }
             if (fem.has_region_field("displacement"))
             {

@@ -27,12 +27,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "组会.md",
+                "file": "TriMUSE v1.0/理论手册.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "组会"
+              "title": "理论手册"
             }
           }
         ],
@@ -205,8 +205,8 @@
   },
   "active": "63b22ac22b63df40",
   "lastOpenFiles": [
-    "TriMUSE v1.0/理论手册.md",
     "组会.md",
+    "TriMUSE v1.0/理论手册.md",
     "TriMUSE v0.5/理论手册.md",
     "TriMUSE v0.5/程序指南.md",
     "TriMUSE v1.0/BISON_TRISO_热力与核素行为模型调研.md",

@@ -5,7 +5,7 @@
 namespace trimuse
 {
 
-MechanicsInterfaceContactManager::MechanicsInterfaceContactManager(FemSystem& fem, DofConstraints& constraints, const std::vector<MechanicsInterfaceContactConfig>& contact_configs)
+MechanicsInterfaceContactManager::MechanicsInterfaceContactManager(FemSystem& fem, DofConstraints& constraints, const std::vector<MechanicsInterfaceConfig>& contact_configs)
 {
     registry_.register_model<MechanicsPerfectContact>("perfect_contact"); // 注册界面模型
     for (const auto& config : contact_configs) // 安排界面模型

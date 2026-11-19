@@ -13,7 +13,7 @@ class FemSystem;
 class MechanicsInterfaceContactManager // 按材料界面选择模型，并向外部持有的约束器登记连接关系
 {
 public:
-    MechanicsInterfaceContactManager(FemSystem& fem, DofConstraints& constraints, const std::vector<MechanicsInterfaceContactConfig>& contact_configs = {}); // 未配置的界面默认完美粘结，全部连接完成后由组装层统一 finalize
+    MechanicsInterfaceContactManager(FemSystem& fem, DofConstraints& constraints, const std::vector<MechanicsInterfaceConfig>& contact_configs = {}); // 未配置的界面默认完美粘结，全部连接完成后由组装层统一 finalize
 
 private:
     ModelRegistry<MechanicsInterfaceContactModel> registry_; // 模型名称 -> 创建模型的注册记录

@@ -167,7 +167,7 @@ class InputCardsExamine:
                 if interface.model == "common.local_from_constant_value":
                     dimension = 2 if "theta_mins" in interface.parameters else 3
                     if geometry_mesh.model.dimension != dimension:
-                        raise ValueError(f"{location}: 局部热阻角度参数与 2D/3D 几何维数不一致")
+                        raise ValueError(f"{location}: 局部界面属性角度参数与 2D/3D 几何维数不一致")
         power_regions = {region.name for property_config in properties.external_property if property_config.name == "external.power" for region in property_config.region}
         birth_rate = next((item for item in properties.external_property if item.name == "external.nuclide_birth_rate"), None)
         fast_neutron_flux = next((item for item in properties.external_property if item.name == "external.fast_neutron_flux"), None)

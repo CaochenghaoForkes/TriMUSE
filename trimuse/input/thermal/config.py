@@ -28,6 +28,7 @@ class ThermalCard:
     class Model:
         name: str
         model_name: str
+        parameters: ProblemParameters = field(default_factory=dict)
 
     @dataclass
     class Regions:
@@ -134,8 +135,9 @@ class ThermalCardLoader:
         models = []
         for child in XmlUtils.read_children(element, "model", required=False):
             XmlUtils.check_attributes(child, ("name", "model_name"))
-            XmlUtils.check_children(child, ())
+            XmlUtils.check_children(child, ("parameter",))
             name = XmlUtils.read_attribute(child, "name", required=True)
             model_name = XmlUtils.read_attribute(child, "model_name", required=True)
-            models.append(ThermalCard.Model(name=name, model_name=model_name))
+            parameters = XmlUtils.read_parameters(child, f"thermal.{name}.{model_name}")
+            models.append(ThermalCard.Model(name=name, model_name=model_name, parameters=parameters))
         return models

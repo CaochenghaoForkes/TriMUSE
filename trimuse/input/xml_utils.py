@@ -109,8 +109,13 @@ class XmlUtils:
         parameters: ProblemParameters = {}
         if group is None:
             return parameters
-        XmlUtils.check_children(group, ("parameter",), context=context)
-        for element in XmlUtils.read_children(group, "parameter"):
+        return XmlUtils.read_parameters(group, context)
+
+    @staticmethod
+    def read_parameters(element: ET.Element, context: str) -> ProblemParameters:
+        parameters: ProblemParameters = {}
+        XmlUtils.check_children(element, ("parameter",), context=context)
+        for element in XmlUtils.read_children(element, "parameter"):
             XmlUtils.check_attributes(element, ("name", "value", "unit", "si_unit"), context=context)
             name = XmlUtils.read_attribute(element, "name", required=True, context=context)
             location = f"{context}.{name}"

@@ -254,4 +254,21 @@
         </interface>
         -->
     </assembly_property>
+    <!-- 压力的空间分布独立于力学卡中的单侧或双侧加载方式，region 参数只放在力学卡中 -->
+    <!--
+    <assembly_property name="interface_pressure">
+        <interface name="buffer_ipyc" model="uniform_from_constant_value">
+            <parameter name="constant_value" value="10" unit="[MPa]" si_unit="[Pa]"/>
+        </interface>
+    </assembly_property>
+    -->
+    <!-- 局部压力写法，可替换上面的均匀压力配置，角域外压力为零
+    <assembly_property name="interface_pressure">
+        <interface name="buffer_ipyc" model="local_from_constant_value">
+            <parameter name="constant_value" value="10 20" unit="[MPa]" si_unit="[Pa]"/>
+            <parameter name="theta_mins" value="0 90" unit="[degree]" si_unit="[rad]"/>
+            <parameter name="theta_maxs" value="45 135" unit="[degree]" si_unit="[rad]"/>
+        </interface>
+    </assembly_property>
+    -->
 </properties>
