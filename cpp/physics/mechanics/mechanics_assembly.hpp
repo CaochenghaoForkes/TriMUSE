@@ -8,14 +8,14 @@
 #include "physics/mechanics/thermal_expansion/mechanics_thermal_expansion_manager.hpp"
 #include "physics/mechanics/source/mechanics_source_manager.hpp"
 #include "physics/mechanics/boundary/mechanics_boundary_manager.hpp"
-#include "physics/mechanics/interface/mechanics_interface_manager.hpp"
+#include "physics/mechanics/interface_contact/mechanics_interface_contact_manager.hpp"
 
 namespace trimuse
 {
 
 using MechanicsRegionConfigs = std::unordered_map<std::string, std::vector<MechanicsDomainConfig>>;
 using MechanicsBoundaryConfigs = std::unordered_map<std::string, std::vector<MechanicsBoundaryConfig>>;
-using MechanicsInterfaceConfigs = std::unordered_map<std::string, std::vector<MechanicsInterfaceConfig>>;
+using MechanicsInterfaceConfigs = std::unordered_map<std::string, std::vector<MechanicsInterfaceContactConfig>>;
 
 class MechanicsState;
 
@@ -54,7 +54,7 @@ private:
     MechanicsSourceManager source_manager_; // 体积力向量管理器
     MechanicsBoundaryManager boundary_manager_; // 边界管理器
     DofConstraints constraints_; // 持有 P，供界面连接、刚体约束、方程约化及恢复共用
-    MechanicsInterfaceManager interface_contact_manager_; // 界面模型管理器
+    MechanicsInterfaceContactManager interface_contact_manager_; // 界面接触模型管理器
     std::map<int, std::vector<int>> boundary_elements_; // 外边界物理标识 -> 原网格边界单元编号列表
     AssemblyCache<mfem::SparseMatrix> stiffness_matrix_cache_; // 刚度矩阵缓存
     AssemblyCache<mfem::Vector> thermal_expansion_load_cache_; //热膨胀载荷缓存

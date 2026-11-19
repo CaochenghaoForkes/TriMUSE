@@ -1,4 +1,4 @@
-#include "physics/mechanics/interface/perfect_contact.hpp"
+#include "physics/mechanics/interface_contact/perfect_contact.hpp"
 #include "physics/common/interface/interface_context.hpp"
 #include "physics/common/constraint/dof_constraints.hpp"
 

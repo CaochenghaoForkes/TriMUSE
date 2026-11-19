@@ -1,14 +1,14 @@
-#include "physics/mechanics/interface/mechanics_interface_manager.hpp"
-#include "physics/mechanics/interface/perfect_contact.hpp"
+#include "physics/mechanics/interface_contact/mechanics_interface_contact_manager.hpp"
+#include "physics/mechanics/interface_contact/perfect_contact.hpp"
 #include "physics/common/interface/interface_context.hpp"
 
 namespace trimuse
 {
 
-MechanicsInterfaceManager::MechanicsInterfaceManager(FemSystem& fem, DofConstraints& constraints, const std::vector<MechanicsInterfaceConfig>& configs)
+MechanicsInterfaceContactManager::MechanicsInterfaceContactManager(FemSystem& fem, DofConstraints& constraints, const std::vector<MechanicsInterfaceContactConfig>& contact_configs)
 {
     registry_.register_model<MechanicsPerfectContact>("perfect_contact"); // 注册界面模型
-    for (const auto& config : configs) // 安排界面模型
+    for (const auto& config : contact_configs) // 安排界面模型
     {
         const auto& registration = registry_.registration(config.model_name);
         models_.emplace(config.boundary_attribute, registration.factory(config.parameters));
