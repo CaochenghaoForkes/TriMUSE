@@ -195,6 +195,14 @@ class InputCardsExamine:
             missing_volumes = volume_required - volume_regions
             if missing_volumes:
                 raise ValueError(f"{property_config.name} 缺少当前区域体积 region_volume: {', '.join(sorted(missing_volumes))}")
+            if property_config.name == "derived.fission_gas_production_rate":
+                bison_regions = {region.name for region in property_config.region if region.model == "kernel.bison_2021"}
+                missing = bison_regions - fission_rate_regions
+                if missing:
+                    raise ValueError(f"裂变气体产生率区域缺少 average_volumetric_fission_rate: {', '.join(sorted(missing))}")
+                missing = bison_regions - volume_regions
+                if missing:
+                    raise ValueError(f"裂变气体产生率区域缺少 region_volume: {', '.join(sorted(missing))}")
             if property_config.name == "derived.burnup_fima_fraction":
                 accumulated_regions = {region.name for region in property_config.region if region.model == "common.accumulate_from_fission_rate"}
                 missing = accumulated_regions - fission_rate_regions

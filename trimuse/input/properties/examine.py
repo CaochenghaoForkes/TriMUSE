@@ -27,6 +27,7 @@ class PropertiesCardExamine:
         "derived.heat_transfer_coef": COMMON_MODELS,
         "derived.mass_transfer_coef": COMMON_MODELS,
         "derived.region_volume": {"common.undeformed"},
+        "derived.fission_gas_production_rate": COMMON_MODELS | {"kernel.bison_2021"},
         "derived.average_volumetric_fission_rate": COMMON_MODELS | {"common.from_power"},
         "derived.volumetric_power": COMMON_MODELS | {"common.uniform_from_power"},
         "derived.volumetric_nuclide_birth_rate": COMMON_MODELS | {"common.uniform_from_birth_rate"},
@@ -45,6 +46,7 @@ class PropertiesCardExamine:
         "derived.mass_transfer_coef": ("derived_property", "zone"),
         "derived.volumetric_nuclide_birth_rate": ("derived_property", "region"),
         "derived.average_volumetric_fission_rate": ("derived_property", "region"),
+        "derived.fission_gas_production_rate": ("derived_property", "region"),
         "derived.fast_neutron_fluence": ("derived_property", "global"),
     }
 
@@ -212,6 +214,10 @@ class PropertiesCardExamine:
         configs = [property_config.global_] if scope == "global" else getattr(property_config, scope)
         for config in configs:
             item_location = f"{location}.{config.name}" if scope != "global" else f"{location}.global"
+            if name == "derived.fission_gas_production_rate" and config.model == "kernel.bison_2021":
+                if config.parameters:
+                    raise ValueError(f"{item_location}: kernel.bison_2021 不需要模型参数")
+                continue
             if name == "derived.average_volumetric_fission_rate" and config.model == "common.from_power":
                 if config.parameters:
                     raise ValueError(f"{item_location}: from_power 不需要模型参数")

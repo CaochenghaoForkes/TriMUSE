@@ -118,6 +118,7 @@ private:
         {"derived.heat_transfer_coef", PropertyType::Derived, PropertyScope::Zone},
         {"derived.mass_transfer_coef", PropertyType::Derived, PropertyScope::Zone}, // m/s
         {"derived.average_volumetric_fission_rate", PropertyType::Derived, PropertyScope::Region}, // 1/(m³·s)，区域平均体积裂变率
+        {"derived.fission_gas_production_rate", PropertyType::Derived, PropertyScope::Region}, // mol/s，区域裂变气体总产生率
         {"derived.burnup_fima_fraction", PropertyType::Derived, PropertyScope::Region}, // 0～1 的 FIMA 份额
         {"derived.volumetric_power", PropertyType::Derived, PropertyScope::IntegrationPoint},
         {"derived.volumetric_nuclide_birth_rate", PropertyType::Derived, PropertyScope::IntegrationPoint}, // atom/(m³·s)
