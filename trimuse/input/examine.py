@@ -159,7 +159,7 @@ class InputCardsExamine:
         region_names = {region.name for region in geometry.regions.region}
         zone_names = InputCardsExamine.outer_boundary_names(geometry_mesh)
         interface_names = {region.outer_boundary.name for region in geometry.regions.region[:-1]}
-        for property_config in properties.assembly_property:
+        for property_config in properties.derived_property + properties.assembly_property:
             for interface in property_config.interface:
                 location = f"{property_config.name}.{interface.name}"
                 if interface.name not in interface_names:

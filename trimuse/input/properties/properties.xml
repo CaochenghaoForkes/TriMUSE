@@ -88,6 +88,14 @@
     <derived_property name="region_volume">
         <region name="[str]" model="common.undeformed"/>
     </derived_property>
+    <!-- 当前域积分权重，按 region 配置并保存为全域积分点数组 -->
+    <derived_property name="domain_quadrature_weight">
+        <region name="[str]" model="common.undeformed"/>
+    </derived_property>
+    <!-- 当前界面面片面积，按 interface 配置并保存为面片值表 -->
+    <derived_property name="interface_area">
+        <interface name="[str]" model="common.undeformed"/>
+    </derived_property>
     <!-- burnup_fima_fraction 使用 0 到 1 的 FIMA 份额, 例如 0.2 表示 20% FIMA -->
     <derived_property name="burnup_fima_fraction">
         <!-- 按区域平均体积裂变率、当前体积和初始重金属盘存累积 FIMA，initial_value 为初始份额 -->

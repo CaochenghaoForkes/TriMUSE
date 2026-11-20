@@ -48,6 +48,7 @@ void RadioactivityProblem::accept_concentration()
     trial_concentration_.accept(); // 当前试探解写入 FemSystem 所持有的正式浓度场
     // 收敛后的属性与最终浓度同步; 上一时间步快照仍由外部调度统一提交。
     const PropertiesSystem::FieldMap trial_fields{{"concentration", trial_concentration_.view()}};
+    properties_.update_field_dependent_derived("concentration", trial_fields, true);
     properties_.update_field_dependent_materials("concentration", trial_fields, true);
     properties_.update_field_dependent_assembly("concentration", trial_fields, true);
 }
@@ -106,6 +107,7 @@ void RadioactivityProblem::iterate(double time_step, double theta) // 在完整�
         if (!transient_ || theta > 0.0) // 稳态或隐式比例非零时才需要当前时刻贡献
         {
             const PropertiesSystem::FieldMap trial_fields{{"concentration", trial_concentration_.view()}};
+            properties_.update_field_dependent_derived("concentration", trial_fields, true);
             properties_.update_field_dependent_materials("concentration", trial_fields, true); // 用当前试探浓度更新耦合材料属性
             properties_.update_field_dependent_assembly("concentration", trial_fields, true);
             current = assembly_.update(properties_.field_data()); // 按需重组变化区域，形成当前 M、K、F

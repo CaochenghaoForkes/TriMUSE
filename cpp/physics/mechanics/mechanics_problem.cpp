@@ -42,6 +42,7 @@ void MechanicsProblem::solve()
     const auto before = assembly_.counts();
     trial_displacement_.load(); // 正式位移 -> 试探位移，作为本次求解的初始猜测
     const PropertiesSystem::FieldMap trial_fields{{"displacement", trial_displacement_.view()}};
+    properties_.update_field_dependent_derived("displacement", trial_fields, true);
     properties_.update_field_dependent_materials("displacement", trial_fields, true);
     properties_.update_field_dependent_assembly("displacement", trial_fields, true);
     const auto current = assembly_.update(properties_.field_data()); // 更新系数，按缓存取得完整刚度与总载荷

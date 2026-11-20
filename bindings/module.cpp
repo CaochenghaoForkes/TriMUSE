@@ -100,6 +100,10 @@ PYBIND11_MODULE(_core, module)
         .def("update_derived", &trimuse::PropertiesSystem::update_derived)
         .def("update_material", &trimuse::PropertiesSystem::update_material)
         .def("update_assembly", &trimuse::PropertiesSystem::update_assembly)
+        .def("update_field_dependent_derived", [](trimuse::PropertiesSystem& system, const std::string& field_name)
+        {
+            system.update_field_dependent_derived(field_name);
+        }, py::arg("field_name"))
         .def("update_field_dependent_materials", [](trimuse::PropertiesSystem& system, const std::string& field_name)
         {
             system.update_field_dependent_materials(field_name);

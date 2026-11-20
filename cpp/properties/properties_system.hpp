@@ -28,9 +28,10 @@ public:
     void prepare_dependencies(); // 补齐固定关系属性并标记场依赖
     void mark_coupled(const std::string& field_name, const std::vector<std::string>& property_names); // 把指定属性中依赖某个求解场的位置标记为“参与耦合更新”，并沿依赖关系向上游传递这个标记
     void update_external(double time, double time_step); // 更新当前时间，然后检查各个外部属性，只在“尚未计算”或“依赖发生变化”时重新计算它们
-    void update_derived(); // 更新派生属性；累积模型使用上一个已接受值和 external.time_step
+    void update_derived(); // 更新不依赖场的派生属性；累积模型使用上一个已接受值和 external.time_step
     void update_material(); // 更新不依赖场的材料属性
     void update_assembly(); // 更新不依赖场的组装属性，随后保存整表依赖快照
+    void update_field_dependent_derived(const std::string& field_name, const FieldMap& trial_fields = {}, bool coupled_only = false); // 更新依赖该场的派生属性
     void update_field_dependent_materials(const std::string& field_name, const FieldMap& trial_fields = {}, bool coupled_only = false); // 更新依赖该场的材料属性
     void update_field_dependent_assembly(const std::string& field_name, const FieldMap& trial_fields = {}, bool coupled_only = false); // 更新依赖该场的组装属性
     void accept_current_state(); // 把当前全部属性数据复制一份，保存为“已接受状态”的快照
@@ -40,7 +41,6 @@ public:
     const PropertiesFieldData& field_data() const;
 
 private:
-
     enum class PropertyType
     {
         Precomputed,
@@ -79,8 +79,10 @@ private:
     void evaluate_and_store(const Manager& manager, const std::string& name, const PropertiesStatePoint& point); // 调用管理器计算某项属性，把结果存到对应位置，并标记该位置已经计算完成 (这个方法只用于 Global、Region、Zone 属性)
     template <typename Manager>
     void evaluate_and_store_points(const Manager& manager, const PropertyInfo& property, int region_attribute, const std::vector<std::string>& required, const FieldMap& trial_fields = {}); // 计算某个属性在指定区域内全部积分点上的值，存入全域积分点数组，最后标记该区域已计算
-    void evaluate_assembly(const PropertyInfo& property, int location, const std::vector<std::string>& required, const FieldMap& trial_fields = {});
-    void evaluate_and_store_interface(const PropertyInfo& property, int attribute, const std::vector<std::string>& required);
+    template <typename Manager>
+    void evaluate_property(const Manager& manager, const PropertyInfo& property, int location, const std::vector<std::string>& required, const FieldMap& trial_fields = {}); // 根据存储范围求值并保存属性
+    template <typename Manager>
+    void evaluate_and_store_interface(const Manager& manager, const PropertyInfo& property, int attribute, const std::vector<std::string>& required); // 按网格面片计算并保存界面属性
     void load_required_states(PropertiesStatePoint& point, const std::vector<std::string>& names, std::optional<std::size_t> point_index = std::nullopt) const; // 给 point 装配需要的属性
     void load_model_states(PropertiesStatePoint& point, const PropertyInfo& property, int attribute, const std::vector<std::string>& required, std::optional<std::size_t> point_index = std::nullopt) const; // 加载当前依赖；若模型声明依赖自身，则改为加载已接受的旧值
     void load_previous_value(PropertiesStatePoint& point, const PropertyInfo& property, int attribute, std::optional<std::size_t> point_index = std::nullopt) const; // 读取同一位置上一个已接受时刻的属性值
@@ -117,6 +119,8 @@ private:
         {"external.initial_heavy_metal_inventory", PropertyType::External, PropertyScope::Region}, // atom，区域初始重金属原子总数
         {"external.uranium_fraction", PropertyType::External, PropertyScope::Region}, // 各区域占全局产生率的份额
         {"derived.region_volume", PropertyType::Derived, PropertyScope::Region}, // m³，当前区域体积
+        {"derived.domain_quadrature_weight", PropertyType::Derived, PropertyScope::IntegrationPoint}, // m³，当前域积分点的总体积分权重
+        {"derived.interface_area", PropertyType::Derived, PropertyScope::Interface}, // m²，当前内部界面面片面积
         {"derived.heat_transfer_coef", PropertyType::Derived, PropertyScope::Zone},
         {"derived.mass_transfer_coef", PropertyType::Derived, PropertyScope::Zone}, // m/s
         {"derived.average_volumetric_fission_rate", PropertyType::Derived, PropertyScope::Region}, // 1/(m³·s)，区域平均体积裂变率

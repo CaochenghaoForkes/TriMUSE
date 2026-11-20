@@ -60,7 +60,7 @@ class PropertiesManager:
         self.properties_system.update_external(time, time_step)
 
     def update_derived(self) -> None:
-        """根据已存储的依赖值更新派生属性"""
+        """更新不依赖场的派生属性"""
         self.properties_system.update_derived()
 
     def update_material(self) -> None:
@@ -70,6 +70,10 @@ class PropertiesManager:
     def update_assembly(self) -> None:
         """更新不依赖场的组装属性并保存依赖快照"""
         self.properties_system.update_assembly()
+
+    def update_field_dependent_derived(self, field_name: str) -> None:
+        """根据指定场的当前解更新依赖它的派生属性"""
+        self.properties_system.update_field_dependent_derived(field_name)
 
     def update_field_dependent_materials(self, field_name: str) -> None:
         """根据指定场的当前解更新依赖它的材料属性"""
