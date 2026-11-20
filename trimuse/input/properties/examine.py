@@ -27,9 +27,6 @@ class PropertiesCardExamine:
         "derived.heat_transfer_coef": COMMON_MODELS,
         "derived.mass_transfer_coef": COMMON_MODELS,
         "derived.region_volume": {"common.undeformed"},
-        "derived.domain_quadrature_weight": {"common.undeformed"},
-        "derived.face_quadrature_weight": {"common.undeformed"},
-        "derived.interface_area": {"common.undeformed"},
         "derived.fission_gas_production_rate": COMMON_MODELS | {"kernel.bison_2021"},
         "derived.average_volumetric_fission_rate": COMMON_MODELS | {"common.from_power"},
         "derived.volumetric_power": COMMON_MODELS | {"common.uniform_from_power"},
@@ -78,27 +75,6 @@ class PropertiesCardExamine:
         if location == "assembly.interface_thermal_resistance":
             cls.check_interface_thermal_resistance(property_config)
             return
-        if location == "derived.face_quadrature_weight":
-            if not (property_config.zone or property_config.interface) or property_config.region or property_config.global_ is not None:
-                raise ValueError(f"{location}: 请按 zone 或 interface 配置面求积点权重")
-            configs = property_config.zone + property_config.interface
-            names = [config.name for config in configs]
-            if len(names) != len(set(names)):
-                raise ValueError(f"{location}: 位置名称不能重复")
-            for config in configs:
-                if config.model != "common.undeformed" or config.parameters:
-                    raise ValueError(f"{location}.{config.name}: 仅支持无参数的 common.undeformed")
-            return
-        if location == "derived.interface_area":
-            if not property_config.interface or property_config.region or property_config.zone or property_config.global_ is not None:
-                raise ValueError(f"{location}: 请按 interface 配置当前界面面片面积")
-            names = [interface.name for interface in property_config.interface]
-            if len(names) != len(set(names)):
-                raise ValueError(f"{location}: 界面名称不能重复")
-            for interface in property_config.interface:
-                if interface.model != "common.undeformed" or interface.parameters:
-                    raise ValueError(f"{location}.{interface.name}: 仅支持无参数的 common.undeformed")
-            return
         if property_config.interface:
             raise ValueError(f"{location}: 当前属性不支持 interface 配置")
         configs = [*property_config.region, *property_config.zone]
@@ -123,9 +99,9 @@ class PropertiesCardExamine:
             for region in property_config.region:
                 cls.check_burnup(region, f"{location}.{region.name}")
             return
-        if location in ("derived.region_volume", "derived.domain_quadrature_weight"):
+        if location == "derived.region_volume":
             if not property_config.region or property_config.zone or property_config.global_ is not None:
-                raise ValueError(f"{location}: 请按 region 配置当前几何属性")
+                raise ValueError(f"{location}: 请按 region 配置当前区域体积")
             for region in property_config.region:
                 if region.parameters:
                     raise ValueError(f"{location}.{region.name}: common.undeformed 不需要模型参数")

@@ -123,9 +123,6 @@ private:
         {"external.initial_heavy_metal_inventory", PropertyType::External, PropertyScope::Region}, // atom，区域初始重金属原子总数
         {"external.uranium_fraction", PropertyType::External, PropertyScope::Region}, // 各区域占全局产生率的份额
         {"derived.region_volume", PropertyType::Derived, PropertyScope::Region}, // m³，当前区域体积
-        {"derived.domain_quadrature_weight", PropertyType::Derived, PropertyScope::DomainIntegrationPoint}, // m³，当前域积分点的总体积分权重
-        {"derived.face_quadrature_weight", PropertyType::Derived, PropertyScope::FaceIntegrationPoint}, // m²，当前面求积点物理面积权重
-        {"derived.interface_area", PropertyType::Derived, PropertyScope::Interface}, // m²，当前内部界面面片面积
         {"derived.heat_transfer_coef", PropertyType::Derived, PropertyScope::Zone},
         {"derived.mass_transfer_coef", PropertyType::Derived, PropertyScope::Zone}, // m/s
         {"derived.average_volumetric_fission_rate", PropertyType::Derived, PropertyScope::Region}, // 1/(m³·s)，区域平均体积裂变率
