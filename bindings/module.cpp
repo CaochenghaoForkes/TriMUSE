@@ -81,7 +81,7 @@ PYBIND11_MODULE(_core, module)
              py::arg("field_name"), py::arg("directory_name"), py::arg("project_to_l2") = false, py::arg("order") = 0)
         .def("save", [](trimuse::OutputManager& output, const std::string& field_name, const std::vector<double>& values, const trimuse::PropertiesSystem& properties, int cycle, double time, double time_step)
         {
-            output.save(field_name, values, properties.field_data().integration_point_values.at("precomputed.initial_domain_quadrature_weight"), cycle, time, time_step);
+            output.save(field_name, values, properties.field_data().domain_integration_point_values.at("precomputed.initial_domain_quadrature_weight"), cycle, time, time_step);
         }, py::arg("field_name"), py::arg("values"), py::arg("properties"), py::arg("cycle"), py::arg("time"), py::arg("time_step"))
         .def("solve_information", &trimuse::OutputManager::solve_information, py::arg("field_name"));
 

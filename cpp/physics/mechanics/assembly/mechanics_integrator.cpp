@@ -27,7 +27,7 @@ MechanicsIntegrator::MechanicsIntegrator(FemSystem& fem, const TrialField& trial
 {
 }
 
-std::shared_ptr<mfem::SparseMatrix> MechanicsIntegrator::domain_matrix(int region, const std::vector<ElasticityTensorValue>& values, const PropertiesFieldData::IntegrationPointValues& weights) // 组装 region 贡献的总体刚度矩阵 int_Omega (B^e)^T W C_{global} B^e
+std::shared_ptr<mfem::SparseMatrix> MechanicsIntegrator::domain_matrix(int region, const std::vector<ElasticityTensorValue>& values, const PropertiesFieldData::DomainIntegrationPointValues& weights) // 组装 region 贡献的总体刚度矩阵 int_Omega (B^e)^T W C_{global} B^e
 {
     auto result = std::make_shared<mfem::SparseMatrix>(trial_field_.size());
     mfem::DenseMatrix weighted_elasticity(6), weighted_stress, contribution, local;
@@ -59,7 +59,7 @@ std::shared_ptr<mfem::SparseMatrix> MechanicsIntegrator::domain_matrix(int regio
     return result;
 }
 
-std::shared_ptr<mfem::Vector> MechanicsIntegrator::domain_load(int region, const std::vector<VectorValue>& values, const PropertiesFieldData::IntegrationPointValues& weights) // 组装 region 内体积力贡献的总体载荷 int_Omega (N^e)^T b
+std::shared_ptr<mfem::Vector> MechanicsIntegrator::domain_load(int region, const std::vector<VectorValue>& values, const PropertiesFieldData::DomainIntegrationPointValues& weights) // 组装 region 内体积力贡献的总体载荷 int_Omega (N^e)^T b
 {
     auto result = std::make_shared<mfem::Vector>(trial_field_.size()); // 完整自由度长度，只累加当前区域的贡献
     *result = 0.0;
@@ -91,7 +91,7 @@ std::shared_ptr<mfem::Vector> MechanicsIntegrator::domain_load(int region, const
     return result;
 }
 
-std::shared_ptr<mfem::Vector> MechanicsIntegrator::eigenstrain_load(int region, const std::vector<VectorValue>& values, const PropertiesFieldData::IntegrationPointValues& weights) // 组装 region 贡献的总体本征应变构成的载荷向量 int_Omega (B^e)^T W C_{global} \epsilon^*_{global}
+std::shared_ptr<mfem::Vector> MechanicsIntegrator::eigenstrain_load(int region, const std::vector<VectorValue>& values, const PropertiesFieldData::DomainIntegrationPointValues& weights) // 组装 region 贡献的总体本征应变构成的载荷向量 int_Omega (B^e)^T W C_{global} \epsilon^*_{global}
 {
     auto result = std::make_shared<mfem::Vector>(trial_field_.size()); // 初始化本征载荷向量
     *result = 0.0;

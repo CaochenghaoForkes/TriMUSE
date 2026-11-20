@@ -55,7 +55,8 @@ private:
         Region,
         Zone,
         Interface,
-        IntegrationPoint
+        DomainIntegrationPoint,
+        FaceIntegrationPoint
     }; // 属性的作用位置
 
     struct PropertyInfo // 一项属性的说明记录
@@ -78,9 +79,11 @@ private:
     template <typename Manager>
     void evaluate_and_store(const Manager& manager, const std::string& name, const PropertiesStatePoint& point); // 调用管理器计算某项属性，把结果存到对应位置，并标记该位置已经计算完成 (这个方法只用于 Global、Region、Zone 属性)
     template <typename Manager>
-    void evaluate_and_store_points(const Manager& manager, const PropertyInfo& property, int region_attribute, const std::vector<std::string>& required, const FieldMap& trial_fields = {}); // 计算某个属性在指定区域内全部积分点上的值，存入全域积分点数组，最后标记该区域已计算
+    void evaluate_and_store_domain_points(const Manager& manager, const PropertyInfo& property, int region_attribute, const std::vector<std::string>& required, const FieldMap& trial_fields = {}); // 计算某个属性在指定区域内全部积分点上的值，存入全域积分点数组，最后标记该区域已计算
     template <typename Manager>
     void evaluate_property(const Manager& manager, const PropertyInfo& property, int location, const std::vector<std::string>& required, const FieldMap& trial_fields = {}); // 根据存储范围求值并保存属性
+    template <typename Manager>
+    void evaluate_and_store_face_points(const Manager& manager, const PropertyInfo& property, int attribute, const std::vector<std::string>& required); // 计算指定外边界或内部界面的各面求积点属性
     template <typename Manager>
     void evaluate_and_store_interface(const Manager& manager, const PropertyInfo& property, int attribute, const std::vector<std::string>& required); // 按网格面片计算并保存界面属性
     void load_required_states(PropertiesStatePoint& point, const std::vector<std::string>& names, std::optional<std::size_t> point_index = std::nullopt) const; // 给 point 装配需要的属性
@@ -90,12 +93,13 @@ private:
 
     std::vector<PropertyInfo> properties_ = {
         {"precomputed.initial_region_volume", PropertyType::Precomputed, PropertyScope::Region},
-        {"precomputed.initial_domain_quadrature_weight", PropertyType::Precomputed, PropertyScope::IntegrationPoint}, // m³，域内求积点初始物理体积权重
+        {"precomputed.initial_domain_quadrature_weight", PropertyType::Precomputed, PropertyScope::DomainIntegrationPoint}, // m³，域内求积点初始物理体积权重
+        {"precomputed.initial_face_quadrature_weight", PropertyType::Precomputed, PropertyScope::FaceIntegrationPoint}, // m²，初始面求积点物理面积权重
         {"precomputed.initial_interface_area", PropertyType::Precomputed, PropertyScope::Interface}, // m²，内部界面面片初始物理面积
         {"precomputed.geometry_center", PropertyType::Precomputed, PropertyScope::Global}, // m，颗粒中心坐标
         {"precomputed.thermal_expansion_reference_temperature", PropertyType::Precomputed, PropertyScope::Global}, // K, 来自力学卡的固定热膨胀参考温度
-        {"precomputed.tensor_transform", PropertyType::Precomputed, PropertyScope::IntegrationPoint}, // 六分量张量 local -> global 的 T
-        {"precomputed.tensor_transform_inverse", PropertyType::Precomputed, PropertyScope::IntegrationPoint}, // 六分量张量 global -> local 的 T^{-1}
+        {"precomputed.tensor_transform", PropertyType::Precomputed, PropertyScope::DomainIntegrationPoint}, // 六分量张量 local -> global 的 T
+        {"precomputed.tensor_transform_inverse", PropertyType::Precomputed, PropertyScope::DomainIntegrationPoint}, // 六分量张量 global -> local 的 T^{-1}
         {"precomputed.gravity_acceleration", PropertyType::Precomputed, PropertyScope::Global}, // m/s²
         {"precomputed.nuclide_name", PropertyType::Precomputed, PropertyScope::Global}, // 核素名称, 如 Cs137
         {"precomputed.nuclide_symbol", PropertyType::Precomputed, PropertyScope::Global}, // 元素符号, 如 Cs
@@ -119,29 +123,30 @@ private:
         {"external.initial_heavy_metal_inventory", PropertyType::External, PropertyScope::Region}, // atom，区域初始重金属原子总数
         {"external.uranium_fraction", PropertyType::External, PropertyScope::Region}, // 各区域占全局产生率的份额
         {"derived.region_volume", PropertyType::Derived, PropertyScope::Region}, // m³，当前区域体积
-        {"derived.domain_quadrature_weight", PropertyType::Derived, PropertyScope::IntegrationPoint}, // m³，当前域积分点的总体积分权重
+        {"derived.domain_quadrature_weight", PropertyType::Derived, PropertyScope::DomainIntegrationPoint}, // m³，当前域积分点的总体积分权重
+        {"derived.face_quadrature_weight", PropertyType::Derived, PropertyScope::FaceIntegrationPoint}, // m²，当前面求积点物理面积权重
         {"derived.interface_area", PropertyType::Derived, PropertyScope::Interface}, // m²，当前内部界面面片面积
         {"derived.heat_transfer_coef", PropertyType::Derived, PropertyScope::Zone},
         {"derived.mass_transfer_coef", PropertyType::Derived, PropertyScope::Zone}, // m/s
         {"derived.average_volumetric_fission_rate", PropertyType::Derived, PropertyScope::Region}, // 1/(m³·s)，区域平均体积裂变率
         {"derived.fission_gas_production_rate", PropertyType::Derived, PropertyScope::Region}, // mol/s，区域裂变气体总产生率
         {"derived.burnup_fima_fraction", PropertyType::Derived, PropertyScope::Region}, // 0～1 的 FIMA 份额
-        {"derived.volumetric_power", PropertyType::Derived, PropertyScope::IntegrationPoint},
-        {"derived.volumetric_nuclide_birth_rate", PropertyType::Derived, PropertyScope::IntegrationPoint}, // atom/(m³·s)
+        {"derived.volumetric_power", PropertyType::Derived, PropertyScope::DomainIntegrationPoint},
+        {"derived.volumetric_nuclide_birth_rate", PropertyType::Derived, PropertyScope::DomainIntegrationPoint}, // atom/(m³·s)
         {"derived.fast_neutron_fluence", PropertyType::Derived, PropertyScope::Global}, // 1/m², 累积快中子注量
-        {"material.general.porosity", PropertyType::Material, PropertyScope::IntegrationPoint},
-        {"material.general.mass_density", PropertyType::Material, PropertyScope::IntegrationPoint},
+        {"material.general.porosity", PropertyType::Material, PropertyScope::DomainIntegrationPoint},
+        {"material.general.mass_density", PropertyType::Material, PropertyScope::DomainIntegrationPoint},
         {"material.general.crystallite_diameter", PropertyType::Material, PropertyScope::Region}, // m，各区域的微晶直径 Lc
-        {"material.general.initial_bacon_anisotropy_factor", PropertyType::Material, PropertyScope::IntegrationPoint}, // 无量纲，初始 BAF
-        {"material.general.bacon_anisotropy_factor", PropertyType::Material, PropertyScope::IntegrationPoint}, // 无量纲，当前 BAF
-        {"material.thermal.conductivity", PropertyType::Material, PropertyScope::IntegrationPoint},
-        {"material.thermal.specific_heat", PropertyType::Material, PropertyScope::IntegrationPoint},
-        {"material.mechanics.young_modulus", PropertyType::Material, PropertyScope::IntegrationPoint}, // Pa, [Er, Et]，径向、切向杨氏模量
-        {"material.mechanics.poisson_ratio", PropertyType::Material, PropertyScope::IntegrationPoint}, // 无量纲, [nu_rt, nu_tt]，径向受力的切向泊松比、切向之间的泊松比
-        {"material.mechanics.shear_modulus", PropertyType::Material, PropertyScope::IntegrationPoint}, // Pa, 标量 Grt；由用户在材料卡中指定模型
-        {"material.mechanics.elasticity_tensor", PropertyType::Material, PropertyScope::IntegrationPoint, "common.from_engineering_constants"}, // Pa
-        {"material.mechanics.thermal_expansion_coef", PropertyType::Material, PropertyScope::IntegrationPoint}, // K^-1, [alpha_r, alpha_t]，径向、切向热膨胀系数
-        {"material.radioactivity.nuclide_diffusion_coef", PropertyType::Material, PropertyScope::IntegrationPoint}, // m²/s
+        {"material.general.initial_bacon_anisotropy_factor", PropertyType::Material, PropertyScope::DomainIntegrationPoint}, // 无量纲，初始 BAF
+        {"material.general.bacon_anisotropy_factor", PropertyType::Material, PropertyScope::DomainIntegrationPoint}, // 无量纲，当前 BAF
+        {"material.thermal.conductivity", PropertyType::Material, PropertyScope::DomainIntegrationPoint},
+        {"material.thermal.specific_heat", PropertyType::Material, PropertyScope::DomainIntegrationPoint},
+        {"material.mechanics.young_modulus", PropertyType::Material, PropertyScope::DomainIntegrationPoint}, // Pa, [Er, Et]，径向、切向杨氏模量
+        {"material.mechanics.poisson_ratio", PropertyType::Material, PropertyScope::DomainIntegrationPoint}, // 无量纲, [nu_rt, nu_tt]，径向受力的切向泊松比、切向之间的泊松比
+        {"material.mechanics.shear_modulus", PropertyType::Material, PropertyScope::DomainIntegrationPoint}, // Pa, 标量 Grt；由用户在材料卡中指定模型
+        {"material.mechanics.elasticity_tensor", PropertyType::Material, PropertyScope::DomainIntegrationPoint, "common.from_engineering_constants"}, // Pa
+        {"material.mechanics.thermal_expansion_coef", PropertyType::Material, PropertyScope::DomainIntegrationPoint}, // K^-1, [alpha_r, alpha_t]，径向、切向热膨胀系数
+        {"material.radioactivity.nuclide_diffusion_coef", PropertyType::Material, PropertyScope::DomainIntegrationPoint}, // m²/s
         {"assembly.interface_pressure", PropertyType::Assembly, PropertyScope::Interface}, // Pa，界面各面片的压力
         {"assembly.interface_thermal_resistance", PropertyType::Assembly, PropertyScope::Interface} // m²·K/W
     };

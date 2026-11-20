@@ -52,7 +52,7 @@ bool ThermalAssembly::coupled(const PropertiesSystem& properties, bool transient
     return conduction_manager_.coupled(properties, "temperature") || source_manager_.coupled(properties, "temperature") || boundary_manager_.coupled(properties, "temperature") || (transient && capacity_manager_.coupled(properties, "temperature")); // || 连接: 任意一项为 true 整个方法就返回 true
 }
 
-void ThermalAssembly::refresh_conduction(const PropertiesFieldData::IntegrationPointValues& weights) // 按区域变化标记刷新conduction矩阵
+void ThermalAssembly::refresh_conduction(const PropertiesFieldData::DomainIntegrationPointValues& weights) // 按区域变化标记刷新conduction矩阵
 {
     bool changed = !conduction_matrix_cache_.sum;
     for (int region : conduction_manager_.regions())
@@ -72,7 +72,7 @@ void ThermalAssembly::refresh_conduction(const PropertiesFieldData::IntegrationP
     }
 }
 
-void ThermalAssembly::refresh_capacity(const PropertiesFieldData::IntegrationPointValues& weights) // 按区域变化标记刷新capacity矩阵
+void ThermalAssembly::refresh_capacity(const PropertiesFieldData::DomainIntegrationPointValues& weights) // 按区域变化标记刷新capacity矩阵
 {
     bool changed = !capacity_matrix_cache_.sum;
     for (int region : capacity_manager_.regions())
@@ -92,7 +92,7 @@ void ThermalAssembly::refresh_capacity(const PropertiesFieldData::IntegrationPoi
     }
 }
 
-void ThermalAssembly::refresh_source(const PropertiesFieldData::IntegrationPointValues& weights) // 根据 source_manager 各区的 dirty 决定更新哪些区的源右端缓存，若有区域被更新还会重新求和得到总源右端，注意这里 cache.parts 和 cache.sum 存储的是共享指针，一旦发生更新，对应的指针会被替换 cache: 对应缓存 cache.parts: 区域编号->该区域的源右端贡献 cache.sum: 所有区域贡献之和
+void ThermalAssembly::refresh_source(const PropertiesFieldData::DomainIntegrationPointValues& weights) // 根据 source_manager 各区的 dirty 决定更新哪些区的源右端缓存，若有区域被更新还会重新求和得到总源右端，注意这里 cache.parts 和 cache.sum 存储的是共享指针，一旦发生更新，对应的指针会被替换 cache: 对应缓存 cache.parts: 区域编号->该区域的源右端贡献 cache.sum: 所有区域贡献之和
 {
     bool changed = !source_load_cache_.sum; // 如果还没有热源总向量，标记为需要首次建立；否则先假设没有变化
     for (int region : source_manager_.regions()) // 遍历配置了热源模型的区域
@@ -168,7 +168,7 @@ void ThermalAssembly::refresh_interface_heat_transfer()
 
 ThermalAssembly::State ThermalAssembly::update(const PropertiesFieldData& properties, bool capacity) // 热方程组装层的总入口: 更新系数，按需刷新各部分缓存，再返回当前的 M、K、F
 {
-    const auto& weights = properties.integration_point_values.at("precomputed.initial_domain_quadrature_weight"); // 固定参考网格上的域积分权重
+    const auto& weights = properties.domain_integration_point_values.at("precomputed.initial_domain_quadrature_weight"); // 固定参考网格上的域积分权重
     if (capacity) // 本次是否需要更新热容矩阵 (不是热容的值)
     {
         capacity_manager_.update(properties); // 计算最新的 rho*cp 维护区域变化标记 dirty
@@ -272,7 +272,7 @@ void ThermalAssembly::recover(const mfem::Vector& solution) // 传入独立自�
     trial_field_.set_values(full); // 将完整向量写入试探场 连续场：直接复制到试探 GridFunction 分域场：按各区域偏移拆分，写入各区域试探 GridFunction
 }
 
-void ThermalAssembly::project_initial(const PropertiesFieldData::IntegrationPointValues& weights) // 把当前初温投影到满足界面连续约束的空间中
+void ThermalAssembly::project_initial(const PropertiesFieldData::DomainIntegrationPointValues& weights) // 把当前初温投影到满足界面连续约束的空间中
 {
     // (P^T_original M P)u = P^T_original M T_original (M 是带几何权重的单位质量矩阵 M_ij = int_Omega g N_i N_j dOmega)
     const auto& p = constraints_.prolongation(); // Pu=T_original

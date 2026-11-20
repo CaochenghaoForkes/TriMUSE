@@ -16,6 +16,7 @@ void DerivedModelManager::register_models()
     region_volume_model_manager_.register_models();
     interface_area_model_manager_.register_models();
     domain_quadrature_weight_model_manager_.register_models();
+    face_quadrature_weight_model_manager_.register_models();
     volumetric_power_model_manager_.register_models();
     average_volumetric_fission_rate_model_manager_.register_models();
     fission_gas_production_rate_model_manager_.register_models();
@@ -45,6 +46,11 @@ void DerivedModelManager::assign(const std::string& name, int attribute, const s
     if (name == "derived.domain_quadrature_weight")
     {
         domain_quadrature_weight_model_manager_.assign(attribute, model_name, parameters);
+        return;
+    }
+    if (name == "derived.face_quadrature_weight")
+    {
+        face_quadrature_weight_model_manager_.assign(attribute, model_name, parameters);
         return;
     }
     if (name == "derived.volumetric_power")
@@ -103,6 +109,10 @@ StateValue DerivedModelManager::evaluate(const std::string& name, const Properti
     {
         return domain_quadrature_weight_model_manager_.evaluate(point);
     }
+    if (name == "derived.face_quadrature_weight")
+    {
+        return face_quadrature_weight_model_manager_.evaluate(point);
+    }
     if (name == "derived.volumetric_power")
     {
         return volumetric_power_model_manager_.evaluate(point);
@@ -151,6 +161,10 @@ const std::vector<std::string>& DerivedModelManager::required_states(const std::
     if (name == "derived.domain_quadrature_weight")
     {
         return domain_quadrature_weight_model_manager_.required_states(model_name);
+    }
+    if (name == "derived.face_quadrature_weight")
+    {
+        return face_quadrature_weight_model_manager_.required_states(model_name);
     }
     if (name == "derived.volumetric_power")
     {

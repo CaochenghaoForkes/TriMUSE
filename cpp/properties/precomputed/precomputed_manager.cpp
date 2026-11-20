@@ -4,6 +4,7 @@
 #include "properties/precomputed/initial_region_volume.hpp"
 #include "properties/precomputed/initial_domain_quadrature_weight.hpp"
 #include "properties/precomputed/initial_interface_area.hpp"
+#include "properties/precomputed/initial_face_quadrature_weight.hpp"
 #include "properties/properties_system.hpp"
 
 namespace trimuse
@@ -21,6 +22,7 @@ void PrecomputedManager::initialize_precomputed(PropertiesSystem& properties, co
     initialize_initial_region_volume(properties, fem);
     initialize_initial_domain_quadrature_weight(properties, fem);
     initialize_initial_interface_area(properties, fem);
+    initialize_initial_face_quadrature_weight(properties, fem);
     initialize_geometry_center(properties, fem);
 
     // 场需要的预计算参数

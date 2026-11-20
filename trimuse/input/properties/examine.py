@@ -28,6 +28,7 @@ class PropertiesCardExamine:
         "derived.mass_transfer_coef": COMMON_MODELS,
         "derived.region_volume": {"common.undeformed"},
         "derived.domain_quadrature_weight": {"common.undeformed"},
+        "derived.face_quadrature_weight": {"common.undeformed"},
         "derived.interface_area": {"common.undeformed"},
         "derived.fission_gas_production_rate": COMMON_MODELS | {"kernel.bison_2021"},
         "derived.average_volumetric_fission_rate": COMMON_MODELS | {"common.from_power"},
@@ -76,6 +77,17 @@ class PropertiesCardExamine:
             return
         if location == "assembly.interface_thermal_resistance":
             cls.check_interface_thermal_resistance(property_config)
+            return
+        if location == "derived.face_quadrature_weight":
+            if not (property_config.zone or property_config.interface) or property_config.region or property_config.global_ is not None:
+                raise ValueError(f"{location}: 请按 zone 或 interface 配置面求积点权重")
+            configs = property_config.zone + property_config.interface
+            names = [config.name for config in configs]
+            if len(names) != len(set(names)):
+                raise ValueError(f"{location}: 位置名称不能重复")
+            for config in configs:
+                if config.model != "common.undeformed" or config.parameters:
+                    raise ValueError(f"{location}.{config.name}: 仅支持无参数的 common.undeformed")
             return
         if location == "derived.interface_area":
             if not property_config.interface or property_config.region or property_config.zone or property_config.global_ is not None:

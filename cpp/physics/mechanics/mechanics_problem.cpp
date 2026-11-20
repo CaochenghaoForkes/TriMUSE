@@ -66,7 +66,7 @@ void MechanicsProblem::solve()
 void MechanicsProblem::save_output(int cycle, double time, double time_step)
 {
     const auto& state = mechanics_state_.accepted_values();
-    const auto& weights = properties_.field_data().integration_point_values.at("precomputed.initial_domain_quadrature_weight");
+    const auto& weights = properties_.field_data().domain_integration_point_values.at("precomputed.initial_domain_quadrature_weight");
     std::vector<double> maximum(state.principal_stress.size());
     for (std::size_t point = 0; point < maximum.size(); ++point)
     {

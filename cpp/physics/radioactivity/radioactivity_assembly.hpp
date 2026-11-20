@@ -35,16 +35,16 @@ public:
     State update(const PropertiesFieldData& properties); // 按需更新系数与缓存，返回 M、K、F
     void update_boundary(const PropertiesFieldData& properties); // 只更新当前时刻边界值，不组装整套方程
     void apply_initial_constraints(); // 将完美接触和 Dirichlet 条件施加到试探浓度值
-    void project_initial(const PropertiesFieldData::IntegrationPointValues& weights); // 将阶跃初值投影到满足完美接触的空间
+    void project_initial(const PropertiesFieldData::DomainIntegrationPointValues& weights); // 将阶跃初值投影到满足完美接触的空间
     void form_system(const mfem::SparseMatrix& matrix, const mfem::Vector& load, mfem::SparseMatrix& system, mfem::Vector& system_load, mfem::Vector& solution) const; // 将完整方程约化到独立自由度并消去 Dirichlet 值
     void recover(const mfem::Vector& solution); // 经 P 恢复完整浓度并写入试探场
     const Counts& counts() const { return counts_; }
 
 private:
-    void refresh_diffusion(const PropertiesFieldData::IntegrationPointValues& weights); // 按区域变化标记刷新diffusion矩阵
-    void refresh_capacity(const PropertiesFieldData::IntegrationPointValues& weights); // 按区域变化标记刷新capacity矩阵
-    void refresh_decay(const PropertiesFieldData::IntegrationPointValues& weights); // 按区域变化标记刷新衰变矩阵
-    void refresh_source(const PropertiesFieldData::IntegrationPointValues& weights); // 按区域变化标记更新体积源向量
+    void refresh_diffusion(const PropertiesFieldData::DomainIntegrationPointValues& weights); // 按区域变化标记刷新diffusion矩阵
+    void refresh_capacity(const PropertiesFieldData::DomainIntegrationPointValues& weights); // 按区域变化标记刷新capacity矩阵
+    void refresh_decay(const PropertiesFieldData::DomainIntegrationPointValues& weights); // 按区域变化标记刷新衰变矩阵
+    void refresh_source(const PropertiesFieldData::DomainIntegrationPointValues& weights); // 按区域变化标记更新体积源向量
     void refresh_boundary(); // 分别更新自然边界的矩阵和右端贡献
     void essential_values(std::map<int, double>& values) const; // 收集独立自由度编号 -> 指定表面浓度
 

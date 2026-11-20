@@ -20,7 +20,7 @@ public:
     OutputManager(FemSystem& fem_system, const std::string& output_directory);
     void add_field(const std::string& field_name, const std::string& directory_name, bool project_to_l2 = false, int order = 0); // 标量求解场沿用原空间，标量求积点数组按指定阶次建立 L2 输出空间
     void save(const std::string& field_name, const FieldView& values, int cycle, double time, double time_step); // 按输出节点读取传入的正式标量场，不做 L2 投影
-    void save(const std::string& field_name, const std::vector<double>& values, const PropertiesFieldData::IntegrationPointValues& weights, int cycle, double time, double time_step); // 传入全域标量求积点数组，逐单元 L2 投影后保存
+    void save(const std::string& field_name, const std::vector<double>& values, const PropertiesFieldData::DomainIntegrationPointValues& weights, int cycle, double time, double time_step); // 传入全域标量求积点数组，逐单元 L2 投影后保存
     void clear_solve_information(const std::string& field_name);
     void append_solve_information(const std::string& field_name, const std::string& name, double value);
     const SolveInformation& solve_information(const std::string& field_name) const;

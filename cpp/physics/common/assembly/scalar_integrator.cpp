@@ -3,7 +3,7 @@
 namespace trimuse
 {
 
-std::shared_ptr<mfem::SparseMatrix> ScalarIntegrator::domain_matrix(int region, const std::vector<double>& values, MatrixForm form, const PropertiesFieldData::IntegrationPointValues& weights) // 按缓存权重组装质量型或梯度型区域矩阵
+std::shared_ptr<mfem::SparseMatrix> ScalarIntegrator::domain_matrix(int region, const std::vector<double>& values, MatrixForm form, const PropertiesFieldData::DomainIntegrationPointValues& weights) // 按缓存权重组装质量型或梯度型区域矩阵
 {
     auto result = std::make_shared<mfem::SparseMatrix>(trial_field_.size());
     mfem::IsoparametricTransformation transformation;
@@ -50,7 +50,7 @@ std::shared_ptr<mfem::SparseMatrix> ScalarIntegrator::domain_matrix(int region, 
     return result;
 }
 
-std::shared_ptr<mfem::Vector> ScalarIntegrator::domain_load(int region, const std::vector<double>& values, const PropertiesFieldData::IntegrationPointValues& weights) // 按缓存权重组装区域源载荷
+std::shared_ptr<mfem::Vector> ScalarIntegrator::domain_load(int region, const std::vector<double>& values, const PropertiesFieldData::DomainIntegrationPointValues& weights) // 按缓存权重组装区域源载荷
 {
     auto result = std::make_shared<mfem::Vector>(trial_field_.size());
     *result = 0.0;

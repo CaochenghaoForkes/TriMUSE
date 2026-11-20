@@ -9,8 +9,8 @@ namespace trimuse
 // 对称二阶张量的六分量顺序为 [11,22,33,23,13,12]，剪应变使用张量分量
 inline void initialize_tensor_transform(PropertiesSystem& properties, const FemSystem& fem)
 {
-    auto& transforms = properties.field_data().integration_point_values.at("precomputed.tensor_transform");
-    auto& inverses = properties.field_data().integration_point_values.at("precomputed.tensor_transform_inverse");
+    auto& transforms = properties.field_data().domain_integration_point_values.at("precomputed.tensor_transform");
+    auto& inverses = properties.field_data().domain_integration_point_values.at("precomputed.tensor_transform_inverse");
     transforms.resize(fem.domain_quadrature_point_count());
     inverses.resize(fem.domain_quadrature_point_count());
     for (std::size_t point = 0; point < transforms.size(); ++point)

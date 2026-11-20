@@ -55,7 +55,7 @@ bool MechanicsAssembly::coupled(const PropertiesSystem& properties) const // 判
     return stiffness_manager_.coupled(properties, "displacement") || thermal_expansion_manager_.coupled(properties, "displacement") || source_manager_.coupled(properties, "displacement") || boundary_manager_.coupled(properties, "displacement") || interface_pressure_manager_.coupled(properties, "displacement");
 }
 
-void MechanicsAssembly::refresh_stiffness(const PropertiesFieldData::IntegrationPointValues& weights) // 只重组需要更新的区域刚度矩阵，如果有更新，再把各区域贡献重新相加
+void MechanicsAssembly::refresh_stiffness(const PropertiesFieldData::DomainIntegrationPointValues& weights) // 只重组需要更新的区域刚度矩阵，如果有更新，再把各区域贡献重新相加
 {
     bool changed = !stiffness_matrix_cache_.sum; // 判断当前有没有总刚度矩阵 指针为空：changed = true，本次需要首次建立总矩阵
     for (int region : stiffness_manager_.regions()) // 遍历刚度管理器中配置了模型的各个区域
@@ -75,7 +75,7 @@ void MechanicsAssembly::refresh_stiffness(const PropertiesFieldData::Integration
     }
 }
 
-void MechanicsAssembly::refresh_thermal_expansion(const PropertiesFieldData::IntegrationPointValues& weights)
+void MechanicsAssembly::refresh_thermal_expansion(const PropertiesFieldData::DomainIntegrationPointValues& weights)
 {
     bool changed = !thermal_expansion_load_cache_.sum;
     for (int region : thermal_expansion_manager_.regions())
@@ -95,7 +95,7 @@ void MechanicsAssembly::refresh_thermal_expansion(const PropertiesFieldData::Int
     }
 }
 
-void MechanicsAssembly::refresh_source(const PropertiesFieldData::IntegrationPointValues& weights)
+void MechanicsAssembly::refresh_source(const PropertiesFieldData::DomainIntegrationPointValues& weights)
 {
     bool changed = !source_load_cache_.sum;
     for (int region : source_manager_.regions())
@@ -166,7 +166,7 @@ MechanicsAssembly::State MechanicsAssembly::update(const PropertiesFieldData& pr
     source_manager_.update(properties); // 更新各求积点点体积力向量，并检查更新 dirty
     boundary_manager_.update(properties); // 更新各边界分区的指定面力向量、压力标量或指定位移向量，并检查更新 dirty
     interface_pressure_manager_.update(properties);
-    const auto& weights = properties.integration_point_values.at("precomputed.initial_domain_quadrature_weight"); // 固定参考网格上的域积分权重
+    const auto& weights = properties.domain_integration_point_values.at("precomputed.initial_domain_quadrature_weight"); // 固定参考网格上的域积分权重
     refresh_interface_pressure();
     refresh_stiffness(weights); // 根据 dirty 只重新组装发生变化或尚无缓存的区域刚度矩阵，必要时重新计算总刚度矩阵 并更换 cache_.sum 指针为新对象
     refresh_thermal_expansion(weights); // 根据 dirty 只重新组装发生变化或尚无缓存的区域热膨胀载荷，必要时重新计算总热膨胀载荷 并更换 cache_.sum 指针为新对象

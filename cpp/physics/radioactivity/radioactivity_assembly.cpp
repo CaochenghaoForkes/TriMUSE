@@ -48,7 +48,7 @@ bool RadioactivityAssembly::coupled(const PropertiesSystem& properties) const //
     return diffusion_manager_.coupled(properties, "concentration") || decay_manager_.coupled(properties, "concentration") || source_manager_.coupled(properties, "concentration") || boundary_manager_.coupled(properties, "concentration");
 }
 
-void RadioactivityAssembly::refresh_diffusion(const PropertiesFieldData::IntegrationPointValues& weights) // 按区域变化标记刷新diffusion矩阵
+void RadioactivityAssembly::refresh_diffusion(const PropertiesFieldData::DomainIntegrationPointValues& weights) // 按区域变化标记刷新diffusion矩阵
 {
     bool changed = !diffusion_matrix_cache_.sum;
     for (int region : diffusion_manager_.regions())
@@ -68,7 +68,7 @@ void RadioactivityAssembly::refresh_diffusion(const PropertiesFieldData::Integra
     }
 }
 
-void RadioactivityAssembly::refresh_capacity(const PropertiesFieldData::IntegrationPointValues& weights) // 按区域变化标记刷新capacity矩阵
+void RadioactivityAssembly::refresh_capacity(const PropertiesFieldData::DomainIntegrationPointValues& weights) // 按区域变化标记刷新capacity矩阵
 {
     bool changed = !capacity_matrix_cache_.sum;
     for (int region : capacity_manager_.regions())
@@ -88,7 +88,7 @@ void RadioactivityAssembly::refresh_capacity(const PropertiesFieldData::Integrat
     }
 }
 
-void RadioactivityAssembly::refresh_decay(const PropertiesFieldData::IntegrationPointValues& weights) // 按区域变化标记刷新衰变矩阵
+void RadioactivityAssembly::refresh_decay(const PropertiesFieldData::DomainIntegrationPointValues& weights) // 按区域变化标记刷新衰变矩阵
 {
     bool changed = !decay_matrix_cache_.sum;
     for (int region : decay_manager_.regions())
@@ -108,7 +108,7 @@ void RadioactivityAssembly::refresh_decay(const PropertiesFieldData::Integration
     }
 }
 
-void RadioactivityAssembly::refresh_source(const PropertiesFieldData::IntegrationPointValues& weights) // 按区域缓存体积核素产生率的右端贡献
+void RadioactivityAssembly::refresh_source(const PropertiesFieldData::DomainIntegrationPointValues& weights) // 按区域缓存体积核素产生率的右端贡献
 {
     bool changed = !source_load_cache_.sum;
     for (int region : source_manager_.regions())
@@ -164,7 +164,7 @@ void RadioactivityAssembly::refresh_boundary() // 自然边界的矩阵与右端
 
 RadioactivityAssembly::State RadioactivityAssembly::update(const PropertiesFieldData& properties) // 根据指定时刻属性按需更新并汇总 M、K、F
 {
-    const auto& weights = properties.integration_point_values.at("precomputed.initial_domain_quadrature_weight"); // 固定参考网格上的域积分权重
+    const auto& weights = properties.domain_integration_point_values.at("precomputed.initial_domain_quadrature_weight"); // 固定参考网格上的域积分权重
     diffusion_manager_.update(properties);
     capacity_manager_.update(properties);
     decay_manager_.update(properties);
@@ -260,7 +260,7 @@ void RadioactivityAssembly::recover(const mfem::Vector& solution)
     trial_field_.set_values(full); // 仅修改本次求解的试探场，正式场由 accept() 更新
 }
 
-void RadioactivityAssembly::project_initial(const PropertiesFieldData::IntegrationPointValues& weights)
+void RadioactivityAssembly::project_initial(const PropertiesFieldData::DomainIntegrationPointValues& weights)
 {
     // 带几何权重的 L2 投影保持总盘存；逐自由度平均不具有这个性质。
     const auto& p = interface_nuclide_transfer_manager_.prolongation();

@@ -74,7 +74,7 @@ void OutputManager::write_field(const std::string& field_name, int cycle, double
     }
 }
 
-void OutputManager::save(const std::string& field_name, const std::vector<double>& values, const PropertiesFieldData::IntegrationPointValues& weights, int cycle, double time, double time_step) // 对于传入全域求积点上的标量值数组，把它逐单元投影到已经创建好的 L2 输出场中
+void OutputManager::save(const std::string& field_name, const std::vector<double>& values, const PropertiesFieldData::DomainIntegrationPointValues& weights, int cycle, double time, double time_step) // 对于传入全域求积点上的标量值数组，把它逐单元投影到已经创建好的 L2 输出场中
 {
     // H1 连续有限元空间在相邻单元的公共界面上共享自由度，各单元的贡献会累加到相同的总体自由度上
     // 此处的不连续 L2 有限元空间中，各单元拥有独立的自由度，同一几何位置在不同单元中可以具有不同的值

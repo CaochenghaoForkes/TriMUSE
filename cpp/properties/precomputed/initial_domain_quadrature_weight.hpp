@@ -8,7 +8,7 @@ namespace trimuse
 
 inline void initialize_initial_domain_quadrature_weight(PropertiesSystem& properties, const FemSystem& fem)
 {
-    auto& values = properties.field_data().integration_point_values.at("precomputed.initial_domain_quadrature_weight");
+    auto& values = properties.field_data().domain_integration_point_values.at("precomputed.initial_domain_quadrature_weight");
     values.resize(fem.domain_quadrature_point_count());
     const auto& mesh = fem.mesh_data().mfem_mesh();
     mfem::IsoparametricTransformation transformation;

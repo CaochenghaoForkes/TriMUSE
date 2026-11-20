@@ -7,6 +7,7 @@
 #include "properties/derived/average_volumetric_fission_rate/average_volumetric_fission_rate_model_manager.hpp"
 #include "properties/derived/domain_quadrature_weight/domain_quadrature_weight_model_manager.hpp"
 #include "properties/derived/interface_area/interface_area_model_manager.hpp"
+#include "properties/derived/face_quadrature_weight/face_quadrature_weight_model_manager.hpp"
 #include "properties/derived/region_volume/region_volume_model_manager.hpp"
 #include "properties/derived/burnup_fima_fraction/burnup_fima_fraction_model_manager.hpp"
 #include "properties/derived/heat_transfer_coef/heat_transfer_coef_model_manager.hpp"
@@ -30,6 +31,7 @@ public:
 private:
     DomainQuadratureWeightModelManager domain_quadrature_weight_model_manager_;
     InterfaceAreaModelManager interface_area_model_manager_;
+    FaceQuadratureWeightModelManager face_quadrature_weight_model_manager_;
     RegionVolumeModelManager region_volume_model_manager_;
     BurnupFimaFractionModelManager burnup_fima_fraction_model_manager_;
     VolumetricPowerModelManager volumetric_power_model_manager_;

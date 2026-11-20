@@ -29,13 +29,17 @@ PropertiesSystem::PropertiesSystem(const FemSystem& fem_system, const std::vecto
                 values.emplace(attribute, std::nullopt); // 初始化各 Region/Zone 在各个区域的属性值为 std::nullopt
             }
         }
+        else if (property.scope == PropertyScope::FaceIntegrationPoint)
+        {
+            properties_field_data_.face_integration_point_values.emplace(property.name, PropertiesFieldData::FaceIntegrationPointValues{});
+        }
         else if (property.scope == PropertyScope::Interface)
         {
             properties_field_data_.interface_values.try_emplace(property.name); // 为该属性创建的是一张空的面片值表
         }
         else
         {
-            properties_field_data_.integration_point_values.emplace(property.name, PropertiesFieldData::IntegrationPointValues{}); // 初始化各 integrationPoint 属性在的积分点值列表为空
+            properties_field_data_.domain_integration_point_values.emplace(property.name, PropertiesFieldData::DomainIntegrationPointValues{}); // 初始化各 DomainIntegrationPoint 属性的域求积点数组为空
         }
     }
     std::unordered_map<std::string, std::vector<std::string>> required_properties; // 临时的仅包含本次求解场的需求属性
@@ -187,7 +191,7 @@ void PropertiesSystem::prepare_dependencies() // 标记各个属性在各个区�
                 }
                 if (field_state_owners_.count(required_name) != 0) // 检查依赖是否为求解场或由求解场恢复的状态量
                 {
-                    if (property.type == PropertyType::External || property.scope != PropertyScope::IntegrationPoint)
+                    if (property.type == PropertyType::External || property.scope != PropertyScope::DomainIntegrationPoint)
                     {
                         throw std::logic_error("该属性的求值位置不支持直接读取求解场: " + property.name);
                     }
@@ -321,15 +325,7 @@ void PropertiesSystem::update_external(double time, double time_step) // 更新�
             {
                 continue; // 如果这个位置已经被计算过 并且相比快照没有变化 就跳过计算保留缓存值
             }
-            if (property.scope != PropertyScope::IntegrationPoint) // 对于全局、区域、边界分区属性，走单个状态点的计算流程
-            {
-                PropertiesStatePoint point = make_state_point(property.scope, attribute);
-                load_model_states(point, property, attribute, required);
-                evaluate_and_store(external_model_manager_, name, point);
-                continue;
-            }
-
-            evaluate_and_store_points(external_model_manager_, property, attribute, required);
+            evaluate_property(external_model_manager_, property, location, required);
         }
     }
 }
@@ -351,13 +347,17 @@ void PropertiesSystem::load_required_states(PropertiesStatePoint& point, const s
         {
             point.values[name] = properties_field_data_.zone_values.at(name).at(point.zone_attribute).value();
         }
+        else if (scope == PropertyScope::FaceIntegrationPoint)
+        {
+            point.values[name] = properties_field_data_.face_integration_point_values.at(name)[point.face_index][point.face_point_index].value();
+        }
         else if (scope == PropertyScope::Interface)
         {
             point.values[name] = properties_field_data_.interface_values.at(name).at(point_index.value()).value();
         }
         else
         {
-            point.values[name] = properties_field_data_.integration_point_values.at(name)[point_index.value()].value();
+            point.values[name] = properties_field_data_.domain_integration_point_values.at(name)[point_index.value()].value();
         }
     }
 }
@@ -393,6 +393,14 @@ void PropertiesSystem::load_previous_value(PropertiesStatePoint& point, const Pr
             point.previous_value = value->second;
         }
     }
+    else if (property.scope == PropertyScope::FaceIntegrationPoint)
+    {
+        const auto values = previous_field_data_.face_integration_point_values.find(name);
+        if (values != previous_field_data_.face_integration_point_values.end() && point.face_index < values->second.size() && point.face_point_index < values->second[point.face_index].size())
+        {
+            point.previous_value = values->second[point.face_index][point.face_point_index];
+        }
+    }
     else if (property.scope == PropertyScope::Interface)
     {
         const auto values = previous_field_data_.interface_values.find(name);
@@ -420,8 +428,8 @@ void PropertiesSystem::load_previous_value(PropertiesStatePoint& point, const Pr
     }
     else
     {
-        const auto values = previous_field_data_.integration_point_values.find(name);
-        if (values != previous_field_data_.integration_point_values.end() && point_index.value() < values->second.size())
+        const auto values = previous_field_data_.domain_integration_point_values.find(name);
+        if (values != previous_field_data_.domain_integration_point_values.end() && point_index.value() < values->second.size())
         {
             point.previous_value = values->second[point_index.value()];
         }
@@ -461,6 +469,24 @@ bool PropertiesSystem::required_states_changed(int attribute, const std::vector<
                 return true; // 指定位置缺少数据，或者新旧值不同，都返回 true
             }
         }
+        else if (scope == PropertyScope::FaceIntegrationPoint)
+        {
+            const auto& old_values = previous.face_integration_point_values.at(name);
+            const auto& new_values = current.face_integration_point_values.at(name);
+            const auto& mesh = fem_system_.mesh_data().mfem_mesh();
+            for (int boundary = 0; boundary < mesh.GetNBE(); ++boundary)
+            {
+                if (mesh.GetBdrAttribute(boundary) != attribute)
+                {
+                    continue;
+                }
+                const int face = mesh.GetBdrElementFaceIndex(boundary);
+                if (old_values[face] != new_values[face])
+                {
+                    return true;
+                }
+            }
+        }
         else if (scope == PropertyScope::Interface)
         {
             const auto& old_values = previous.interface_values.at(name);
@@ -481,8 +507,8 @@ bool PropertiesSystem::required_states_changed(int attribute, const std::vector<
         }
         else // 积分点属性: 比较指定区域内所有积分点
         {
-            const auto& old_values = previous.integration_point_values.at(name); // 取得该属性的新旧全域积分点数组
-            const auto& new_values = current.integration_point_values.at(name); // 取得该属性的新旧全域积分点数组
+            const auto& old_values = previous.domain_integration_point_values.at(name); // 取得该属性的新旧全域积分点数组
+            const auto& new_values = current.domain_integration_point_values.at(name); // 取得该属性的新旧全域积分点数组
             for (const int element : fem_system_.mesh_data().region_elements(attribute)) // 从预存的区域单元表中，取得指定区域包含的所有原网格单元编号
             {
                 const std::size_t end = fem_system_.domain_quadrature_offset(element + 1); // 取得当前单元积分点在连续数组中的结束位置，不包含这个位置
@@ -500,7 +526,7 @@ bool PropertiesSystem::required_states_changed(int attribute, const std::vector<
 }
 
 template <typename Manager>
-void PropertiesSystem::evaluate_and_store_points(const Manager& manager, const PropertyInfo& property, int region_attribute, const std::vector<std::string>& required, const FieldMap& trial_fields) // 计算某个属性在指定区域内全部积分点上的值，存入全域积分点数组，最后标记该区域已计算
+void PropertiesSystem::evaluate_and_store_domain_points(const Manager& manager, const PropertyInfo& property, int region_attribute, const std::vector<std::string>& required, const FieldMap& trial_fields) // 计算某个属性在指定区域内全部积分点上的值，存入全域积分点数组，最后标记该区域已计算
 {
     const mfem::Mesh& mesh = fem_system_.mesh_data().mfem_mesh(); // 取得原网格
     const bool uses_history = std::find(required.begin(), required.end(), property.name) != required.end();
@@ -519,12 +545,12 @@ void PropertiesSystem::evaluate_and_store_points(const Manager& manager, const P
             required_field_views.emplace_back(required_name, trial_entry != trial_fields.end() ? trial_entry->second : fem_system_.field_view(required_name));
             continue;
         }
-        (property_info(required_name).scope == PropertyScope::IntegrationPoint ? point_required : common_required).push_back(required_name); // 积分点属性加入 point_required 其他属性加入 common_required
+        (property_info(required_name).scope == PropertyScope::DomainIntegrationPoint ? point_required : common_required).push_back(required_name); // 积分点属性加入 point_required 其他属性加入 common_required
     }
     PropertiesStatePoint common_point; // 建立公共状态点，设置当前区域编号，并加载时间、区域属性等依赖
     common_point.region_attribute = region_attribute;
     load_required_states(common_point, common_required);
-    auto& values = properties_field_data_.integration_point_values.at(property.name); // 取得当前属性的全域积分点值数组的引用，后面的赋值直接修改缓存
+    auto& values = properties_field_data_.domain_integration_point_values.at(property.name); // 取得当前属性的全域积分点值数组的引用，后面的赋值直接修改缓存
     values.resize(fem_system_.domain_quadrature_point_count()); // 把数组长度设置为全域积分点总数
     for (const int element : fem_system_.mesh_data().region_elements(region_attribute)) // 遍历区域内单元
     {
@@ -776,15 +802,54 @@ void PropertiesSystem::evaluate_and_store_interface(const Manager& manager, cons
 }
 
 template <typename Manager>
+void PropertiesSystem::evaluate_and_store_face_points(const Manager& manager, const PropertyInfo& property, int attribute, const std::vector<std::string>& required)
+{
+    const auto& mesh = fem_system_.mesh_data().mfem_mesh();
+    auto& values = properties_field_data_.face_integration_point_values.at(property.name);
+    values.resize(mesh.GetNumFaces());
+    mfem::IsoparametricTransformation transformation;
+    mfem::Vector position(mesh.SpaceDimension());
+    for (int boundary = 0; boundary < mesh.GetNBE(); ++boundary)
+    {
+        if (mesh.GetBdrAttribute(boundary) != attribute)
+        {
+            continue;
+        }
+        const int face = mesh.GetBdrElementFaceIndex(boundary);
+        mesh.GetFaceTransformation(face, &transformation);
+        const auto* rule = fem_system_.boundary_quadrature_rule(transformation.GetGeometryType());
+        values[face].resize(rule->GetNPoints());
+        for (int q = 0; q < rule->GetNPoints(); ++q)
+        {
+            transformation.Transform(rule->IntPoint(q), position);
+            PropertiesStatePoint point;
+            point.face_attribute = point.zone_attribute = point.interface_attribute = attribute;
+            point.face_index = face;
+            point.face_point_index = q;
+            point.x = position[0];
+            point.y = position.Size() > 1 ? position[1] : 0.0;
+            point.z = position.Size() > 2 ? position[2] : 0.0;
+            load_model_states(point, property, attribute, required, face);
+            values[face][q] = manager.evaluate(property.name, point);
+        }
+    }
+    computed_locations_[property.name].insert(attribute);
+}
+
+template <typename Manager>
 void PropertiesSystem::evaluate_property(const Manager& manager, const PropertyInfo& property, int location, const std::vector<std::string>& required, const FieldMap& trial_fields) // 根据存储范围选择求值位置并保存结果
 {
-    if (property.scope == PropertyScope::Interface)
+    if (property.scope == PropertyScope::FaceIntegrationPoint)
+    {
+        evaluate_and_store_face_points(manager, property, location, required);
+    }
+    else if (property.scope == PropertyScope::Interface)
     {
         evaluate_and_store_interface(manager, property, location, required);
     }
-    else if (property.scope == PropertyScope::IntegrationPoint)
+    else if (property.scope == PropertyScope::DomainIntegrationPoint)
     {
-        evaluate_and_store_points(manager, property, location, required, trial_fields);
+        evaluate_and_store_domain_points(manager, property, location, required, trial_fields);
     }
     else
     {

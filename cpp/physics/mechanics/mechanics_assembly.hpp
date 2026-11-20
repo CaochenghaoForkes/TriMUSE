@@ -41,9 +41,9 @@ public:
     const Counts& counts() const; // 返回组装次数信息表
 
 private:
-    void refresh_stiffness(const PropertiesFieldData::IntegrationPointValues& weights);
-    void refresh_thermal_expansion(const PropertiesFieldData::IntegrationPointValues& weights);
-    void refresh_source(const PropertiesFieldData::IntegrationPointValues& weights);
+    void refresh_stiffness(const PropertiesFieldData::DomainIntegrationPointValues& weights);
+    void refresh_thermal_expansion(const PropertiesFieldData::DomainIntegrationPointValues& weights);
+    void refresh_source(const PropertiesFieldData::DomainIntegrationPointValues& weights);
     void refresh_interface_pressure();
     void refresh_boundary();
     void essential_values(std::map<int, double>& values) const; // 边界各分量的指定位移 -> 独立自由度编号与指定值

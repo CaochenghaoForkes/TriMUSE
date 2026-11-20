@@ -17,7 +17,9 @@ public:
 
     using AttributeValues = std::unordered_map<int, CachedValue>; // 区域编号或边界分区编号 -> 属性值
 
-    using IntegrationPointValues = std::vector<CachedValue>; // 一个属性在全域积分点上的值，连续存储 某积分点的下标为: fem_system.domain_quadrature_offset(element) + point_index 其中 element 是原网格单元编号，point_index 是该单元内的局部积分点编号
+    using DomainIntegrationPointValues = std::vector<CachedValue>; // 一个属性在全域积分点上的值，连续存储 某积分点的下标为: fem_system.domain_quadrature_offset(element) + point_index 其中 element 是原网格单元编号，point_index 是该单元内的局部积分点编号
+
+    using FaceIntegrationPointValues = std::vector<std::vector<CachedValue>>; // 原网格面编号 -> 面内求积点编号 -> 属性值
 
     std::unordered_map<std::string, CachedValue> global_values; // 属性名 -> 一个值
 
@@ -27,7 +29,9 @@ public:
 
     std::unordered_map<std::string, AttributeValues> interface_values; // 属性名 -> 网格面编号 -> 界面属性值
 
-    std::unordered_map<std::string, IntegrationPointValues> integration_point_values; // 属性名 -> 全域积分点数组
+    std::unordered_map<std::string, FaceIntegrationPointValues> face_integration_point_values; // 属性名 -> 全网格面求积点数组
+
+    std::unordered_map<std::string, DomainIntegrationPointValues> domain_integration_point_values; // 属性名 -> 全域积分点数组
 };
 
 }

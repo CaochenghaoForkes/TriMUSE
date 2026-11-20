@@ -6,11 +6,11 @@ namespace trimuse
 
 VectorValue LinearThermalExpansion::evaluate(const PropertiesFieldData& properties, std::size_t point, double temperature) const // 取得求积点 point 上向量 \sigma_{th,global} = C:\varepsilon_{th,global}
 {
-    const auto& coefficients = std::get<VectorValue>(properties.integration_point_values.at("material.mechanics.thermal_expansion_coef")[point].value());
+    const auto& coefficients = std::get<VectorValue>(properties.domain_integration_point_values.at("material.mechanics.thermal_expansion_coef")[point].value());
     const double reference_temperature = std::get<double>(properties.global_values.at("precomputed.thermal_expansion_reference_temperature").value());
     const double temperature_difference = temperature - reference_temperature;
-    const auto& transform = std::get<ElasticityTensorValue>(properties.integration_point_values.at("precomputed.tensor_transform")[point].value());
-    const auto& elasticity = std::get<ElasticityTensorValue>(properties.integration_point_values.at("material.mechanics.elasticity_tensor")[point].value());
+    const auto& transform = std::get<ElasticityTensorValue>(properties.domain_integration_point_values.at("precomputed.tensor_transform")[point].value());
+    const auto& elasticity = std::get<ElasticityTensorValue>(properties.domain_integration_point_values.at("material.mechanics.elasticity_tensor")[point].value());
 
     const double local_strain[6][1] = {
         {coefficients[0] * temperature_difference},

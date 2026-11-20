@@ -92,6 +92,11 @@
     <derived_property name="domain_quadrature_weight">
         <region name="[str]" model="common.undeformed"/>
     </derived_property>
+    <!-- 当前面求积点权重，外边界按 zone、内部界面按 interface 配置 -->
+    <derived_property name="face_quadrature_weight">
+        <zone name="[str]" model="common.undeformed"/>
+        <interface name="[str]" model="common.undeformed"/>
+    </derived_property>
     <!-- 当前界面面片面积，按 interface 配置并保存为面片值表 -->
     <derived_property name="interface_area">
         <interface name="[str]" model="common.undeformed"/>

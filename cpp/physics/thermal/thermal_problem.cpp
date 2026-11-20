@@ -38,7 +38,7 @@ ThermalProblem::ThermalProblem(FemSystem& fem, TrialField trial_temperature, Pro
         initialize_temperature(fem, *trial_temperature_.accepted_continuous_field(), initial); // 连续场直接设置初温或投影
     }
     trial_temperature_.load(); // 将正式场的初温复制到试探场
-    assembly_.project_initial(properties_.field_data().integration_point_values.at("precomputed.initial_domain_quadrature_weight")); // 必要时投影初温，使分域场满足理想接触等连续约束
+    assembly_.project_initial(properties_.field_data().domain_integration_point_values.at("precomputed.initial_domain_quadrature_weight")); // 必要时投影初温，使分域场满足理想接触等连续约束
     trial_temperature_.accept(); // 把当前试探场的场值复制回正式场，接受本次求解结果
     output_manager_.add_field("temperature", "thermal"); // 注册本问题的输出场
 }

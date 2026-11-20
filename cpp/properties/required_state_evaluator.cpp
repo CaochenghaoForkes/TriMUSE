@@ -30,9 +30,13 @@ StateValue RequiredStateEvaluator::read_value(const RequiredStateRequest& reques
     {
         return properties_.interface_values.at(request.name).at(static_cast<int>(location.index)).value();
     }
-    if (request.range == RequiredStateRange::IntegrationPoint)
+    if (request.range == RequiredStateRange::DomainIntegrationPoint)
     {
-        return properties_.integration_point_values.at(request.name)[location.index].value();
+        return properties_.domain_integration_point_values.at(request.name)[location.index].value();
+    }
+    if (request.range == RequiredStateRange::FaceIntegrationPoint)
+    {
+        return properties_.face_integration_point_values.at(request.name)[location.face][location.index].value();
     }
     return fem_.field_view(request.name).evaluate(location.attribute, location.element, location.point); // Field 在传入的参考位置求值
 }
