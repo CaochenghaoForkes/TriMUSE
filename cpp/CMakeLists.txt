@@ -54,6 +54,7 @@ file(GLOB_RECURSE MECHANICS_SOURCES CONFIGURE_DEPENDS
 
 target_sources(trimuse_core PRIVATE
     common/linear_interpolation.cpp
+    common/value_reduction.cpp
     ${PROPERTY_SOURCES}
     ${THERMAL_SOURCES}
     ${RADIOACTIVITY_SOURCES}
