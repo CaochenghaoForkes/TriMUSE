@@ -88,6 +88,8 @@ private:
 
     std::vector<PropertyInfo> properties_ = {
         {"precomputed.initial_region_volume", PropertyType::Precomputed, PropertyScope::Region},
+        {"precomputed.initial_domain_quadrature_weight", PropertyType::Precomputed, PropertyScope::IntegrationPoint}, // m³，域内求积点初始物理体积权重
+        {"precomputed.initial_interface_area", PropertyType::Precomputed, PropertyScope::Interface}, // m²，内部界面面片初始物理面积
         {"precomputed.geometry_center", PropertyType::Precomputed, PropertyScope::Global}, // m，颗粒中心坐标
         {"precomputed.thermal_expansion_reference_temperature", PropertyType::Precomputed, PropertyScope::Global}, // K, 来自力学卡的固定热膨胀参考温度
         {"precomputed.tensor_transform", PropertyType::Precomputed, PropertyScope::IntegrationPoint}, // 六分量张量 local -> global 的 T
