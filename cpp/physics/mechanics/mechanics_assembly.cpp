@@ -55,7 +55,7 @@ bool MechanicsAssembly::coupled(const PropertiesSystem& properties) const // 判
     return stiffness_manager_.coupled(properties, "displacement") || thermal_expansion_manager_.coupled(properties, "displacement") || source_manager_.coupled(properties, "displacement") || boundary_manager_.coupled(properties, "displacement") || interface_pressure_manager_.coupled(properties, "displacement");
 }
 
-void MechanicsAssembly::refresh_stiffness() // 只重组需要更新的区域刚度矩阵，如果有更新，再把各区域贡献重新相加
+void MechanicsAssembly::refresh_stiffness(const PropertiesFieldData::IntegrationPointValues& weights) // 只重组需要更新的区域刚度矩阵，如果有更新，再把各区域贡献重新相加
 {
     bool changed = !stiffness_matrix_cache_.sum; // 判断当前有没有总刚度矩阵 指针为空：changed = true，本次需要首次建立总矩阵
     for (int region : stiffness_manager_.regions()) // 遍历刚度管理器中配置了模型的各个区域
@@ -64,7 +64,7 @@ void MechanicsAssembly::refresh_stiffness() // 只重组需要更新的区域刚
         {
             continue; // 则跳过
         }
-        stiffness_matrix_cache_.parts[region] = integrator_.domain_matrix(region, stiffness_manager_.values()); // 传入全域积分点系数数值，但只遍历并积分当前 region 的单元
+        stiffness_matrix_cache_.parts[region] = integrator_.domain_matrix(region, stiffness_manager_.values(), weights); // 传入全域积分点系数数值，但只遍历并积分当前 region 的单元
         stiffness_manager_.assembled(region); // 通知管理器：当前区域已经按最新系数组装完成，将该区域的 dirty 清为 false
         ++counts_["stiffness"]; // 刚度组装次数加一，每重新组装一个区域计一次
         changed = true; // 记录本次至少有一个区域的刚度缓存发生了更新，需要重新计算总矩阵
@@ -75,7 +75,7 @@ void MechanicsAssembly::refresh_stiffness() // 只重组需要更新的区域刚
     }
 }
 
-void MechanicsAssembly::refresh_thermal_expansion()
+void MechanicsAssembly::refresh_thermal_expansion(const PropertiesFieldData::IntegrationPointValues& weights)
 {
     bool changed = !thermal_expansion_load_cache_.sum;
     for (int region : thermal_expansion_manager_.regions())
@@ -84,7 +84,7 @@ void MechanicsAssembly::refresh_thermal_expansion()
         {
             continue;
         }
-        thermal_expansion_load_cache_.parts[region] = integrator_.eigenstrain_load(region, thermal_expansion_manager_.values());
+        thermal_expansion_load_cache_.parts[region] = integrator_.eigenstrain_load(region, thermal_expansion_manager_.values(), weights);
         thermal_expansion_manager_.assembled(region);
         ++counts_["thermal_expansion"];
         changed = true;
@@ -95,7 +95,7 @@ void MechanicsAssembly::refresh_thermal_expansion()
     }
 }
 
-void MechanicsAssembly::refresh_source()
+void MechanicsAssembly::refresh_source(const PropertiesFieldData::IntegrationPointValues& weights)
 {
     bool changed = !source_load_cache_.sum;
     for (int region : source_manager_.regions())
@@ -104,7 +104,7 @@ void MechanicsAssembly::refresh_source()
         {
             continue;
         }
-        source_load_cache_.parts[region] = integrator_.domain_load(region, source_manager_.values());
+        source_load_cache_.parts[region] = integrator_.domain_load(region, source_manager_.values(), weights);
         source_manager_.assembled(region);
         ++counts_["source"];
         changed = true;
@@ -166,10 +166,11 @@ MechanicsAssembly::State MechanicsAssembly::update(const PropertiesFieldData& pr
     source_manager_.update(properties); // 更新各求积点点体积力向量，并检查更新 dirty
     boundary_manager_.update(properties); // 更新各边界分区的指定面力向量、压力标量或指定位移向量，并检查更新 dirty
     interface_pressure_manager_.update(properties);
+    const auto& weights = properties.integration_point_values.at("precomputed.initial_domain_quadrature_weight"); // 固定参考网格上的域积分权重
     refresh_interface_pressure();
-    refresh_stiffness(); // 根据 dirty 只重新组装发生变化或尚无缓存的区域刚度矩阵，必要时重新计算总刚度矩阵 并更换 cache_.sum 指针为新对象
-    refresh_thermal_expansion(); // 根据 dirty 只重新组装发生变化或尚无缓存的区域热膨胀载荷，必要时重新计算总热膨胀载荷 并更换 cache_.sum 指针为新对象
-    refresh_source(); // 根据 dirty 只重新组装发生变化或尚无缓存的区域体积力载荷，必要时重新计算总体积力载荷 并更换 cache_.sum 指针为新对象
+    refresh_stiffness(weights); // 根据 dirty 只重新组装发生变化或尚无缓存的区域刚度矩阵，必要时重新计算总刚度矩阵 并更换 cache_.sum 指针为新对象
+    refresh_thermal_expansion(weights); // 根据 dirty 只重新组装发生变化或尚无缓存的区域热膨胀载荷，必要时重新计算总热膨胀载荷 并更换 cache_.sum 指针为新对象
+    refresh_source(weights); // 根据 dirty 只重新组装发生变化或尚无缓存的区域体积力载荷，必要时重新计算总体积力载荷 并更换 cache_.sum 指针为新对象
     refresh_boundary(); // 根据 dirty 只重新组装发生变化或尚无缓存的表面边界表面力载荷，必要时重新计算表面边界表面力载荷 并更换 cache_.sum 指针为新对象
 
     state_.matrix = stiffness_matrix_cache_.sum; // 让 state_.matrix 与 stiffness_matrix_cache_.sum 共同持有同一张矩阵，不复制矩阵数值

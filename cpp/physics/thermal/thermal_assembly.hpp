@@ -35,15 +35,15 @@ public:
     State update(const PropertiesFieldData& properties, bool capacity); // 热方程组装层的总入口: 更新系数，按需刷新各部分缓存，再返回当前的 M、K、F
     void update_boundary(const PropertiesFieldData& properties); // 更新边界值: 单独提供此接口出要适用于三个场景 1.初始时刻(只需要施加初始时刻的表面温度，不需要执行时间推进、组装整套矩阵) 2.新时间步开始(如果 theta 法先用旧属性计算旧时刻贡献，边界管理器也会被更新成旧值 随后需要单独恢复新时刻的边界值，并先施加新表面温度) 3.显式格式theta=0(域内和自然边界贡献使用旧时刻数据，但指定温度仍施加新时刻的值 因此需要更新边界，却不需要组装新时刻的导热矩阵和热源向量)
     void apply_initial_constraints(); // 在正式求解前，让试探温度满足自由度连续约束和当前 Dirichlet 指定温度
-    void project_initial(); // 把当前初温投影到满足界面连续约束的空间中
+    void project_initial(const PropertiesFieldData::IntegrationPointValues& weights); // 把当前初温投影到满足界面连续约束的空间中
     void form_system(const mfem::SparseMatrix& matrix, const mfem::Vector& load, mfem::SparseMatrix& system, mfem::Vector& system_load, mfem::Vector& solution) const;
     void recover(const mfem::Vector& solution); // 传入独立自由度温度向量，把独立自由度温度恢复成完整温度向量，并写入试探场
     const Counts& counts() const { return counts_; } // 返回 组装次数统计
 
 private:
-    void refresh_conduction(); // 按区域变化标记刷新conduction矩阵
-    void refresh_capacity(); // 按区域变化标记刷新capacity矩阵
-    void refresh_source(); // 按需组装体积热源向量缓存
+    void refresh_conduction(const PropertiesFieldData::IntegrationPointValues& weights); // 按区域变化标记刷新conduction矩阵
+    void refresh_capacity(const PropertiesFieldData::IntegrationPointValues& weights); // 按区域变化标记刷新capacity矩阵
+    void refresh_source(const PropertiesFieldData::IntegrationPointValues& weights); // 按需组装体积热源向量缓存
     void refresh_boundary(); // 分别更新外边界矩阵和右端向量的缓存 两部分独立判断，因此可以只重组发生变化的部分
     void refresh_interface_heat_transfer(); // 按材料界面的 dirty 标记更新界面传热矩阵缓存
     void essential_values(std::map<int, double>& values) const; // 收集 Dirichlet 边界的指定温度，并把边界自由度编号转换为约束后独立空间中的编号

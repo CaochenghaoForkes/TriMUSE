@@ -79,8 +79,10 @@ PYBIND11_MODULE(_core, module)
              py::arg("fem_system"), py::arg("output_directory"), py::keep_alive<1, 2>())
         .def("add_field", &trimuse::OutputManager::add_field,
              py::arg("field_name"), py::arg("directory_name"), py::arg("project_to_l2") = false, py::arg("order") = 0)
-        .def("save", py::overload_cast<const std::string&, const std::vector<double>&, int, double, double>(&trimuse::OutputManager::save),
-             py::arg("field_name"), py::arg("values"), py::arg("cycle"), py::arg("time"), py::arg("time_step"))
+        .def("save", [](trimuse::OutputManager& output, const std::string& field_name, const std::vector<double>& values, const trimuse::PropertiesSystem& properties, int cycle, double time, double time_step)
+        {
+            output.save(field_name, values, properties.field_data().integration_point_values.at("precomputed.initial_domain_quadrature_weight"), cycle, time, time_step);
+        }, py::arg("field_name"), py::arg("values"), py::arg("properties"), py::arg("cycle"), py::arg("time"), py::arg("time_step"))
         .def("solve_information", &trimuse::OutputManager::solve_information, py::arg("field_name"));
 
     py::class_<trimuse::PropertiesSystem>(module, "PropertiesSystem")

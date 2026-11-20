@@ -27,24 +27,20 @@ MechanicsIntegrator::MechanicsIntegrator(FemSystem& fem, const TrialField& trial
 {
 }
 
-std::shared_ptr<mfem::SparseMatrix> MechanicsIntegrator::domain_matrix(int region, const std::vector<ElasticityTensorValue>& values) // 组装 region 贡献的总体刚度矩阵 int_Omega (B^e)^T W C_{global} B^e
+std::shared_ptr<mfem::SparseMatrix> MechanicsIntegrator::domain_matrix(int region, const std::vector<ElasticityTensorValue>& values, const PropertiesFieldData::IntegrationPointValues& weights) // 组装 region 贡献的总体刚度矩阵 int_Omega (B^e)^T W C_{global} B^e
 {
     auto result = std::make_shared<mfem::SparseMatrix>(trial_field_.size());
-    mfem::IsoparametricTransformation transformation;
     mfem::DenseMatrix weighted_elasticity(6), weighted_stress, contribution, local;
     mfem::Array<int> dofs;
     for (int element : fem_.mesh_data().region_elements(region)) // 遍历区域内域单元编号
     {
         const auto* fe = trial_field_.space(region).GetFE(trial_field_.local_element(element)); // 取得当前域单元
-        fem_.mesh_data().mfem_mesh().GetElementTransformation(element, &transformation); // 取得几何映射
         const auto* rule = fem_.domain_quadrature_rule(fe->GetGeomType()); // 取得当前单元求积规则
         const auto offset = fem_.domain_quadrature_offset(element); // 取得单元的积分点在全域连续积分点数组中的起始位置
         local.SetSize(fe->GetDof() * dimension_); // fe->GetDof() 取得当前单元的标量自由度数，不包含分量数，也就是该单元的插值节点数
         local = 0.0;
         for (int q = 0; q < rule->GetNPoints(); ++q) // 遍历求积点
         {
-            const auto& point = rule->IntPoint(q); // 取得求积点
-            transformation.SetIntPoint(&point); // transformation 设定为当前求积点
             const auto& strain = strain_matrices_[offset + q]; // 读取初始化时缓存的 B
             const auto& elasticity = values[offset + q]; // 取得该点的6分量弹性矩阵
             const mfem::DenseMatrix elasticity_matrix(elasticity.data); // C，按行列复制六分量弹性矩阵
@@ -53,7 +49,7 @@ std::shared_ptr<mfem::SparseMatrix> MechanicsIntegrator::domain_matrix(int regio
             mfem::Mult(strain_weights, elasticity_matrix, weighted_elasticity); // W C
             mfem::Mult(weighted_elasticity, strain, weighted_stress); // W C B
             mfem::MultAtB(strain, weighted_stress, contribution); // B^T W C B
-            const double weight = point.weight * transformation.Weight() * fem_.geometric_weight(transformation, point);
+            const double weight = std::get<double>(weights[offset + q].value());
             local.Add(weight, contribution); // K^e += weight * B^T W C B
         }
         trial_field_.element_dofs(element, dofs); // GetElementVDofs 的局部顺序固定为 [u_1的全部节点，u_2的全部节点，...]
@@ -63,17 +59,15 @@ std::shared_ptr<mfem::SparseMatrix> MechanicsIntegrator::domain_matrix(int regio
     return result;
 }
 
-std::shared_ptr<mfem::Vector> MechanicsIntegrator::domain_load(int region, const std::vector<VectorValue>& values) // 组装 region 内体积力贡献的总体载荷 int_Omega (N^e)^T b
+std::shared_ptr<mfem::Vector> MechanicsIntegrator::domain_load(int region, const std::vector<VectorValue>& values, const PropertiesFieldData::IntegrationPointValues& weights) // 组装 region 内体积力贡献的总体载荷 int_Omega (N^e)^T b
 {
     auto result = std::make_shared<mfem::Vector>(trial_field_.size()); // 完整自由度长度，只累加当前区域的贡献
     *result = 0.0;
-    mfem::IsoparametricTransformation transformation;
     mfem::Vector shape, local;
     mfem::Array<int> dofs;
     for (int element : fem_.mesh_data().region_elements(region))
     {
         const auto* fe = trial_field_.space(region).GetFE(trial_field_.local_element(element)); // 取得当前有限元对象
-        fem_.mesh_data().mfem_mesh().GetElementTransformation(element, &transformation); // 取得当前几何映射
         const auto* rule = fem_.domain_quadrature_rule(fe->GetGeomType()); // 取得当前求积规则
         const auto offset = fem_.domain_quadrature_offset(element); // 取得当前单元积分点全局偏移量
         shape.SetSize(fe->GetDof());
@@ -82,10 +76,9 @@ std::shared_ptr<mfem::Vector> MechanicsIntegrator::domain_load(int region, const
         for (int q = 0; q < rule->GetNPoints(); ++q) // 遍历积分点
         {
             const auto& point = rule->IntPoint(q); // 取得当前积分点位置
-            transformation.SetIntPoint(&point); // 设置转化为当前位置
             fe->CalcShape(point, shape); // 计算形函数
             const auto& force = values[offset + q]; // 直接读取体积力，如重力模型已包含 rho*g
-            const double weight = point.weight * transformation.Weight() * fem_.geometric_weight(transformation, point);
+            const double weight = std::get<double>(weights[offset + q].value());
             for (int c = 0; c < dimension_; ++c) // 遍历维度
                 for (int i = 0; i < shape.Size(); ++i) // 遍历插值节点
                 {
@@ -98,30 +91,26 @@ std::shared_ptr<mfem::Vector> MechanicsIntegrator::domain_load(int region, const
     return result;
 }
 
-std::shared_ptr<mfem::Vector> MechanicsIntegrator::eigenstrain_load(int region, const std::vector<VectorValue>& values) // 组装 region 贡献的总体本征应变构成的载荷向量 int_Omega (B^e)^T W C_{global} \epsilon^*_{global}
+std::shared_ptr<mfem::Vector> MechanicsIntegrator::eigenstrain_load(int region, const std::vector<VectorValue>& values, const PropertiesFieldData::IntegrationPointValues& weights) // 组装 region 贡献的总体本征应变构成的载荷向量 int_Omega (B^e)^T W C_{global} \epsilon^*_{global}
 {
     auto result = std::make_shared<mfem::Vector>(trial_field_.size()); // 初始化本征载荷向量
     *result = 0.0;
-    mfem::IsoparametricTransformation transformation;
     mfem::Vector weighted_stress(6), contribution, local;
     mfem::Array<int> dofs;
     for (int element : fem_.mesh_data().region_elements(region)) // 遍历该区域的单元编号
     {
         const auto* fe = trial_field_.space(region).GetFE(trial_field_.local_element(element)); // 取得单元
-        fem_.mesh_data().mfem_mesh().GetElementTransformation(element, &transformation); // 取得雅可比映射
         const auto* rule = fem_.domain_quadrature_rule(fe->GetGeomType()); // 取得积分规则
         const auto offset = fem_.domain_quadrature_offset(element); // 取得全局积分点中的初始偏移
         local.SetSize(fe->GetDof() * dimension_); // 局部载荷贡献长度为 插值节点数*维数
         local = 0.0;
         for (int q = 0; q < rule->GetNPoints(); ++q) // 遍历积分点
         {
-            const auto& point = rule->IntPoint(q); // 取得积分点
-            transformation.SetIntPoint(&point); // 设置雅可比映射为当前位置
             const auto& strain = strain_matrices_[offset + q]; // 读取初始化时缓存的 B
             strain_weights.Mult(values[offset + q].data(), weighted_stress); // W beta，beta 已由 manager 计算
             contribution.SetSize(strain.Width());
             strain.MultTranspose(weighted_stress, contribution); // B^T W beta，beta 已由 manager 计算
-            const double weight = point.weight * transformation.Weight() * fem_.geometric_weight(transformation, point);
+            const double weight = std::get<double>(weights[offset + q].value());
             local.Add(weight, contribution);
         }
         trial_field_.element_dofs(element, dofs);

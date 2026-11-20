@@ -74,7 +74,7 @@ void OutputManager::write_field(const std::string& field_name, int cycle, double
     }
 }
 
-void OutputManager::save(const std::string& field_name, const std::vector<double>& values, int cycle, double time, double time_step) // 对于传入全域求积点上的标量值数组，把它逐单元投影到已经创建好的 L2 输出场中
+void OutputManager::save(const std::string& field_name, const std::vector<double>& values, const PropertiesFieldData::IntegrationPointValues& weights, int cycle, double time, double time_step) // 对于传入全域求积点上的标量值数组，把它逐单元投影到已经创建好的 L2 输出场中
 {
     // H1 连续有限元空间在相邻单元的公共界面上共享自由度，各单元的贡献会累加到相同的总体自由度上
     // 此处的不连续 L2 有限元空间中，各单元拥有独立的自由度，同一几何位置在不同单元中可以具有不同的值
@@ -83,7 +83,6 @@ void OutputManager::save(const std::string& field_name, const std::vector<double
     auto& output = *field_outputs_.at(field_name).values;
     auto* space = output.FESpace();
     const auto& mesh = fem_system_.mesh_data().mfem_mesh();
-    mfem::IsoparametricTransformation transformation;
     mfem::Array<int> dofs;
     mfem::DenseMatrix mass;
     mfem::Vector shape, rhs, local;
@@ -101,15 +100,13 @@ void OutputManager::save(const std::string& field_name, const std::vector<double
         mass.SetSize(count);
         mass = 0.0;
         rhs = 0.0;
-        mesh.GetElementTransformation(element, &transformation); // 取得单元几何映射
         const auto* rule = fem_system_.domain_quadrature_rule(fe->GetGeomType()); // 取得积分规则
         const auto offset = fem_system_.domain_quadrature_offset(element); // 取得全域积分点偏移
         for (int q = 0; q < rule->GetNPoints(); ++q) // 遍历积分点
         {
             const auto& point = rule->IntPoint(q); // 取得当前积分点位置
-            transformation.SetIntPoint(&point); // 几何映射设定为当前位置
             fe->CalcShape(point, shape); // 计算当前位置的全部形函数值
-            const double weight = point.weight * transformation.Weight() * fem_system_.geometric_weight(transformation, point);
+            const double weight = std::get<double>(weights[offset + q].value());
             mfem::AddMult_a_VVt(weight, shape, mass); // Mij = sum_q(w(q)*Ni(q)*Nj(q))
             rhs.Add(weight * values[offset + q], shape); // b = sum_q(w(q)*values(q)*Ni(q))
         }

@@ -38,7 +38,7 @@ RadioactivityProblem::RadioactivityProblem(FemSystem& fem, TrialField trial_conc
         initialize_concentration(fem, *trial_concentration_.accepted_continuous_field(), initial);
     }
     trial_concentration_.load(); // 正式场初值复制到试探场
-    assembly_.project_initial(); // 必要时将区域初始阶跃投影到完美接触约束空间
+    assembly_.project_initial(properties_.field_data().integration_point_values.at("precomputed.initial_domain_quadrature_weight")); // 必要时将区域初始阶跃投影到完美接触约束空间
     trial_concentration_.accept(); // 将投影后的初值写回正式场
     output_manager_.add_field("concentration", "radioactivity"); // 注册本问题的输出场
 }
