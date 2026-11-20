@@ -45,7 +45,7 @@ private:
     void refresh_capacity(const PropertiesFieldData::DomainIntegrationPointValues& weights); // 按区域变化标记刷新capacity矩阵
     void refresh_decay(const PropertiesFieldData::DomainIntegrationPointValues& weights); // 按区域变化标记刷新衰变矩阵
     void refresh_source(const PropertiesFieldData::DomainIntegrationPointValues& weights); // 按区域变化标记更新体积源向量
-    void refresh_boundary(); // 分别更新自然边界的矩阵和右端贡献
+    void refresh_boundary(const PropertiesFieldData::FaceIntegrationPointValues& weights); // 分别更新自然边界的矩阵和右端贡献
     void essential_values(std::map<int, double>& values) const; // 收集独立自由度编号 -> 指定表面浓度
 
     FemSystem& fem_; // 原网格、区域单元表和求积规则

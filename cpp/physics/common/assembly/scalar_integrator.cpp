@@ -76,13 +76,14 @@ std::shared_ptr<mfem::Vector> ScalarIntegrator::domain_load(int region, const st
     return result;
 }
 
-std::shared_ptr<mfem::SparseMatrix> ScalarIntegrator::boundary_matrix(const std::vector<int>& boundaries, double h) // 整体矩阵组装（边界积分）：组装指定外边界分区 zone 的矩阵贡献 当前主要对应 Robin 传递边界的左端项 int_gamma_zone h Ni Nj dGamma boundaries 传入的是该外边界分区所包含的原网格边界单元编号列表
+std::shared_ptr<mfem::SparseMatrix> ScalarIntegrator::boundary_matrix(const std::vector<int>& boundaries, double h, const PropertiesFieldData::FaceIntegrationPointValues& weights) // 整体矩阵组装（边界积分）：组装指定外边界分区 zone 的矩阵贡献 当前主要对应 Robin 传递边界的左端项 int_gamma_zone h Ni Nj dGamma boundaries 传入的是该外边界分区所包含的原网格边界单元编号列表
 {
     auto result = std::make_shared<mfem::SparseMatrix>(trial_field_.size()); // 创建与场完整自由度数对应的方形稀疏矩阵，只保存当前 zone 的贡献
     if (h != 0.0) // 只有系数非零时，才遍历该 zone 的外边界单元
         for (int b : boundaries) // 遍历该外边界分区所包含的原网格边界单元编号列表
         {
             auto* t = fem_.mesh_data().mfem_mesh().GetBdrFaceTransformations(b); // 根据原网格边界单元编号 b，取得边界面的几何变换，以及与它相邻的域单元变换
+            const int face = fem_.mesh_data().mfem_mesh().GetBdrElementFaceIndex(b); // 原网格面编号，与面权重缓存一致
             const int element = t->Elem1No; // 取得内侧相邻域单元的原网格编号 外边界只有这一侧
             const int region = fem_.mesh_data().mfem_mesh().GetAttribute(element); // 原网格上查询这个相邻域单元所属的区域属性编号
             const auto* fe = trial_field_.space(region).GetFE(trial_field_.local_element(element)); // 取得该相邻域单元的有限元对象 分域场会先映射到对应子网格的局部单元编号
@@ -95,7 +96,7 @@ std::shared_ptr<mfem::SparseMatrix> ScalarIntegrator::boundary_matrix(const std:
                 const auto& ip = rule->IntPoint(q); // 取得参考面点
                 t->SetAllIntPoints(&ip); // 1.把 ip 设为当前边界面的积分点； 2.用 Loc1 找到同一物理位置在相邻域单元参考坐标中的点，并把它设为 Elem1 的当前积分点； 3.若是内部界面且有第二侧，也同样设置 Elem2 的参考积分点
                 fe->CalcShape(t->GetElement1IntPoint(), shape); // 在该参考单元位置计算域形函数值 t->GetElement1IntPoint() 返回参考面点 ip 映射到第一侧参考域单元后得到的坐标
-                mfem::AddMult_a_VVt(h * ip.weight * t->Weight() * fem_.geometric_weight(*t, ip), shape, local); // 执行 local += h wq J gq Nq Nq^T 也就是累加该积分点贡献该边界单元局部矩阵的 h wq J gq Ni Nj
+                mfem::AddMult_a_VVt(h * std::get<double>(weights[face][q].value()), shape, local); // 执行 local += h wq J gq Nq Nq^T 也就是累加该积分点贡献该边界单元局部矩阵的 h wq J gq Ni Nj
             }
             mfem::Array<int> dofs;
             trial_field_.element_dofs(element, dofs); // 取得相邻域单元在完整场值向量中的自由度编号
@@ -105,7 +106,7 @@ std::shared_ptr<mfem::SparseMatrix> ScalarIntegrator::boundary_matrix(const std:
     return result;
 }
 
-std::shared_ptr<mfem::Vector> ScalarIntegrator::boundary_load(const std::vector<int>& boundaries, double value) // 整体向量组装（边界积分）：组装指定外边界分区 zone 的右端向量贡献 int_gamma_zone value Ni dGamma
+std::shared_ptr<mfem::Vector> ScalarIntegrator::boundary_load(const std::vector<int>& boundaries, double value, const PropertiesFieldData::FaceIntegrationPointValues& weights) // 整体向量组装（边界积分）：组装指定外边界分区 zone 的右端向量贡献 int_gamma_zone value Ni dGamma
 {
     auto result = std::make_shared<mfem::Vector>(trial_field_.size());
     *result = 0.0; // 向量长度对应整个场的完整自由度数
@@ -113,6 +114,7 @@ std::shared_ptr<mfem::Vector> ScalarIntegrator::boundary_load(const std::vector<
         for (int b : boundaries) // 遍历该外边界分区所包含的原网格边界单元编号列表
         {
             auto* t = fem_.mesh_data().mfem_mesh().GetBdrFaceTransformations(b); // 取得当前边界面及其内侧域单元的几何变换
+            const int face = fem_.mesh_data().mfem_mesh().GetBdrElementFaceIndex(b); // 原网格面编号，与面权重缓存一致
             const int element = t->Elem1No; // 相邻域内单元的原网格编号
             const int region = fem_.mesh_data().mfem_mesh().GetAttribute(element); // 所属区域编号
             const auto* fe = trial_field_.space(region).GetFE(trial_field_.local_element(element)); // 取得该单元的有限元对象；分域场会先转换单元编号
@@ -124,7 +126,7 @@ std::shared_ptr<mfem::Vector> ScalarIntegrator::boundary_load(const std::vector<
                 const auto& ip = rule->IntPoint(q); // 取得参考面上的积分点，并计算它在内侧参考域单元中的对应坐标
                 t->SetAllIntPoints(&ip); // 1.把 ip 设为当前边界面的积分点； 2.用 Loc1 找到同一物理位置在相邻域单元参考坐标中的点，并把它设为 Elem1 的当前积分点； 3.若是内部界面且有第二侧，也同样设置 Elem2 的参考积分点
                 fe->CalcShape(t->GetElement1IntPoint(), shape); // 在该参考单元位置计算域形函数值 t->GetElement1IntPoint() 返回参考面点 ip 映射到第一侧参考域单元后得到的坐标
-                local.Add(value * ip.weight * t->Weight() * fem_.geometric_weight(*t, ip), shape); // local_i += value * wq * J * gq * Ni
+                local.Add(value * std::get<double>(weights[face][q].value()), shape); // local_i += value * wq * J * gq * Ni
             }
             mfem::Array<int> dofs;
             trial_field_.element_dofs(element, dofs); // 取得相邻域单元的完整自由度编号

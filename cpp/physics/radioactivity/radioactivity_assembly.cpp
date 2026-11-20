@@ -128,7 +128,7 @@ void RadioactivityAssembly::refresh_source(const PropertiesFieldData::DomainInte
     }
 }
 
-void RadioactivityAssembly::refresh_boundary() // 自然边界的矩阵与右端独立判断是否需要重组
+void RadioactivityAssembly::refresh_boundary(const PropertiesFieldData::FaceIntegrationPointValues& weights) // 自然边界的矩阵与右端独立判断是否需要重组
 {
     bool matrix_changed = !boundary_matrix_cache_.sum, load_changed = !boundary_load_cache_.sum;
     for (int zone : boundary_manager_.zones())
@@ -139,14 +139,14 @@ void RadioactivityAssembly::refresh_boundary() // 自然边界的矩阵与右端
         }
         if (!boundary_matrix_cache_.parts.count(zone) || !boundary_manager_.required_no_change(zone, RadioactivityBoundaryPart::Matrix))
         {
-            boundary_matrix_cache_.parts[zone] = integrator_.boundary_matrix(boundary_elements_.at(zone), boundary_manager_.values(zone).matrix); // Robin 左端 h_m N_i N_j
+            boundary_matrix_cache_.parts[zone] = integrator_.boundary_matrix(boundary_elements_.at(zone), boundary_manager_.values(zone).matrix, weights); // Robin 左端 h_m N_i N_j
             boundary_manager_.assembled(zone, RadioactivityBoundaryPart::Matrix);
             ++counts_["boundary_matrix"];
             matrix_changed = true;
         }
         if (!boundary_load_cache_.parts.count(zone) || !boundary_manager_.required_no_change(zone, RadioactivityBoundaryPart::Load))
         {
-            boundary_load_cache_.parts[zone] = integrator_.boundary_load(boundary_elements_.at(zone), boundary_manager_.values(zone).load); // Neumann -j_n 或 Robin h_m c_infinity
+            boundary_load_cache_.parts[zone] = integrator_.boundary_load(boundary_elements_.at(zone), boundary_manager_.values(zone).load, weights); // Neumann -j_n 或 Robin h_m c_infinity
             boundary_manager_.assembled(zone, RadioactivityBoundaryPart::Load);
             ++counts_["boundary_load"];
             load_changed = true;
@@ -165,6 +165,7 @@ void RadioactivityAssembly::refresh_boundary() // 自然边界的矩阵与右端
 RadioactivityAssembly::State RadioactivityAssembly::update(const PropertiesFieldData& properties) // 根据指定时刻属性按需更新并汇总 M、K、F
 {
     const auto& weights = properties.domain_integration_point_values.at("precomputed.initial_domain_quadrature_weight"); // 固定参考网格上的域积分权重
+    const auto& face_weights = properties.face_integration_point_values.at("precomputed.initial_face_quadrature_weight"); // 固定参考网格上的面求积点权重
     diffusion_manager_.update(properties);
     capacity_manager_.update(properties);
     decay_manager_.update(properties);
@@ -174,7 +175,7 @@ RadioactivityAssembly::State RadioactivityAssembly::update(const PropertiesField
     refresh_capacity(weights);
     refresh_decay(weights);
     refresh_source(weights);
-    refresh_boundary();
+    refresh_boundary(face_weights);
     if (last_diffusion_matrix_cache_sum_ != diffusion_matrix_cache_.sum || last_decay_matrix_cache_sum_ != decay_matrix_cache_.sum || last_boundary_matrix_cache_sum_ != boundary_matrix_cache_.sum) // 用缓存指针是否替换判断总 K 是否需要更新
     {
         std::unique_ptr<mfem::SparseMatrix> diffusion(mfem::Add(1.0, *diffusion_matrix_cache_.sum, 1.0, *boundary_matrix_cache_.sum)); // K_temp=K_diffusion+K_Robin

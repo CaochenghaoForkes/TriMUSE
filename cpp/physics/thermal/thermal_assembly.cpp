@@ -112,7 +112,7 @@ void ThermalAssembly::refresh_source(const PropertiesFieldData::DomainIntegratio
     }
 }
 
-void ThermalAssembly::refresh_boundary() // 根据 boundary_manager_ 各 zone 的 dirty 分别更新外边界矩阵和右端向量的缓存 两部分独立判断，因此可以只重组发生变化的部分
+void ThermalAssembly::refresh_boundary(const PropertiesFieldData::FaceIntegrationPointValues& weights) // 根据 boundary_manager_ 各 zone 的 dirty 分别更新外边界矩阵和右端向量的缓存 两部分独立判断，因此可以只重组发生变化的部分
 {
     bool matrix_changed = !boundary_matrix_cache_.sum, load_changed = !boundary_load_cache_.sum; // 还没有边界总矩阵: matrix_changed=true 还没有边界总向量: load_changed=true
     for (int zone : boundary_manager_.zones()) // 遍历已配置模型的边界分区
@@ -123,14 +123,14 @@ void ThermalAssembly::refresh_boundary() // 根据 boundary_manager_ 各 zone �
         }
         if (!boundary_matrix_cache_.parts.count(zone) || !boundary_manager_.required_no_change(zone, BoundaryPart::Matrix)) // 若这个 zone 尚无矩阵缓存 或 矩阵系数发生变化(dirty为true), 或尚未完成组装 就需要组装
         {
-            boundary_matrix_cache_.parts[zone] = integrator_.boundary_matrix(boundary_elements_.at(zone), boundary_manager_.values(zone).matrix); // 组装并保存该 zone 的矩阵贡献，Robin 对应 int_Gamma_zone h * Ni * Nj dGamma
+            boundary_matrix_cache_.parts[zone] = integrator_.boundary_matrix(boundary_elements_.at(zone), boundary_manager_.values(zone).matrix, weights); // 组装并保存该 zone 的矩阵贡献，Robin 对应 int_Gamma_zone h * Ni * Nj dGamma
             boundary_manager_.assembled(zone, BoundaryPart::Matrix); // 清除该边界的 Matrix 变化标记，不影响 Load 标记
             ++counts_["boundary_matrix"];
             matrix_changed = true; // 记录一次边界矩阵组装，并标记需要重新求和
         }
         if (!boundary_load_cache_.parts.count(zone) || !boundary_manager_.required_no_change(zone, BoundaryPart::Load)) // 同样检查: 是否没有缓存，或者右端系数需要更新
         {
-            boundary_load_cache_.parts[zone] = integrator_.boundary_load(boundary_elements_.at(zone), boundary_manager_.values(zone).load); // 依次执行：组装该 zone 的右端贡献、清除 Load 标记、增加统计次数、标记总向量需要更新
+            boundary_load_cache_.parts[zone] = integrator_.boundary_load(boundary_elements_.at(zone), boundary_manager_.values(zone).load, weights); // 依次执行：组装该 zone 的右端贡献、清除 Load 标记、增加统计次数、标记总向量需要更新
             boundary_manager_.assembled(zone, BoundaryPart::Load);
             ++counts_["boundary_load"];
             load_changed = true;
@@ -146,7 +146,7 @@ void ThermalAssembly::refresh_boundary() // 根据 boundary_manager_ 各 zone �
     }
 }
 
-void ThermalAssembly::refresh_interface_heat_transfer()
+void ThermalAssembly::refresh_interface_heat_transfer(const PropertiesFieldData::FaceIntegrationPointValues& weights)
 {
     bool changed = false;
     for (int attribute : interface_heat_transfer_manager_.interface_heat_transfer_attributes())
@@ -155,7 +155,7 @@ void ThermalAssembly::refresh_interface_heat_transfer()
         {
             continue;
         }
-        interface_heat_transfer_matrix_cache_.parts[attribute] = interface_heat_transfer_manager_.assemble_matrix(attribute, fem_, trial_field_, constraints_);
+        interface_heat_transfer_matrix_cache_.parts[attribute] = interface_heat_transfer_manager_.assemble_matrix(attribute, fem_, trial_field_, constraints_, weights);
         interface_heat_transfer_manager_.assembled(attribute);
         ++counts_["interface_heat_transfer_matrix"];
         changed = true;
@@ -169,6 +169,7 @@ void ThermalAssembly::refresh_interface_heat_transfer()
 ThermalAssembly::State ThermalAssembly::update(const PropertiesFieldData& properties, bool capacity) // 热方程组装层的总入口: 更新系数，按需刷新各部分缓存，再返回当前的 M、K、F
 {
     const auto& weights = properties.domain_integration_point_values.at("precomputed.initial_domain_quadrature_weight"); // 固定参考网格上的域积分权重
+    const auto& face_weights = properties.face_integration_point_values.at("precomputed.initial_face_quadrature_weight"); // 固定参考网格上的面求积点权重
     if (capacity) // 本次是否需要更新热容矩阵 (不是热容的值)
     {
         capacity_manager_.update(properties); // 计算最新的 rho*cp 维护区域变化标记 dirty
@@ -180,8 +181,8 @@ ThermalAssembly::State ThermalAssembly::update(const PropertiesFieldData& proper
     interface_heat_transfer_manager_.update(properties); // 更新面片热阻及各界面的变化标记
     refresh_conduction(weights); // 按变化标记刷新域内导热系数矩阵缓存
     refresh_source(weights); // 按变化标记刷新体积热源向量缓存
-    refresh_boundary(); // 按变化标记刷新外边界矩阵和右端向量缓存
-    refresh_interface_heat_transfer(); // 按变化标记刷新界面矩阵缓存
+    refresh_boundary(face_weights); // 按变化标记刷新外边界矩阵和右端向量缓存
+    refresh_interface_heat_transfer(face_weights); // 按变化标记刷新界面矩阵缓存
     if (last_conduction_matrix_cache_sum_ != conduction_matrix_cache_.sum || last_boundary_matrix_cache_sum_ != boundary_matrix_cache_.sum || last_interface_heat_transfer_matrix_cache_sum_ != interface_heat_transfer_matrix_cache_.sum)
     {
         std::unique_ptr<mfem::SparseMatrix> conduction(mfem::Add(1.0, *conduction_matrix_cache_.sum, 1.0, *boundary_matrix_cache_.sum));

@@ -44,8 +44,8 @@ private:
     void refresh_conduction(const PropertiesFieldData::DomainIntegrationPointValues& weights); // 按区域变化标记刷新conduction矩阵
     void refresh_capacity(const PropertiesFieldData::DomainIntegrationPointValues& weights); // 按区域变化标记刷新capacity矩阵
     void refresh_source(const PropertiesFieldData::DomainIntegrationPointValues& weights); // 按需组装体积热源向量缓存
-    void refresh_boundary(); // 分别更新外边界矩阵和右端向量的缓存 两部分独立判断，因此可以只重组发生变化的部分
-    void refresh_interface_heat_transfer(); // 按材料界面的 dirty 标记更新界面传热矩阵缓存
+    void refresh_boundary(const PropertiesFieldData::FaceIntegrationPointValues& weights); // 分别更新外边界矩阵和右端向量的缓存 两部分独立判断，因此可以只重组发生变化的部分
+    void refresh_interface_heat_transfer(const PropertiesFieldData::FaceIntegrationPointValues& weights); // 按材料界面的 dirty 标记更新界面传热矩阵缓存
     void essential_values(std::map<int, double>& values) const; // 收集 Dirichlet 边界的指定温度，并把边界自由度编号转换为约束后独立空间中的编号
 
     FemSystem& fem_; // 有限元系统

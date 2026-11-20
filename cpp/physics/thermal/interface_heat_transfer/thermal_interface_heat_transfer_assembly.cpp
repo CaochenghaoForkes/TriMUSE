@@ -3,11 +3,10 @@
 namespace trimuse
 {
 
-ThermalInterfaceAssembly::ThermalInterfaceAssembly(FemSystem& fem, const TrialField& trial_field, DofConstraints& constraints)
+ThermalInterfaceAssembly::ThermalInterfaceAssembly(const TrialField& trial_field, DofConstraints& constraints)
     :
-    fem_(fem),
     trial_field_(trial_field),
-    constraints_(constraints) // 传入有限元系统、试探场，以及由 ThermalAssembly 持有的约束对象
+    constraints_(constraints) // 传入试探场，以及由 ThermalAssembly 持有的约束对象
 {
 }
 
@@ -16,7 +15,7 @@ void ThermalInterfaceAssembly::connect(const InterfaceContext& context) // 找�
     constraints_.connect(context.interface());
 }
 
-void ThermalInterfaceAssembly::add_transfer(const InterfaceContext& context, mfem::Coefficient& conductance) // 把当前界面片的传热贡献，累加到界面总矩阵 matrix_ 中
+void ThermalInterfaceAssembly::add_transfer(const InterfaceContext& context, mfem::Coefficient& conductance, const PropertiesFieldData::FaceIntegrationPointValues& weights) // 把当前界面片的传热贡献，累加到界面总矩阵 matrix_ 中
 {
     if (!matrix_) // 判断矩阵指针是否为空 第一次处理热阻界面时，还没有创建矩阵
     {
@@ -39,7 +38,7 @@ void ThermalInterfaceAssembly::add_transfer(const InterfaceContext& context, mfe
     }
 
     const auto& rule = context.quadrature_rule(); // 取得当前参考面上的求积规则，包含积分点坐标和权重
-    auto& transformation = context.transformations(); // 取得当前面的双侧几何变换，用来将参考面点映射到两侧参考单元，并计算几何积分权重
+    auto& transformation = context.transformations(); // 取得当前面的双侧几何变换，将参考面点映射到两侧参考单元
     mfem::Vector shape[2], jump(joined.Size()); // shape: 长度为2(代表两侧)的数组,每个元素都是 mfem::Vector jump: 长度等于两侧单元自由度之和的 mfem::Vector
     mfem::DenseMatrix local(joined.Size());
     local = 0.0; // 创建一个方阵并清零 规模与两侧单元自由度之和相同
@@ -65,7 +64,7 @@ void ThermalInterfaceAssembly::add_transfer(const InterfaceContext& context, mfe
             jump[shape[0].Size() + i] = -shape[1][i]; // 构造形函数跳跃向量 第二侧取负
         }
         // weight = hq * wq * J_gamma,q * gq
-        const double weight = conductance.Eval(transformation, point) * point.weight * transformation.Weight() * fem_.geometric_weight(transformation, point); // conductance.Eval(...) 当前积分点的传热系数 h; point.weight 参考面上的求积权重; transformation.Weight 面几何映射的雅可比权重; geometry_weight 1D 4pir2 2D 2pir 3D 1
+        const double weight = conductance.Eval(transformation, point) * std::get<double>(weights[interface.face][q].value()); // 当前传热系数乘缓存的面求积点物理面积权重
         // 界面推导沿用 weak_form.md 的 Galerkin 方法, i 对应测试函数/矩阵行, j 对应温度自由度/列。
         // 1. 定义 q_I=h(T_a-T_b), h=1/R, 正方向为 a -> b。
         //    两侧外向热流分别为 q_out,a=q_I, q_out,b=-q_I, 保证界面热量守恒。

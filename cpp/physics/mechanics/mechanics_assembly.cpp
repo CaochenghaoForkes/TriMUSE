@@ -115,7 +115,7 @@ void MechanicsAssembly::refresh_source(const PropertiesFieldData::DomainIntegrat
     }
 }
 
-void MechanicsAssembly::refresh_boundary()
+void MechanicsAssembly::refresh_boundary(const PropertiesFieldData::FaceIntegrationPointValues& weights)
 {
     bool changed = !boundary_load_cache_.sum;
     for (int zone : boundary_manager_.zones())
@@ -128,7 +128,7 @@ void MechanicsAssembly::refresh_boundary()
         {
             continue;
         }
-        boundary_load_cache_.parts[zone] = integrator_.boundary_load(boundary_elements_.at(zone), boundary_manager_.values(zone));
+        boundary_load_cache_.parts[zone] = integrator_.boundary_load(boundary_elements_.at(zone), boundary_manager_.values(zone), weights);
         boundary_manager_.assembled(zone);
         ++counts_["boundary_load"];
         changed = true;
@@ -139,7 +139,7 @@ void MechanicsAssembly::refresh_boundary()
     }
 }
 
-void MechanicsAssembly::refresh_interface_pressure()
+void MechanicsAssembly::refresh_interface_pressure(const PropertiesFieldData::FaceIntegrationPointValues& weights)
 {
     bool changed = !interface_pressure_load_cache_.sum;
     for (int attribute : interface_pressure_manager_.interface_pressure_attributes())
@@ -148,7 +148,7 @@ void MechanicsAssembly::refresh_interface_pressure()
         {
             continue;
         }
-        interface_pressure_load_cache_.parts[attribute] = interface_pressure_manager_.assemble_load(attribute, fem_, trial_field_);
+        interface_pressure_load_cache_.parts[attribute] = interface_pressure_manager_.assemble_load(attribute, fem_, trial_field_, weights);
         interface_pressure_manager_.assembled(attribute);
         ++counts_["interface_pressure"];
         changed = true;
@@ -167,11 +167,12 @@ MechanicsAssembly::State MechanicsAssembly::update(const PropertiesFieldData& pr
     boundary_manager_.update(properties); // 更新各边界分区的指定面力向量、压力标量或指定位移向量，并检查更新 dirty
     interface_pressure_manager_.update(properties);
     const auto& weights = properties.domain_integration_point_values.at("precomputed.initial_domain_quadrature_weight"); // 固定参考网格上的域积分权重
-    refresh_interface_pressure();
+    const auto& face_weights = properties.face_integration_point_values.at("precomputed.initial_face_quadrature_weight"); // 固定参考网格上的面求积点权重
+    refresh_interface_pressure(face_weights);
     refresh_stiffness(weights); // 根据 dirty 只重新组装发生变化或尚无缓存的区域刚度矩阵，必要时重新计算总刚度矩阵 并更换 cache_.sum 指针为新对象
     refresh_thermal_expansion(weights); // 根据 dirty 只重新组装发生变化或尚无缓存的区域热膨胀载荷，必要时重新计算总热膨胀载荷 并更换 cache_.sum 指针为新对象
     refresh_source(weights); // 根据 dirty 只重新组装发生变化或尚无缓存的区域体积力载荷，必要时重新计算总体积力载荷 并更换 cache_.sum 指针为新对象
-    refresh_boundary(); // 根据 dirty 只重新组装发生变化或尚无缓存的表面边界表面力载荷，必要时重新计算表面边界表面力载荷 并更换 cache_.sum 指针为新对象
+    refresh_boundary(face_weights); // 根据 dirty 只重新组装发生变化或尚无缓存的表面边界表面力载荷，必要时重新计算表面边界表面力载荷 并更换 cache_.sum 指针为新对象
 
     state_.matrix = stiffness_matrix_cache_.sum; // 让 state_.matrix 与 stiffness_matrix_cache_.sum 共同持有同一张矩阵，不复制矩阵数值
     if (last_thermal_expansion_load_cache_sum_ != thermal_expansion_load_cache_.sum || last_source_load_cache_sum_ != source_load_cache_.sum || last_boundary_load_cache_sum_ != boundary_load_cache_.sum || last_interface_pressure_load_cache_sum_ != interface_pressure_load_cache_.sum) // 若总热膨胀载荷指针发生更换；或总体积力载荷指针发生更换；或总表面力载荷指针发生更换

@@ -32,7 +32,7 @@ ThermalInterfaceManager::ThermalInterfaceManager(FemSystem& fem, TrialField& tri
 
     // 完美接触的面片调用 assembly.connect(context)，登记两侧对应温度自由度的相等关系
     // 按材料界面编号登记热阻面片，两侧温度自由度保持独立
-    ThermalInterfaceAssembly assembly(fem, trial_field, constraints);
+    ThermalInterfaceAssembly assembly(trial_field, constraints);
     for (const auto& interface : fem.mesh_data().interfaces())
     {
         const auto model = models.find(interface.boundary_attribute);
@@ -84,14 +84,14 @@ void ThermalInterfaceManager::assembled(int attribute) // 清理一个界面区�
     interface_heat_transfer_assignments_.at(attribute).dirty = false;
 }
 
-std::unique_ptr<mfem::SparseMatrix> ThermalInterfaceManager::assemble_matrix(int attribute, FemSystem& fem, const TrialField& trial_field, DofConstraints& constraints) const // 组装编号为 attribute 的界面传热矩阵
+std::unique_ptr<mfem::SparseMatrix> ThermalInterfaceManager::assemble_matrix(int attribute, FemSystem& fem, const TrialField& trial_field, DofConstraints& constraints, const PropertiesFieldData::FaceIntegrationPointValues& weights) const // 组装编号为 attribute 的界面传热矩阵
 {
-    ThermalInterfaceAssembly assembly(fem, trial_field, constraints);
+    ThermalInterfaceAssembly assembly(trial_field, constraints);
     for (const auto& face : interface_heat_transfer_assignments_.at(attribute).faces)
     {
         const InterfaceContext context(*face.interface, fem);
         mfem::ConstantCoefficient conductance(1.0 / face.resistance);
-        assembly.add_transfer(context, conductance);
+        assembly.add_transfer(context, conductance, weights);
     }
     return assembly.finalize();
 }

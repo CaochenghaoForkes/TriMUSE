@@ -7,10 +7,10 @@
 #include "physics/common/constraint/dof_constraints.hpp"
 #include "physics/thermal/interface_heat_transfer/thermal_interface_heat_transfer_model.hpp"
 
+#include "properties/properties_field_data.hpp"
+
 namespace trimuse
 {
-
-class PropertiesFieldData;
 
 class ThermalInterfaceManager
 {
@@ -20,7 +20,7 @@ public:
     std::vector<int> interface_heat_transfer_attributes() const;
     bool required_no_change(int attribute) const;
     void assembled(int attribute);
-    std::unique_ptr<mfem::SparseMatrix> assemble_matrix(int attribute, FemSystem& fem, const TrialField& trial_field, DofConstraints& constraints) const;
+    std::unique_ptr<mfem::SparseMatrix> assemble_matrix(int attribute, FemSystem& fem, const TrialField& trial_field, DofConstraints& constraints, const PropertiesFieldData::FaceIntegrationPointValues& weights) const;
 
 private:
     struct ResistanceFace

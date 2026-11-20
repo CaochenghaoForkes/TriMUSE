@@ -28,7 +28,7 @@ public:
     std::vector<int> interface_pressure_attributes() const;
     bool required_no_change(int attribute) const;
     void assembled(int attribute);
-    std::unique_ptr<mfem::Vector> assemble_load(int attribute, FemSystem& fem, const TrialField& trial_field) const;
+    std::unique_ptr<mfem::Vector> assemble_load(int attribute, FemSystem& fem, const TrialField& trial_field, const PropertiesFieldData::FaceIntegrationPointValues& weights) const;
     const std::vector<MechanicsInterfacePressureFace>& values(int attribute) const;
 
 private:

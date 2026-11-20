@@ -86,7 +86,7 @@ const std::vector<MechanicsInterfacePressureFace>& MechanicsInterfacePressureMan
     return interface_pressure_assignments_.at(attribute).faces;
 }
 
-std::unique_ptr<mfem::Vector> MechanicsInterfacePressureManager::assemble_load(int attribute, FemSystem& fem, const TrialField& trial_field) const // 组装指定界面 attribute 的完整压力载荷向量
+std::unique_ptr<mfem::Vector> MechanicsInterfacePressureManager::assemble_load(int attribute, FemSystem& fem, const TrialField& trial_field, const PropertiesFieldData::FaceIntegrationPointValues& weights) const // 组装指定界面 attribute 的完整压力载荷向量
 {
     const auto& assignment = interface_pressure_assignments_.at(attribute);
     MechanicsInterfacePressureAssembly assembly(fem, trial_field); // 创建积分组装器，将完整载荷向量清零
@@ -95,7 +95,7 @@ std::unique_ptr<mfem::Vector> MechanicsInterfacePressureManager::assemble_load(i
         const InterfaceContext context(*face.interface, fem);
         for (const auto& value : face.values) // 再遍历该面片的单侧或双侧压力贡献
         {
-            assembly.add_pressure(context, value.side, value.pressure); // 将各贡献积分并累加
+            assembly.add_pressure(context, value.side, value.pressure, weights); // 将各贡献积分并累加
         }
     }
     return assembly.finalize(); // 返回汇总后的载荷向量

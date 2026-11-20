@@ -119,7 +119,7 @@ std::shared_ptr<mfem::Vector> MechanicsIntegrator::eigenstrain_load(int region, 
     return result;
 }
 
-std::shared_ptr<mfem::Vector> MechanicsIntegrator::boundary_load(const std::vector<int>& boundaries, const MechanicsBoundaryValue& value) // 组装各 boundaries(当前外边界分区包含的原网格边界单元编号) 单元由于指定面力(vector)或指定压力(double) 贡献的载荷向量
+std::shared_ptr<mfem::Vector> MechanicsIntegrator::boundary_load(const std::vector<int>& boundaries, const MechanicsBoundaryValue& value, const PropertiesFieldData::FaceIntegrationPointValues& weights) // 组装各 boundaries(当前外边界分区包含的原网格边界单元编号) 单元由于指定面力(vector)或指定压力(double) 贡献的载荷向量
 {
     auto result = std::make_shared<mfem::Vector>(trial_field_.size()); // 创建完整自由度长度的载荷向量，并全部清零
     *result = 0.0;
@@ -129,6 +129,7 @@ std::shared_ptr<mfem::Vector> MechanicsIntegrator::boundary_load(const std::vect
     for (int boundary : boundaries) // 逐个处理边界单元
     {
         auto* transformation = fem_.mesh_data().mfem_mesh().GetBdrFaceTransformations(boundary); // 取得几何映射
+        const int face = fem_.mesh_data().mfem_mesh().GetBdrElementFaceIndex(boundary); // 原网格面编号
         const int element = transformation->Elem1No; // 取得外边界内侧相邻的原网格域单元编号
         const int region = fem_.mesh_data().mfem_mesh().GetAttribute(element); // 查该域单元所属区域编号
         const auto* fe = trial_field_.space(region).GetFE(trial_field_.local_element(element)); // 取得该单元
@@ -163,7 +164,7 @@ std::shared_ptr<mfem::Vector> MechanicsIntegrator::boundary_load(const std::vect
                 }
                 traction *= -std::get<double>(value); // 取出压力标量并计算 t=-pn (负号表示正压力产生指向材料内部的面力)
             }
-            const double weight = point.weight * transformation->Weight() * fem_.geometric_weight(*transformation, point);
+            const double weight = std::get<double>(weights[face][q].value());
             for (int c = 0; c < dimension_; ++c) // 遍历位移方向
                 for (int i = 0; i < shape.Size(); ++i) // 遍历插值节点
                 {

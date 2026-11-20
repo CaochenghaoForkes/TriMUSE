@@ -14,7 +14,7 @@ MechanicsInterfacePressureAssembly::MechanicsInterfacePressureAssembly(const Fem
     *load_ = 0.0; // 不管是否开启该模型，初始化该模型对应载荷向量为0
 }
 
-void MechanicsInterfacePressureAssembly::add_pressure(const InterfaceContext& context, int side, double pressure) // 把当前面片某一侧的压力，积分为该侧单元的等效节点载荷，再累加到完整载荷向量中
+void MechanicsInterfacePressureAssembly::add_pressure(const InterfaceContext& context, int side, double pressure, const PropertiesFieldData::FaceIntegrationPointValues& weights) // 把当前面片某一侧的压力，积分为该侧单元的等效节点载荷，再累加到完整载荷向量中
 {
     // fᵉ_(c,i) = ∫Γₑ Nᵢ(−p n꜀) dΓ ≈ Σq wq JΓ,q gq Nᵢ(ξq)(−p n꜀,q)
     // c 为位移方向分量，i 为单元节点编号，q 为面积分点编号
@@ -46,7 +46,7 @@ void MechanicsInterfacePressureAssembly::add_pressure(const InterfaceContext& co
             traction *= (side == 0 ? 1.0 : -1.0) / traction.Norml2(); // 先除以长度，将法向单位化；若受压侧是第二侧，就反向
         }
         traction *= -pressure; // 法向转换为压力对应的面力
-        const double weight = point.weight * transformation.Weight() * fem_.geometric_weight(transformation, point);
+        const double weight = std::get<double>(weights[interface.face][q].value());
         for (int component = 0; component < dimension; ++component) // 遍历位移分量
         {
             for (int node = 0; node < shape.Size(); ++node) // 遍历受压侧单元的标量形函数 local 按分量分块排列[分量0的全部节点载荷，分量1的全部节点载荷，……]
