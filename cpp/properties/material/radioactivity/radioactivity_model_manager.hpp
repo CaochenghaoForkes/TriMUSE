@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "properties/material/radioactivity/nuclide_diffusion_coef/nuclide_diffusion_coef_model_manager.hpp"
+#include "properties/material/radioactivity/fission_gas_diffusion_coef/fission_gas_diffusion_coef_model_manager.hpp"
 
 namespace trimuse
 {
@@ -18,6 +19,7 @@ public:
 
 private:
     NuclideDiffusionCoefModelManager nuclide_diffusion_coef_model_manager_;
+    FissionGasDiffusionCoefModelManager fission_gas_diffusion_coef_model_manager_;
 };
 
 }

@@ -8,10 +8,16 @@ namespace trimuse
 void RadioactivityModelManager::register_models()
 {
     nuclide_diffusion_coef_model_manager_.register_models();
+    fission_gas_diffusion_coef_model_manager_.register_models();
 }
 
 void RadioactivityModelManager::assign(int region_attribute, const std::string& property_name, const std::string& model_name, const ModelParameterMap& parameters)
 {
+    if (property_name == "material.radioactivity.fission_gas_diffusion_coef")
+    {
+        fission_gas_diffusion_coef_model_manager_.assign(region_attribute, model_name, parameters);
+        return;
+    }
     if (property_name == "material.radioactivity.nuclide_diffusion_coef")
     {
         nuclide_diffusion_coef_model_manager_.assign(region_attribute, model_name, parameters);
@@ -22,6 +28,10 @@ void RadioactivityModelManager::assign(int region_attribute, const std::string& 
 
 StateValue RadioactivityModelManager::evaluate(const std::string& property_name, const PropertiesStatePoint& state_point) const
 {
+    if (property_name == "material.radioactivity.fission_gas_diffusion_coef")
+    {
+        return fission_gas_diffusion_coef_model_manager_.evaluate(state_point);
+    }
     if (property_name == "material.radioactivity.nuclide_diffusion_coef")
     {
         return nuclide_diffusion_coef_model_manager_.evaluate(state_point);
@@ -31,6 +41,10 @@ StateValue RadioactivityModelManager::evaluate(const std::string& property_name,
 
 const std::vector<RequiredState>& RadioactivityModelManager::required_states(const std::string& property_name, const std::string& model_name) const
 {
+    if (property_name == "material.radioactivity.fission_gas_diffusion_coef")
+    {
+        return fission_gas_diffusion_coef_model_manager_.required_states(model_name);
+    }
     if (property_name == "material.radioactivity.nuclide_diffusion_coef")
     {
         return nuclide_diffusion_coef_model_manager_.required_states(model_name);

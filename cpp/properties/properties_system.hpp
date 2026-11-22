@@ -144,6 +144,7 @@ private:
         {"material.mechanics.shear_modulus", PropertyType::Material, PropertyScope::DomainIntegrationPoint}, // Pa, 标量 Grt；由用户在材料卡中指定模型
         {"material.mechanics.elasticity_tensor", PropertyType::Material, PropertyScope::DomainIntegrationPoint, "common.from_engineering_constants"}, // Pa
         {"material.mechanics.thermal_expansion_coef", PropertyType::Material, PropertyScope::DomainIntegrationPoint}, // K^-1, [alpha_r, alpha_t]，径向、切向热膨胀系数
+        {"material.radioactivity.fission_gas_diffusion_coef", PropertyType::Material, PropertyScope::DomainIntegrationPoint}, // m²/s，晶粒尺度裂变气体扩散系数
         {"material.radioactivity.nuclide_diffusion_coef", PropertyType::Material, PropertyScope::DomainIntegrationPoint}, // m²/s
         {"assembly.interface_pressure", PropertyType::Assembly, PropertyScope::Interface}, // Pa，界面各面片的压力
         {"assembly.interface_thermal_resistance", PropertyType::Assembly, PropertyScope::Interface} // m²·K/W

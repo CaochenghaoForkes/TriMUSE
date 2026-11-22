@@ -54,6 +54,7 @@ class MaterialCardExamine:
         "material.mechanics.poisson_ratio": DIRECTIONAL_MODELS | set(BISON_MODELS["material.mechanics.poisson_ratio"]),
         "material.mechanics.shear_modulus": COMMON_MODELS | {"common.isotropy"},
         "material.mechanics.thermal_expansion_coef": {"common.isotropy_constant", "common.anisotropy_constant"} | set(BISON_MODELS["material.mechanics.thermal_expansion_coef"]),
+        "material.radioactivity.fission_gas_diffusion_coef": COMMON_MODELS | {"common.arrhenius", "kernel.bison_2021"},
         "material.radioactivity.nuclide_diffusion_coef": COMMON_MODELS | {"common.arrhenius"} | TECDOC978_MODELS,
     }
 
@@ -115,8 +116,8 @@ class MaterialCardExamine:
                 raise ValueError(f"{location}: constant_value 必须为正标量，单位为 m")
         elif property_config.property_name in ("material.general.initial_bacon_anisotropy_factor", "material.general.bacon_anisotropy_factor"):
             MaterialCardExamine.check_bacon_anisotropy_factor(property_config, location)
-        elif property_config.property_name == "material.radioactivity.nuclide_diffusion_coef":
-            if property_config.model in MaterialCardExamine.TECDOC978_MODELS:
+        elif property_config.property_name in ("material.radioactivity.nuclide_diffusion_coef", "material.radioactivity.fission_gas_diffusion_coef"):
+            if property_config.model in MaterialCardExamine.TECDOC978_MODELS or property_config.model == "kernel.bison_2021":
                 if property_config.parameters:
                     raise ValueError(f"{location}: {property_config.model} 不需要构造参数")
             elif property_config.model == "common.arrhenius":

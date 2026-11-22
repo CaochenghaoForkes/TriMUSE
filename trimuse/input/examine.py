@@ -29,6 +29,7 @@ class InputCardsExamine:
         cls.check_properties_references(geometry_mesh, properties)
         cls.check_bacon_anisotropy_factor_dependencies(material, properties)
         cls.check_mechanics_material_dependencies(material, properties, thermal)
+        cls.check_fission_gas_diffusion_dependencies(material, properties, thermal)
         if mechanics is not None:
             cls.check_mechanics_sources(geometry_mesh, mechanics)
         cls.check_postprocess_geometry(geometry_mesh, postprocess)
@@ -109,6 +110,25 @@ class InputCardsExamine:
             item.name == "derived.fast_neutron_fluence" and item.global_ is not None for item in properties.derived_property
         ):
             raise ValueError("BISON 力学物性模型需要全局 derived.fast_neutron_fluence")
+
+    @staticmethod
+    def check_fission_gas_diffusion_dependencies(material: MaterialCard, properties: PropertiesCard, thermal: ThermalCard | None) -> None:
+        """检查裂变气体扩散系数所需的温度、区域燃耗与裂变率、全局辐照时间"""
+        materials = {item.name: item for item in material.mat}
+        derived = {item.name: item for item in properties.derived_property}
+        for assignment in material.assign.region:
+            for item in materials[assignment.mat].properties:
+                if item.property_name != "material.radioactivity.fission_gas_diffusion_coef":
+                    continue
+                if item.model in ("common.arrhenius", "kernel.bison_2021") and thermal is None:
+                    raise ValueError(f"区域 {assignment.name}: 裂变气体扩散模型需要 temperature 场和 thermal 输入卡")
+                if item.model != "kernel.bison_2021":
+                    continue
+                for name in ("derived.burnup_fima_fraction", "derived.average_volumetric_fission_rate"):
+                    if name not in derived or assignment.name not in {region.name for region in derived[name].region}:
+                        raise ValueError(f"区域 {assignment.name}: kernel.bison_2021 缺少 {name}")
+                if "derived.irradiation_time" not in derived or derived["derived.irradiation_time"].global_ is None:
+                    raise ValueError("kernel.bison_2021 裂变气体扩散模型需要全局 derived.irradiation_time")
 
     @staticmethod
     def check_radioactivity_dependencies(material: MaterialCard, properties: PropertiesCard, radioactivity: RadioactivityCard, thermal: ThermalCard | None) -> None:
