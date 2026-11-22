@@ -3,6 +3,26 @@
 namespace trimuse
 {
 
+const PropertiesFieldData::CachedValue& PropertiesStatePoint::global_value(const std::string& name) const
+{
+    return *std::get<const PropertiesFieldData::CachedValue*>(references.at(name));
+}
+
+const PropertiesFieldData::AttributeValues& PropertiesStatePoint::attribute_values(const std::string& name) const
+{
+    return *std::get<const PropertiesFieldData::AttributeValues*>(references.at(name));
+}
+
+const PropertiesFieldData::DomainIntegrationPointValues& PropertiesStatePoint::domain_values(const std::string& name) const
+{
+    return *std::get<const PropertiesFieldData::DomainIntegrationPointValues*>(references.at(name));
+}
+
+const PropertiesFieldData::FaceIntegrationPointValues& PropertiesStatePoint::face_values(const std::string& name) const
+{
+    return *std::get<const PropertiesFieldData::FaceIntegrationPointValues*>(references.at(name));
+}
+
 double PropertiesStatePoint::scalar(const std::string& name) const // 先根据 name 找到对应的 variant 型的 StateValue 再从这个 variant 中取出其中存储的 double
 {
     return std::get<double>(values.at(name));

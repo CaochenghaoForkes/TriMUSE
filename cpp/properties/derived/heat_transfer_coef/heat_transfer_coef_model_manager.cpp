@@ -23,7 +23,7 @@ StateValue HeatTransferCoefModelManager::evaluate(const PropertiesStatePoint& po
     return zone_model_map_.at(point.zone_attribute)->evaluate(point);
 }
 
-const std::vector<std::string>& HeatTransferCoefModelManager::required_states(const std::string& model_name) const
+const std::vector<RequiredState>& HeatTransferCoefModelManager::required_states(const std::string& model_name) const
 {
     return registry_.registration(model_name).required_states;
 }

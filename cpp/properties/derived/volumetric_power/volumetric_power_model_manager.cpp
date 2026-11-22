@@ -25,7 +25,7 @@ StateValue VolumetricPowerModelManager::evaluate(const PropertiesStatePoint& poi
     return region_model_map_.at(point.region_attribute)->evaluate(point);
 }
 
-const std::vector<std::string>& VolumetricPowerModelManager::required_states(const std::string& model_name) const
+const std::vector<RequiredState>& VolumetricPowerModelManager::required_states(const std::string& model_name) const
 {
     return registry_.registration(model_name).required_states;
 }

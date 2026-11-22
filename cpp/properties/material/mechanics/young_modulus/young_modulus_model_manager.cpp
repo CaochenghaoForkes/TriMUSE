@@ -33,7 +33,7 @@ VectorValue YoungModulusModelManager::evaluate(const PropertiesStatePoint& state
     return region_model_map_.at(state_point.region_attribute)->evaluate(state_point);
 }
 
-const std::vector<std::string>& YoungModulusModelManager::required_states(const std::string& model_name) const
+const std::vector<RequiredState>& YoungModulusModelManager::required_states(const std::string& model_name) const
 {
     return registry_.registration(model_name).required_states;
 }

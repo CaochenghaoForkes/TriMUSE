@@ -26,7 +26,7 @@ public:
     void set_precomputed(const std::string& name, const ModelParameterValue& value); // assign 前填写已声明的全局预计算属性 precomputed.name, 并以 name 作为公共构造参数键
     void assign(int attribute, const std::string& model_name, const ModelParameterMap& parameters); // 为某个属性在指定 体积域/边界域 上配置一个计算模型 并把该位置已有的“计算完成”标记清掉
     void prepare_dependencies(); // 补齐固定关系属性并标记场依赖
-    void mark_coupled(const std::string& field_name, const std::vector<std::string>& property_names); // 把指定属性中依赖某个求解场的位置标记为“参与耦合更新”，并沿依赖关系向上游传递这个标记
+    void mark_coupled(const std::string& field_name, const std::vector<RequiredState>& property_names); // 把指定属性中依赖某个求解场的位置标记为“参与耦合更新”，并沿依赖关系向上游传递这个标记
     void update_external(double time, double time_step); // 更新当前时间，然后检查各个外部属性，只在“尚未计算”或“依赖发生变化”时重新计算它们
     void update_derived(); // 更新不依赖场的派生属性；累积模型使用上一个已接受值和 external.time_step
     void update_material(); // 更新不依赖场的材料属性
@@ -73,23 +73,23 @@ private:
     PropertyInfo& property_info(const std::string& name); // 返回该 name 对应属性的 PropertyInfo
     const PropertyInfo& property_info(const std::string& name) const; // 返回该 name 对应属性的 PropertyInfo
     std::size_t property_index(const std::string& name) const; // 返回 name 对应属性在 properties_ 中的索引
-    const std::vector<std::string>& model_required_states(const PropertyInfo& property, const std::string& model_name) const; // 返回计算 property 属性的 model_name 模型所需要的参数
+    const std::vector<RequiredState>& model_required_states(const PropertyInfo& property, const std::string& model_name) const; // 返回计算 property 属性的 model_name 模型所需要的参数
     bool depends_on_field(const std::string& property_name, int region_attribute, const std::string& field_name) const; // 判断: 某个属性在指定区域，是否依赖求解场
     static PropertiesStatePoint make_state_point(PropertyScope scope, int attribute); // 根据属性的作用范围和位置编号，创建一个 PropertiesStatePoint 状态点对象，并设置它的区域/边界分区编号
     template <typename Manager>
     void evaluate_and_store(const Manager& manager, const std::string& name, const PropertiesStatePoint& point); // 调用管理器计算某项属性，把结果存到对应位置，并标记该位置已经计算完成 (这个方法只用于 Global、Region、Zone 属性)
     template <typename Manager>
-    void evaluate_and_store_domain_points(const Manager& manager, const PropertyInfo& property, int region_attribute, const std::vector<std::string>& required, const FieldMap& trial_fields = {}); // 计算某个属性在指定区域内全部积分点上的值，存入全域积分点数组，最后标记该区域已计算
+    void evaluate_and_store_domain_points(const Manager& manager, const PropertyInfo& property, int region_attribute, const std::vector<RequiredState>& required, const FieldMap& trial_fields = {}); // 计算某个属性在指定区域内全部积分点上的值，存入全域积分点数组，最后标记该区域已计算
     template <typename Manager>
-    void evaluate_property(const Manager& manager, const PropertyInfo& property, int location, const std::vector<std::string>& required, const FieldMap& trial_fields = {}); // 根据存储范围求值并保存属性
+    void evaluate_property(const Manager& manager, const PropertyInfo& property, int location, const std::vector<RequiredState>& required, const FieldMap& trial_fields = {}); // 根据存储范围求值并保存属性
     template <typename Manager>
-    void evaluate_and_store_face_points(const Manager& manager, const PropertyInfo& property, int attribute, const std::vector<std::string>& required); // 计算指定外边界或内部界面的各面求积点属性
+    void evaluate_and_store_face_points(const Manager& manager, const PropertyInfo& property, int attribute, const std::vector<RequiredState>& required); // 计算指定外边界或内部界面的各面求积点属性
     template <typename Manager>
-    void evaluate_and_store_interface(const Manager& manager, const PropertyInfo& property, int attribute, const std::vector<std::string>& required); // 按网格面片计算并保存界面属性
-    void load_required_states(PropertiesStatePoint& point, const std::vector<std::string>& names, std::optional<std::size_t> point_index = std::nullopt) const; // 给 point 装配需要的属性
-    void load_model_states(PropertiesStatePoint& point, const PropertyInfo& property, int attribute, const std::vector<std::string>& required, std::optional<std::size_t> point_index = std::nullopt) const; // 加载当前依赖；若模型声明依赖自身，则改为加载已接受的旧值
+    void evaluate_and_store_interface(const Manager& manager, const PropertyInfo& property, int attribute, const std::vector<RequiredState>& required); // 按网格面片计算并保存界面属性
+    void load_required_states(PropertiesStatePoint& point, const std::vector<RequiredState>& names, std::optional<std::size_t> point_index = std::nullopt) const; // 给 point 装配需要的属性
+    void load_model_states(PropertiesStatePoint& point, const PropertyInfo& property, int attribute, const std::vector<RequiredState>& required, std::optional<std::size_t> point_index = std::nullopt) const; // 加载当前依赖；若模型声明依赖自身，则改为加载已接受的旧值
     void load_previous_value(PropertiesStatePoint& point, const PropertyInfo& property, int attribute, std::optional<std::size_t> point_index = std::nullopt) const; // 读取同一位置上一个已接受时刻的属性值
-    bool required_states_changed(int attribute, const std::vector<std::string>& required_states) const; // 判断: 某个区域或边界分区所依赖的属性，相比之前保存的快照，是否发生变化
+    bool required_states_changed(int attribute, const std::vector<RequiredState>& required_states) const; // 判断: 某个区域或边界分区所依赖的属性，相比之前保存的快照，是否发生变化
 
     std::vector<PropertyInfo> properties_ = {
         {"precomputed.initial_region_volume", PropertyType::Precomputed, PropertyScope::Region},
@@ -155,13 +155,14 @@ private:
         {"concentration", "concentration"},
         {"displacement", "displacement"},
         {"stress", "displacement"},
-        {"strain", "displacement"}};
-
+        {"strain", "displacement"}
+    };
     // 场名 -> 程序内置且无需用户选择模型的固定关系属性
     inline static const std::unordered_map<std::string, std::vector<std::string>> field_required_properties_ = {
         {"temperature", {}},
         {"concentration", {}},
-        {"displacement", {"material.mechanics.elasticity_tensor"}}};
+        {"displacement", {"material.mechanics.elasticity_tensor"}}
+    };
     const FemSystem& fem_system_;
     std::vector<std::string> field_names_; // 本次启用的求解场，由外部传入
     ModelParameterMap build_parameters_; // 初始化阶段设置的公共构造参数, 在最上层 assign 中合并给所有模型

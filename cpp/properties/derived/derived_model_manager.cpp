@@ -114,7 +114,7 @@ StateValue DerivedModelManager::evaluate(const std::string& name, const Properti
     throw std::out_of_range("尚未支持的派生量: " + name);
 }
 
-const std::vector<std::string>& DerivedModelManager::required_states(const std::string& name, const std::string& model_name) const
+const std::vector<RequiredState>& DerivedModelManager::required_states(const std::string& name, const std::string& model_name) const
 {
     if (name == "derived.burnup_fima_fraction")
     {

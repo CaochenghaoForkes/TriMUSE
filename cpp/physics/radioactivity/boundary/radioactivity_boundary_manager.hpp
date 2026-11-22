@@ -26,7 +26,7 @@ private:
     struct Assignment
     {
         std::unique_ptr<RadioactivityBoundaryModel> model; // 本分区采用的具体边界模型
-        std::vector<std::string> required; // 模型依赖的属性名
+        std::vector<RequiredState> required; // 模型依赖的属性名
         RadioactivityBoundaryValues values; // 最近一次模型计算的边界系数
         std::array<bool, 3> dirty{true, true, true}; // 按 Matrix、Load、Essential 顺序记录是否需更新
     };

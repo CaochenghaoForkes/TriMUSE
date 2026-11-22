@@ -41,8 +41,9 @@ void ThermalBoundaryManager::mark_coupled(PropertiesSystem& properties, const st
 bool ThermalBoundaryManager::coupled(const PropertiesSystem& properties, const std::string& field) const // 判断场与依赖属性是否存在耦合关系
 {
     for (const auto& [zone, assignment] : models_)
-        for (const auto& name : assignment.required)
+        for (const auto& dependency : assignment.required)
         {
+            const std::string& name = dependency.name;
             if (properties.coupled_with_field(name, zone, field))
             {
                 return true;

@@ -39,7 +39,7 @@ StateValue ThermalModelManager::evaluate(const std::string& property_name, const
     throw std::out_of_range("尚未支持的热物性: " + property_name);
 }
 
-const std::vector<std::string>& ThermalModelManager::required_states(const std::string& property_name, const std::string& model_name) const
+const std::vector<RequiredState>& ThermalModelManager::required_states(const std::string& property_name, const std::string& model_name) const
 {
     if (property_name == "material.thermal.conductivity")
     {

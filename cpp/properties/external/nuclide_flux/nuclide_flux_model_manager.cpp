@@ -23,7 +23,7 @@ StateValue NuclideFluxModelManager::evaluate(const PropertiesStatePoint& point) 
     return zone_model_map_.at(point.zone_attribute)->evaluate(point);
 }
 
-const std::vector<std::string>& NuclideFluxModelManager::required_states(const std::string& model_name) const
+const std::vector<RequiredState>& NuclideFluxModelManager::required_states(const std::string& model_name) const
 {
     return registry_.registration(model_name).required_states;
 }

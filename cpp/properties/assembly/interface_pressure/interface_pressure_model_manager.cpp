@@ -16,7 +16,7 @@ void InterfacePressureModelManager::assign(int attribute, const std::string& mod
     interface_models_[attribute] = registry_.registration(model).factory(parameters);
 }
 
-const std::vector<std::string>& InterfacePressureModelManager::required_states(const std::string& model) const
+const std::vector<RequiredState>& InterfacePressureModelManager::required_states(const std::string& model) const
 {
     return registry_.registration(model).required_states;
 }

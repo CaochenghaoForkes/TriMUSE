@@ -29,7 +29,7 @@ StateValue RadioactivityModelManager::evaluate(const std::string& property_name,
     throw std::out_of_range("尚未支持的放射性物性: " + property_name);
 }
 
-const std::vector<std::string>& RadioactivityModelManager::required_states(const std::string& property_name, const std::string& model_name) const
+const std::vector<RequiredState>& RadioactivityModelManager::required_states(const std::string& property_name, const std::string& model_name) const
 {
     if (property_name == "material.radioactivity.nuclide_diffusion_coef")
     {

@@ -44,7 +44,7 @@ std::optional<StateValue> AssemblyModelManager::evaluate(const std::string& name
     throw std::out_of_range("尚未支持的组装属性: " + name);
 }
 
-const std::vector<std::string>& AssemblyModelManager::required_states(const std::string& name, const std::string& model_name) const
+const std::vector<RequiredState>& AssemblyModelManager::required_states(const std::string& name, const std::string& model_name) const
 {
     if (name == "assembly.interface_thermal_resistance")
     {

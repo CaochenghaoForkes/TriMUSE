@@ -45,7 +45,7 @@ double ConductivityModelManager::evaluate(const PropertiesStatePoint& state_poin
     return region_model_map_.at(state_point.region_attribute)->evaluate(state_point);
 }
 
-const std::vector<std::string>& ConductivityModelManager::required_states(const std::string& model_name) const
+const std::vector<RequiredState>& ConductivityModelManager::required_states(const std::string& model_name) const
 {
     return registry_.registration(model_name).required_states;
 }

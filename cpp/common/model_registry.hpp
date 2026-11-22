@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "common/model_parameters.hpp"
+#include "common/required_state.hpp"
 
 namespace trimuse
 {
@@ -27,11 +28,11 @@ public:
     struct Registration
     {
         Factory factory; // Registration 保存创建这个模型的方法 调用它才会创建模型对象 auto model = registration.factory(parameters);
-        std::vector<std::string> required_states; // 保存模型求值时依赖的属性或场状态名称 如 required_states → ["external.time"]
+        std::vector<RequiredState> required_states; // 保存模型求值时依赖的属性或场状态名称 如 required_states → ["external.time"]
     };
 
     template <typename Model> // 用于注册一个具体模型：保存它的名称、创建方法和依赖列表 注册时还不会创建模型对象； Model 是调用时通过尖括号指定的具体模型类型(和上面的模型公共接口不同) 如 Model = TimeSeriesConductivity
-    void register_model(const std::string& name, std::vector<std::string> required_states = {}) // name 注册名称 如 common.time_series; required_states 求值需要哪些状态 默认为空，例如 {"external.time"}
+    void register_model(const std::string& name, std::vector<RequiredState> required_states = {}) // name 注册名称 如 common.time_series; required_states 求值需要哪些状态 默认为空，例如 {"external.time"}
     {
         // 创建一个 lambda 并保存在局部变量 factory 中; [] 表示不捕获外部变量 parameters：以后创建模型时传入的参数字典 arguments...：以后传入的额外构造参数
         Factory factory = [](const ModelParameterMap& parameters, ConstructorArgs... arguments)

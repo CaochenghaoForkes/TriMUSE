@@ -18,7 +18,7 @@ void InterfaceThermalResistanceModelManager::assign(int attribute, const std::st
     interface_models_[attribute] = registry_.registration(model).factory(parameters);
 }
 
-const std::vector<std::string>& InterfaceThermalResistanceModelManager::required_states(const std::string& model) const
+const std::vector<RequiredState>& InterfaceThermalResistanceModelManager::required_states(const std::string& model) const
 {
     return registry_.registration(model).required_states;
 }

@@ -31,7 +31,7 @@ StateValue FastNeutronFluenceModelManager::evaluate(const PropertiesStatePoint& 
     return model_->evaluate(point);
 }
 
-const std::vector<std::string>& FastNeutronFluenceModelManager::required_states(const std::string& model_name) const
+const std::vector<RequiredState>& FastNeutronFluenceModelManager::required_states(const std::string& model_name) const
 {
     return registry_.registration(model_name).required_states;
 }

@@ -23,7 +23,7 @@ StateValue MassTransferCoefModelManager::evaluate(const PropertiesStatePoint& po
     return zone_model_map_.at(point.zone_attribute)->evaluate(point);
 }
 
-const std::vector<std::string>& MassTransferCoefModelManager::required_states(const std::string& model_name) const
+const std::vector<RequiredState>& MassTransferCoefModelManager::required_states(const std::string& model_name) const
 {
     return registry_.registration(model_name).required_states;
 }

@@ -27,7 +27,7 @@ private:
     struct Assignment
     {
         std::unique_ptr<MechanicsStiffnessModel> model;
-        std::vector<std::string> required;
+        std::vector<RequiredState> required;
         bool dirty = true; // 首次必须组装，之后保持变化标记直到 assembled() 清除
     };
 

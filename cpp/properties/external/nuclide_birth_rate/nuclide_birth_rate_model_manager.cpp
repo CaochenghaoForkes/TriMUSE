@@ -29,7 +29,7 @@ StateValue NuclideBirthRateModelManager::evaluate(const PropertiesStatePoint& po
     return model_->evaluate(point);
 }
 
-const std::vector<std::string>& NuclideBirthRateModelManager::required_states(const std::string& model_name) const
+const std::vector<RequiredState>& NuclideBirthRateModelManager::required_states(const std::string& model_name) const
 {
     return registry_.registration(model_name).required_states;
 }

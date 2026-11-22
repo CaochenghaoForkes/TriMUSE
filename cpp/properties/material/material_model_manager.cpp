@@ -64,7 +64,7 @@ StateValue MaterialModelManager::evaluate(const std::string& property_name, cons
     throw std::out_of_range("尚未支持的材料属性: " + property_name);
 }
 
-const std::vector<std::string>& MaterialModelManager::required_states(const std::string& property_name, const std::string& model_name) const
+const std::vector<RequiredState>& MaterialModelManager::required_states(const std::string& property_name, const std::string& model_name) const
 {
     if (property_name.rfind("material.general.", 0) == 0)
     {

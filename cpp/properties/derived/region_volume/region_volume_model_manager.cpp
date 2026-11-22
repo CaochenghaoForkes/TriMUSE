@@ -21,7 +21,7 @@ StateValue RegionVolumeModelManager::evaluate(const PropertiesStatePoint& point)
     return region_model_map_.at(point.region_attribute)->evaluate(point);
 }
 
-const std::vector<std::string>& RegionVolumeModelManager::required_states(const std::string& model_name) const
+const std::vector<RequiredState>& RegionVolumeModelManager::required_states(const std::string& model_name) const
 {
     return registry_.registration(model_name).required_states;
 }

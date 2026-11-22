@@ -50,8 +50,9 @@ bool MechanicsInterfacePressureManager::coupled(const PropertiesSystem& properti
 {
     for (const auto& [attribute, assignment] : interface_pressure_assignments_)
     {
-        for (const auto& name : assignment.required)
+        for (const auto& dependency : assignment.required)
         {
+            const std::string& name = dependency.name;
             if (properties.coupled_with_field(name, attribute, field))
             {
                 return true;

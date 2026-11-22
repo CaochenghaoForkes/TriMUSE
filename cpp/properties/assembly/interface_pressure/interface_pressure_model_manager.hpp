@@ -18,7 +18,7 @@ class InterfacePressureModelManager
 public:
     void register_models();
     void assign(int attribute, const std::string& model, const ModelParameterMap& parameters);
-    const std::vector<std::string>& required_states(const std::string& model) const;
+    const std::vector<RequiredState>& required_states(const std::string& model) const;
     double evaluate(const PropertiesStatePoint& point) const;
 
 private:

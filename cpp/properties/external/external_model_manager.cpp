@@ -174,7 +174,7 @@ StateValue ExternalModelManager::evaluate(const std::string& name, const Propert
     throw std::out_of_range("尚未支持的外部量: " + name);
 }
 
-const std::vector<std::string>& ExternalModelManager::required_states(const std::string& name, const std::string& model_name) const
+const std::vector<RequiredState>& ExternalModelManager::required_states(const std::string& name, const std::string& model_name) const
 {
     if (name == "external.power")
     {

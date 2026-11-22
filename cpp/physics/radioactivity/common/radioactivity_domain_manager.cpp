@@ -34,8 +34,9 @@ void RadioactivityDomainManager::update(const PropertiesFieldData& properties) /
 bool RadioactivityDomainManager::coupled(const PropertiesSystem& properties, const std::string& field) const // 任一所需属性参与指定场耦合即返回 true
 {
     for (const auto& [region, assignment] : models_)
-        for (const auto& name : assignment.required)
+        for (const auto& dependency : assignment.required)
         {
+            const std::string& name = dependency.name;
             if (properties.coupled_with_field(name, region, field))
             {
                 return true;

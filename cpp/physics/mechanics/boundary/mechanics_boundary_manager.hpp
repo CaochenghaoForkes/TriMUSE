@@ -27,7 +27,7 @@ private:
     struct Assignment
     {
         std::unique_ptr<MechanicsBoundaryModel> model;
-        std::vector<std::string> required;
+        std::vector<RequiredState> required;
         MechanicsBoundaryValue value;
         bool dirty = true; // 首次必须处理，之后保持变化标记直到 assembled() 清除
     };

@@ -14,7 +14,7 @@ public:
     void register_models();
     void assign(const std::string& name, int attribute, const std::string& model_name, const ModelParameterMap& parameters);
     std::optional<StateValue> evaluate(const std::string& name, const PropertiesStatePoint& point) const;
-    const std::vector<std::string>& required_states(const std::string& name, const std::string& model_name) const;
+    const std::vector<RequiredState>& required_states(const std::string& name, const std::string& model_name) const;
 
 private:
     InterfaceThermalResistanceModelManager interface_thermal_resistance_model_manager_;

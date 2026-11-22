@@ -24,7 +24,7 @@ public:
     void register_models();
     void assign(int zone_attribute, const std::string& model_name, const ModelParameterMap& parameters);
     StateValue evaluate(const PropertiesStatePoint& point) const;
-    const std::vector<std::string>& required_states(const std::string& model_name) const;
+    const std::vector<RequiredState>& required_states(const std::string& model_name) const;
 
 private:
     ModelRegistry<HeatTransferCoefModel> registry_; // 使用类模板创建成员对象(ModelRegistry 类模版 <HeatTransferCoefModel> 指定模板参数 ModelBase 为换热系数模型接口) 这个对象内部的 registrations_ 将保存模型名(如 commonn.time_series) -> 注册记录 初始为空

@@ -23,7 +23,7 @@ public:
     void register_models();
     void assign(const std::string& model_name, const ModelParameterMap& parameters, const std::string& value_type);
     StateValue evaluate(const PropertiesStatePoint& point) const;
-    const std::vector<std::string>& required_states(const std::string& model_name) const;
+    const std::vector<RequiredState>& required_states(const std::string& model_name) const;
 
 private:
     ModelRegistry<FastNeutronFluxModel, const std::string&> registry_;

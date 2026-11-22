@@ -32,8 +32,9 @@ void MechanicsSourceManager::update(const PropertiesFieldData& properties) // �
 bool MechanicsSourceManager::coupled(const PropertiesSystem& properties, const std::string& field) const // 判断属性是否因体积力而与位移场耦合
 {
     for (const auto& [region, assignment] : models_)
-        for (const auto& name : assignment.required)
+        for (const auto& dependency : assignment.required)
         {
+            const std::string& name = dependency.name;
             if (properties.coupled_with_field(name, region, field))
             {
                 return true;

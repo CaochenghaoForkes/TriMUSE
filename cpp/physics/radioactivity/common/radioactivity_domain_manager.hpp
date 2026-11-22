@@ -30,7 +30,7 @@ private:
     struct Assignment
     {
         std::unique_ptr<RadioactivityDomainModel> model; // 本区域采用的具体模型
-        std::vector<std::string> required; // 模型依赖的属性名
+        std::vector<RequiredState> required; // 模型依赖的属性名
         bool dirty = true; // 首次或系数改变后置 true，assembled() 后才清除
     };
 

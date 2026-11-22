@@ -25,7 +25,7 @@ StateValue BurnupFimaFractionModelManager::evaluate(const PropertiesStatePoint& 
     return region_model_map_.at(point.region_attribute)->evaluate(point);
 }
 
-const std::vector<std::string>& BurnupFimaFractionModelManager::required_states(const std::string& model_name) const
+const std::vector<RequiredState>& BurnupFimaFractionModelManager::required_states(const std::string& model_name) const
 {
     return registry_.registration(model_name).required_states;
 }

@@ -23,7 +23,7 @@ StateValue EnvironmentTemperatureModelManager::evaluate(const PropertiesStatePoi
     return zone_model_map_.at(point.zone_attribute)->evaluate(point);
 }
 
-const std::vector<std::string>& EnvironmentTemperatureModelManager::required_states(const std::string& model_name) const
+const std::vector<RequiredState>& EnvironmentTemperatureModelManager::required_states(const std::string& model_name) const
 {
     return registry_.registration(model_name).required_states;
 }

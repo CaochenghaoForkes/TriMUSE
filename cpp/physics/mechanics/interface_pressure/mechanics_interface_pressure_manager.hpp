@@ -35,7 +35,7 @@ private:
     struct Assignment // model required faces(vector{面片几何索引,压力})
     {
         std::unique_ptr<MechanicsInterfacePressureModel> model;
-        std::vector<std::string> required;
+        std::vector<RequiredState> required;
         std::vector<MechanicsInterfacePressureFace> faces;
         bool dirty = true;
     };

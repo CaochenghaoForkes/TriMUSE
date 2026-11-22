@@ -39,8 +39,9 @@ void MechanicsBoundaryManager::mark_coupled(PropertiesSystem& properties, const 
 bool MechanicsBoundaryManager::coupled(const PropertiesSystem& properties, const std::string& field) const // 判断属性是否因边界值而与位移场耦合
 {
     for (const auto& [zone, assignment] : models_)
-        for (const auto& name : assignment.required)
+        for (const auto& dependency : assignment.required)
         {
+            const std::string& name = dependency.name;
             if (properties.coupled_with_field(name, zone, field))
             {
                 return true;
