@@ -130,6 +130,7 @@ private:
         {"derived.burnup_fima_fraction", PropertyType::Derived, PropertyScope::Region}, // 0～1 的 FIMA 份额
         {"derived.volumetric_power", PropertyType::Derived, PropertyScope::DomainIntegrationPoint},
         {"derived.volumetric_nuclide_birth_rate", PropertyType::Derived, PropertyScope::DomainIntegrationPoint}, // atom/(m³·s)
+        {"derived.irradiation_time", PropertyType::Derived, PropertyScope::Global}, // s，累计辐照时间
         {"derived.fast_neutron_fluence", PropertyType::Derived, PropertyScope::Global}, // 1/m², 累积快中子注量
         {"material.general.porosity", PropertyType::Material, PropertyScope::DomainIntegrationPoint},
         {"material.general.mass_density", PropertyType::Material, PropertyScope::DomainIntegrationPoint},

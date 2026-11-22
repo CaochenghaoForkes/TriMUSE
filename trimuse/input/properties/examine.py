@@ -31,6 +31,7 @@ class PropertiesCardExamine:
         "derived.average_volumetric_fission_rate": COMMON_MODELS | {"common.from_power"},
         "derived.volumetric_power": COMMON_MODELS | {"common.uniform_from_power"},
         "derived.volumetric_nuclide_birth_rate": COMMON_MODELS | {"common.uniform_from_birth_rate"},
+        "derived.irradiation_time": {"common.accumulate", "common.accumulate_from_fast_neutron_flux"},
         "derived.fast_neutron_fluence": COMMON_MODELS | {"common.accumulate_from_fast_neutron_flux"},
     }
 
@@ -47,6 +48,7 @@ class PropertiesCardExamine:
         "derived.volumetric_nuclide_birth_rate": ("derived_property", "region"),
         "derived.average_volumetric_fission_rate": ("derived_property", "region"),
         "derived.fission_gas_production_rate": ("derived_property", "region"),
+        "derived.irradiation_time": ("derived_property", "global"),
         "derived.fast_neutron_fluence": ("derived_property", "global"),
     }
 
@@ -226,7 +228,7 @@ class PropertiesCardExamine:
                 if config.parameters:
                     raise ValueError(f"{item_location}: uniform_from_birth_rate 不需要模型参数")
                 continue
-            if name == "derived.fast_neutron_fluence" and config.model == "common.accumulate_from_fast_neutron_flux":
+            if name == "derived.irradiation_time" or (name == "derived.fast_neutron_fluence" and config.model == "common.accumulate_from_fast_neutron_flux"):
                 initial_value = config.parameters.get("initial_value")
                 if set(config.parameters) != {"initial_value"} or not isinstance(initial_value, float) or not math.isfinite(initial_value) or initial_value < 0.0:
                     raise ValueError(f"{item_location}: 必须指定有限非负标量 initial_value")

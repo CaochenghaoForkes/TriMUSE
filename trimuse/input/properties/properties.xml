@@ -166,6 +166,12 @@
         </global>
         -->
     </external_property>
+    <derived_property name="irradiation_time">
+        <!-- 通量大于零时累积；若需无条件累积，将 model 改为 common.accumulate -->
+        <global model="common.accumulate_from_fast_neutron_flux">
+            <parameter name="initial_value" value="0" unit="[s]" si_unit="[s]"/>
+        </global>
+    </derived_property>
     <derived_property name="fast_neutron_fluence">
         <!-- 从 initial_value 开始按时间步累加当前时刻的快中子通量，单位 1/m² -->
         <global model="common.accumulate_from_fast_neutron_flux">

@@ -3,6 +3,8 @@
 #include <string>
 #include <vector>
 
+#include "properties/derived/irradiation_time/irradiation_time_model_manager.hpp"
+
 #include "properties/derived/fission_gas_production_rate/fission_gas_production_rate_model_manager.hpp"
 #include "properties/derived/average_volumetric_fission_rate/average_volumetric_fission_rate_model_manager.hpp"
 #include "properties/derived/region_volume/region_volume_model_manager.hpp"
@@ -26,6 +28,7 @@ public:
     const std::vector<RequiredState>& required_states(const std::string& name, const std::string& model_name) const;
 
 private:
+    IrradiationTimeModelManager irradiation_time_model_manager_;
     RegionVolumeModelManager region_volume_model_manager_;
     BurnupFimaFractionModelManager burnup_fima_fraction_model_manager_;
     VolumetricPowerModelManager volumetric_power_model_manager_;

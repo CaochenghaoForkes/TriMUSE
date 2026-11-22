@@ -230,7 +230,7 @@ class InputCardsExamine:
                 missing = uniform_regions - fraction_regions
                 if missing:
                     raise ValueError(f"体积核素产生率区域缺少 uranium_fraction: {', '.join(sorted(missing))}")
-            if (property_config.name == "derived.fast_neutron_fluence"
+            if (property_config.name in ("derived.fast_neutron_fluence", "derived.irradiation_time")
                     and property_config.global_.model == "common.accumulate_from_fast_neutron_flux"
                     and (fast_neutron_flux is None or fast_neutron_flux.global_ is None)):
                 raise ValueError("accumulate_from_fast_neutron_flux 缺少全局 fast_neutron_flux")

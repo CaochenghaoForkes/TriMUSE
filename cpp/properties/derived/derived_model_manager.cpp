@@ -12,6 +12,7 @@ DerivedModelManager::DerivedModelManager()
 
 void DerivedModelManager::register_models()
 {
+    irradiation_time_model_manager_.register_models();
     burnup_fima_fraction_model_manager_.register_models();
     region_volume_model_manager_.register_models();
     volumetric_power_model_manager_.register_models();
@@ -25,6 +26,11 @@ void DerivedModelManager::register_models()
 
 void DerivedModelManager::assign(const std::string& name, int attribute, const std::string& model_name, const ModelParameterMap& parameters)
 {
+    if (name == "derived.irradiation_time")
+    {
+        irradiation_time_model_manager_.assign(model_name, parameters);
+        return;
+    }
     if (name == "derived.burnup_fima_fraction")
     {
         burnup_fima_fraction_model_manager_.assign(attribute, model_name, parameters);
@@ -75,6 +81,10 @@ void DerivedModelManager::assign(const std::string& name, int attribute, const s
 
 StateValue DerivedModelManager::evaluate(const std::string& name, const PropertiesStatePoint& point) const
 {
+    if (name == "derived.irradiation_time")
+    {
+        return irradiation_time_model_manager_.evaluate(point);
+    }
     if (name == "derived.burnup_fima_fraction")
     {
         return burnup_fima_fraction_model_manager_.evaluate(point);
@@ -116,6 +126,10 @@ StateValue DerivedModelManager::evaluate(const std::string& name, const Properti
 
 const std::vector<RequiredState>& DerivedModelManager::required_states(const std::string& name, const std::string& model_name) const
 {
+    if (name == "derived.irradiation_time")
+    {
+        return irradiation_time_model_manager_.required_states(model_name);
+    }
     if (name == "derived.burnup_fima_fraction")
     {
         return burnup_fima_fraction_model_manager_.required_states(model_name);
