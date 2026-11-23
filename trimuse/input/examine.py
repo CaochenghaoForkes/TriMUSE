@@ -118,6 +118,12 @@ class InputCardsExamine:
         materials = {item.name: item for item in material.mat}
         derived = {item.name: item for item in properties.derived_property}
         assignments = {item.name: item.mat for item in material.assign.region}
+        release_regions = {region.name for item in properties.assembly_property if item.name == "assembly.fission_gas_release" for region in item.region}
+        for item in properties.assembly_property:
+            if item.name == "assembly.cumulative_fission_gas_release":
+                for region in item.region:
+                    if region.name not in release_regions:
+                        raise ValueError(f"区域 {region.name}: 累计释放量需要同一区域的 assembly.fission_gas_release")
         for property_config in properties.assembly_property:
             if property_config.name != "assembly.fission_gas_release":
                 continue

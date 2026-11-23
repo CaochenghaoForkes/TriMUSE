@@ -332,4 +332,8 @@
             <parameter name="grain_radius" value="1e-5" unit="[m]" si_unit="[m]"/>
         </region>
     </assembly_property>
+    <!-- 对指定区域的求积点累计释放量密度作体积积分，结果单位为 mol -->
+    <assembly_property name="cumulative_fission_gas_release">
+        <region name="[str]" model="common.from_fission_gas_release"/>
+    </assembly_property>
 </properties>

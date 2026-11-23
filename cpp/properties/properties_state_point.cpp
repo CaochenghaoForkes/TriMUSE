@@ -3,6 +3,11 @@
 namespace trimuse
 {
 
+const std::vector<std::size_t>& PropertiesStatePoint::region_point_indices() const
+{
+    return *region_domain_point_indices;
+}
+
 const PropertiesFieldData::CachedValue& PropertiesStatePoint::global_value(const std::string& name) const
 {
     return *std::get<const PropertiesFieldData::CachedValue*>(references.at(name));

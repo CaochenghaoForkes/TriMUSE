@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -16,6 +17,7 @@ struct PropertiesStatePoint
 {
     using PropertyReference = std::variant<const PropertiesFieldData::CachedValue*, const PropertiesFieldData::AttributeValues*, const PropertiesFieldData::DomainIntegrationPointValues*, const PropertiesFieldData::FaceIntegrationPointValues*>;
 
+    const std::vector<std::size_t>* region_domain_point_indices = nullptr; // 当前区域的全域求积点编号，只引用属性系统中的缓存
     int region_attribute = 0;
     int zone_attribute = 0; // 边界物理组编号，与材料区域编号分别使用
     int interface_attribute = 0; // 内部界面物理组编号
@@ -29,6 +31,7 @@ struct PropertiesStatePoint
     std::unordered_map<std::string, StateValue> values; // 属性名或场名 -> 单时空点上的 <double/vector/2d_tensor/3d_tensor>
     std::unordered_map<std::string, PropertyReference> references; // 属性名 -> 原始存储容器的只读引用
 
+    const std::vector<std::size_t>& region_point_indices() const; // 读取当前区域包含的求积点编号
     const PropertiesFieldData::CachedValue& global_value(const std::string& name) const; // 取全局属性引用
     const PropertiesFieldData::AttributeValues& attribute_values(const std::string& name) const; // 取区域/边界分区属性引用
     const PropertiesFieldData::DomainIntegrationPointValues& domain_values(const std::string& name) const; // 取全域求积点属性引用

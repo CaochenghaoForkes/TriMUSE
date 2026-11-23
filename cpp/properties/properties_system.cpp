@@ -13,6 +13,17 @@ PropertiesSystem::PropertiesSystem(const FemSystem& fem_system, const std::vecto
     fem_system_(fem_system),
     field_names_(field_names)
 {
+    for (int region : fem_system_.mesh_data().region_attributes())
+    {
+        auto& indices = region_point_indices_[region];
+        for (int element : fem_system_.mesh_data().region_elements(region))
+        {
+            for (std::size_t point = fem_system_.domain_quadrature_offset(element); point < fem_system_.domain_quadrature_offset(element + 1); ++point)
+            {
+                indices.push_back(point);
+            }
+        }
+    }
     for (const PropertyInfo& property : properties_)
     {
         if (property.scope == PropertyScope::Global)
@@ -294,11 +305,15 @@ void PropertiesSystem::mark_coupled(const std::string& field_name, const std::ve
     }
 }
 
-PropertiesStatePoint PropertiesSystem::make_state_point(PropertyScope scope, int attribute) // 根据属性的作用范围和位置编号，创建一个 PropertiesStatePoint 状态点对象，并设置它的区域/边界分区编号
+PropertiesStatePoint PropertiesSystem::make_state_point(PropertyScope scope, int attribute) const // 根据属性的作用范围和位置编号，创建一个 PropertiesStatePoint 状态点对象，并设置它的区域/边界分区编号
 {
     PropertiesStatePoint point;
     point.region_attribute = scope == PropertyScope::Region ? attribute : 0; // 如果是区域属性，就设置区域编号；否则设为 0
     point.zone_attribute = scope == PropertyScope::Zone ? attribute : 0; // 如果是边界分区属性，就设置边界分区编号；否则设为 0
+    if (scope == PropertyScope::Region)
+    {
+        point.region_domain_point_indices = &region_point_indices_.at(attribute);
+    }
     return point;
 }
 

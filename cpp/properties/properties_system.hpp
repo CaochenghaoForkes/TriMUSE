@@ -75,7 +75,7 @@ private:
     std::size_t property_index(const std::string& name) const; // 返回 name 对应属性在 properties_ 中的索引
     const std::vector<RequiredState>& model_required_states(const PropertyInfo& property, const std::string& model_name) const; // 返回计算 property 属性的 model_name 模型所需要的参数
     bool depends_on_field(const std::string& property_name, int region_attribute, const std::string& field_name) const; // 判断: 某个属性在指定区域，是否依赖求解场
-    static PropertiesStatePoint make_state_point(PropertyScope scope, int attribute); // 根据属性的作用范围和位置编号，创建一个 PropertiesStatePoint 状态点对象，并设置它的区域/边界分区编号
+    PropertiesStatePoint make_state_point(PropertyScope scope, int attribute) const; // 根据属性的作用范围和位置编号，创建一个 PropertiesStatePoint 状态点对象，并设置它的区域/边界分区编号
     template <typename Manager>
     void evaluate_and_store(const Manager& manager, const std::string& name, const PropertiesStatePoint& point); // 调用管理器计算某项属性，把结果存到对应位置，并标记该位置已经计算完成 (这个方法只用于 Global、Region、Zone 属性)
     template <typename Manager>
@@ -147,6 +147,7 @@ private:
         {"material.radioactivity.fission_gas_diffusion_coef", PropertyType::Material, PropertyScope::DomainIntegrationPoint}, // m²/s，晶粒尺度裂变气体扩散系数
         {"material.radioactivity.nuclide_diffusion_coef", PropertyType::Material, PropertyScope::DomainIntegrationPoint}, // m²/s
         {"assembly.fission_gas_release", PropertyType::Assembly, PropertyScope::DomainIntegrationPoint}, // 向量：[累计释放量密度, 累计产生量密度, 释放份额, z₁, …, zM]
+        {"assembly.cumulative_fission_gas_release", PropertyType::Assembly, PropertyScope::Region}, // mol，区域内累计释放的裂变气体总量
         {"assembly.interface_pressure", PropertyType::Assembly, PropertyScope::Interface}, // Pa，界面各面片的压力
         {"assembly.interface_thermal_resistance", PropertyType::Assembly, PropertyScope::Interface} // m²·K/W
     };
@@ -167,6 +168,7 @@ private:
         {"displacement", {"material.mechanics.elasticity_tensor"}}
     };
     const FemSystem& fem_system_;
+    std::unordered_map<int, std::vector<std::size_t>> region_point_indices_; // 区域编号 -> 该区域的全域求积点编号，初始化后供各类 Region 模型共用
     std::vector<std::string> field_names_; // 本次启用的求解场，由外部传入
     ModelParameterMap build_parameters_; // 初始化阶段设置的公共构造参数, 在最上层 assign 中合并给所有模型
     MaterialModelManager material_model_manager_; // 材料属性模型管理器
