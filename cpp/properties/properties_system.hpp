@@ -76,6 +76,7 @@ private:
     const std::vector<RequiredState>& model_required_states(const PropertyInfo& property, const std::string& model_name) const; // 返回计算 property 属性的 model_name 模型所需要的参数
     bool depends_on_field(const std::string& property_name, int region_attribute, const std::string& field_name) const; // 判断: 某个属性在指定区域，是否依赖求解场
     PropertiesStatePoint make_state_point(PropertyScope scope, int attribute) const; // 根据属性的作用范围和位置编号，创建一个 PropertiesStatePoint 状态点对象，并设置它的区域/边界分区编号
+    VectorValue sample_region_field(const std::string& field_name, int region, const FieldMap& trial_fields) const; // 按区域求积点顺序读取标量场样本，优先使用传入的试探场
     template <typename Manager>
     void evaluate_and_store(const Manager& manager, const std::string& name, const PropertiesStatePoint& point); // 调用管理器计算某项属性，把结果存到对应位置，并标记该位置已经计算完成 (这个方法只用于 Global、Region、Zone 属性)
     template <typename Manager>

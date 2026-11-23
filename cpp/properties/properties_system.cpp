@@ -935,6 +935,24 @@ void PropertiesSystem::evaluate_and_store_face_points(const Manager& manager, co
     computed_locations_[property.name].insert(attribute);
 }
 
+VectorValue PropertiesSystem::sample_region_field(const std::string& field_name, int region, const FieldMap& trial_fields) const
+{
+    const auto trial = trial_fields.find(field_name);
+    const auto view = trial != trial_fields.end() ? trial->second : fem_system_.field_view(field_name);
+    VectorValue samples;
+    samples.reserve(region_point_indices_.at(region).size());
+    const auto& mesh = fem_system_.mesh_data().mfem_mesh();
+    for (int element : fem_system_.mesh_data().region_elements(region))
+    {
+        const auto* rule = fem_system_.domain_quadrature_rule(mesh.GetElementBaseGeometry(element));
+        for (int q = 0; q < rule->GetNPoints(); ++q)
+        {
+            samples.push_back(std::get<double>(view.evaluate(region, element, rule->IntPoint(q))));
+        }
+    }
+    return samples;
+}
+
 template <typename Manager>
 void PropertiesSystem::evaluate_property(const Manager& manager, const PropertyInfo& property, int location, const std::vector<RequiredState>& required, const FieldMap& trial_fields) // 根据存储范围选择求值位置并保存结果
 {
@@ -961,21 +979,7 @@ void PropertiesSystem::evaluate_property(const Manager& manager, const PropertyI
                 property_required.push_back(dependency); // 放入 property_required，最后仍由 load_model_states() 按原来的方式加载，包括模型自己的历史状态
                 continue;
             }
-            // 求解场依赖
-            const auto trial = trial_fields.find(dependency.name); // 有传入试探场就使用试探场，否则使用正式场
-            const auto view = trial != trial_fields.end() ? trial->second : fem_system_.field_view(dependency.name);
-            VectorValue samples;
-            samples.reserve(point.region_point_indices().size());
-            const auto& mesh = fem_system_.mesh_data().mfem_mesh();
-            for (int element : fem_system_.mesh_data().region_elements(location))
-            {
-                const auto* rule = fem_system_.domain_quadrature_rule(mesh.GetElementBaseGeometry(element));
-                for (int q = 0; q < rule->GetNPoints(); ++q)
-                {
-                    samples.push_back(std::get<double>(view.evaluate(location, element, rule->IntPoint(q))));
-                }
-            }
-            point.values[dependency.name] = std::move(samples); // Region 模型显式声明 reference=true 时，读取该区域标量场的求积点样本
+            point.values[dependency.name] = sample_region_field(dependency.name, location, trial_fields); // 求解场依赖由统一接口取得当前区域的标量样本
         }
         load_model_states(point, property, location, property_required);
         evaluate_and_store(manager, property.name, point);
