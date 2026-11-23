@@ -4,7 +4,7 @@ from pathlib import Path
 from xml.etree import ElementTree as ET
 import sys
 
-from ..xml_utils import XmlUtils
+from ..xml_utils import ProblemParameters, XmlUtils
 
 @dataclass
 class PropertiesCard:
@@ -14,7 +14,7 @@ class PropertiesCard:
     class Region:
         name: str
         model: str
-        parameters: dict[str, float | list[float]] = field(default_factory=dict)
+        parameters: ProblemParameters = field(default_factory=dict)
 
     @dataclass
     class Global:
@@ -74,8 +74,9 @@ class PropertiesCardLoader:
     @staticmethod
     def read_region(element: ET.Element) -> PropertiesCard.Region:
         name = XmlUtils.read_attribute(element, "name", required=True)
-        model_config = XmlUtils.read_model(element, context=name)
-        return PropertiesCard.Region(name=name, **model_config)
+        model = XmlUtils.read_attribute(element, "model", required=True, context=name)
+        parameters = XmlUtils.read_parameters(element, context=name)
+        return PropertiesCard.Region(name=name, model=model, parameters=parameters)
 
     @staticmethod
     def read_global(element: ET.Element) -> PropertiesCard.Global:

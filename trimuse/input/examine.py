@@ -32,6 +32,7 @@ class InputCardsExamine:
         cls.check_fission_gas_diffusion_dependencies(material, properties, thermal)
         cls.check_fission_gas_release_dependencies(material, properties)
         cls.check_co_release_dependencies(properties, thermal)
+        cls.check_internal_gas_pressure_dependencies(material, properties, thermal)
         if mechanics is not None:
             cls.check_mechanics_sources(geometry_mesh, mechanics)
         cls.check_postprocess_geometry(geometry_mesh, postprocess)
@@ -112,6 +113,36 @@ class InputCardsExamine:
             item.name == "derived.fast_neutron_fluence" and item.global_ is not None for item in properties.derived_property
         ):
             raise ValueError("BISON 力学物性模型需要全局 derived.fast_neutron_fluence")
+
+    @staticmethod
+    def check_internal_gas_pressure_dependencies(material: MaterialCard, properties: PropertiesCard, thermal: ThermalCard | None) -> None:
+        """检查气体来源、储气区域和内压所需的上游属性"""
+        materials = {item.name: item for item in material.mat}
+        assignments = {item.name: item.mat for item in material.assign.region}
+        release_regions = {"assembly.cumulative_fission_gas_release": set(), "assembly.cumulative_co_release": set()}
+        for item in properties.assembly_property:
+            if item.name in release_regions:
+                for region in item.region:
+                    release_regions[item.name].add(region.name)
+        for item in properties.assembly_property:
+            if item.name != "assembly.internal_gas_pressure":
+                continue
+            for region in item.region:
+                if region.model != "common.ideal_gas_from_co_fission_gas_release":
+                    continue
+                if thermal is None:
+                    raise ValueError("理想气体内压模型需要 temperature 场和 thermal 输入卡")
+                source_region = region.parameters["source_region"]
+                gas_region = region.name
+                if source_region not in assignments or gas_region not in assignments:
+                    raise ValueError(f"储气区域 {gas_region}: source_region 和储气区域必须为已分配材料的区域")
+                for name, regions in release_regions.items():
+                    if source_region not in regions:
+                        raise ValueError(f"区域 {source_region}: 理想气体内压缺少 {name}")
+                gas_material = materials[assignments[gas_region]]
+                porosity = next((value for value in gas_material.properties if value.property_name == "material.general.porosity"), None)
+                if porosity is None or (porosity.model == "common.constant" and porosity.parameters["constant_value"] <= 0.0):
+                    raise ValueError(f"储气区域 {gas_region}: 需要正孔隙体积，请配置 material.general.porosity")
 
     @staticmethod
     def check_co_release_dependencies(properties: PropertiesCard, thermal: ThermalCard | None) -> None:

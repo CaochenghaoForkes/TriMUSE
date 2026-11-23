@@ -13,7 +13,7 @@ namespace trimuse
 struct MechanicsInterfacePressureFace // 一个面片的几何索引与当前压力
 {
     const MeshData::Interface* interface;
-    std::vector<MechanicsInterfacePressureValue> values; // 可为空、单侧或双侧压力列表
+    MechanicsInterfacePressureValue value; // 非储气侧及区域气压
 };
 
 class TrialField;
@@ -32,10 +32,11 @@ public:
     const std::vector<MechanicsInterfacePressureFace>& values(int attribute) const;
 
 private:
-    struct Assignment // model required faces(vector{面片几何索引,压力})
+    struct Assignment
     {
         std::unique_ptr<MechanicsInterfacePressureModel> model;
         std::vector<RequiredState> required;
+        int gas_region;
         std::vector<MechanicsInterfacePressureFace> faces;
         bool dirty = true;
     };

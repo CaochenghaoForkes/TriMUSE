@@ -68,7 +68,8 @@ class PropertiesManager:
         for configs in (properties.external_property, properties.derived_property, properties.assembly_property):
             for property_config in configs:
                 for region in property_config.region:
-                    self.assign_property(region_attributes[region.name], property_config.name, region.model, region.parameters)
+                    parameters = self.fill_region_parameters(property_config.name, region, region_attributes)
+                    self.assign_property(region_attributes[region.name], property_config.name, region.model, parameters)
                 for zone in property_config.zone:
                     self.assign_property(zone_attributes[zone.name], property_config.name, zone.model, zone.parameters)
                 for interface in property_config.interface:
@@ -76,6 +77,14 @@ class PropertiesManager:
                 if property_config.global_ is not None:
                     global_config = property_config.global_
                     self.assign_property(0, property_config.name, global_config.model, global_config.parameters)
+
+    @staticmethod
+    def fill_region_parameters(name: str, region: PropertiesCard.Region, region_attributes: dict[str, int]) -> dict[str, float | list[float]]:
+        """统一处理区域属性模型需要的参数转换，保留原始输入"""
+        parameters = dict(region.parameters)
+        if name == "assembly.internal_gas_pressure" and region.model == "common.ideal_gas_from_co_fission_gas_release":
+            parameters["source_region"] = float(region_attributes[parameters["source_region"]])
+        return parameters
 
     def assign_property(self, attribute: int, name: str, model: str, parameters: dict[str, float | list[float]]) -> None:
         """将上层模型及其绑定的下层模型分配给同一位置"""

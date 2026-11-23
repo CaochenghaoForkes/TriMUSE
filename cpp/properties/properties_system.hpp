@@ -153,7 +153,7 @@ private:
         {"assembly.local_booth_fission_gas_release_state", PropertyType::Assembly, PropertyScope::DomainIntegrationPoint}, // 向量：[累计释放量密度, 累计产生量密度, 释放份额, z₁, …, zM]
         {"assembly.homogenized_booth_fission_gas_release_state", PropertyType::Assembly, PropertyScope::Region}, // 区域均匀化状态：[累计释放量密度, 累计产生量密度, 释放份额, z₁, …, zM]
         {"assembly.cumulative_fission_gas_release", PropertyType::Assembly, PropertyScope::Region}, // mol，区域内累计释放的裂变气体总量
-        {"assembly.interface_pressure", PropertyType::Assembly, PropertyScope::Interface}, // Pa，界面各面片的压力
+        {"assembly.internal_gas_pressure", PropertyType::Assembly, PropertyScope::Region}, // Pa，储气区域的内部气体压力
         {"assembly.interface_thermal_resistance", PropertyType::Assembly, PropertyScope::Interface} // m²·K/W
     };
 

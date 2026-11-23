@@ -28,20 +28,12 @@
         <interface name="residual">
             <model name="interface_contact" model_name="perfect_contact"/>
         </interface>
-        <!-- 压力值来自属性卡同名界面的 assembly.interface_pressure，加载不改变连接关系 -->
-        <!-- 单侧写法，指定该界面相邻的受压区域 -->
-        <!--
-        <interface name="buffer_ipyc">
+        <!-- 从储气区域读取压力，自动选择界面非储气域的一侧加载，不改变连接关系
+        <interface name="kernel_buffer buffer_ipyc">
             <model name="interface_contact" model_name="perfect_contact"/>
-            <model name="interface_pressure" model_name="single_face">
-                <parameter name="region" value="ipyc" unit="[1]" si_unit="[1]"/>
+            <model name="interface_pressure" model_name="from_internal_gas_pressure">
+                <parameter name="gas_region" value="buffer" unit="[1]" si_unit="[1]"/>
             </model>
-        </interface>
-        -->
-        <!-- 双侧写法，与上面的单侧写法二选一
-        <interface name="buffer_ipyc">
-            <model name="interface_contact" model_name="perfect_contact"/>
-            <model name="interface_pressure" model_name="double_face"/>
         </interface>
         -->
     </interfaces>

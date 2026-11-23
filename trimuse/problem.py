@@ -128,10 +128,9 @@ class Mechanics:
 
     @staticmethod
     def fill_interface_pressure_parameters(configs: list[ProblemConfigEntry], region_attributes: dict[str, int]) -> None:
-        """单侧压力将受压区域名转为编号，双侧压力无需参数"""
+        """将界面压力模型的储气区域名转换为编号"""
         for attribute, model, parameters in configs:
-            if model == "single_face":
-                parameters["region"] = float(region_attributes[parameters["region"]])
+            parameters["gas_region"] = float(region_attributes[parameters["gas_region"]])
 
     def solve(self, time_step: float = 0.0, theta: float = 1.0) -> None:
         """保持统一调度接口，准静态方程本身不使用时间离散参数"""

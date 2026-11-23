@@ -1,6 +1,5 @@
 #include "physics/mechanics/interface_pressure/mechanics_interface_pressure_manager.hpp"
-#include "physics/mechanics/interface_pressure/single_face_interface_pressure.hpp"
-#include "physics/mechanics/interface_pressure/double_face_interface_pressure.hpp"
+#include "physics/mechanics/interface_pressure/from_internal_gas_pressure.hpp"
 #include "physics/mechanics/interface_pressure/mechanics_interface_pressure_assembly.hpp"
 
 namespace trimuse
@@ -8,12 +7,11 @@ namespace trimuse
 
 MechanicsInterfacePressureManager::MechanicsInterfacePressureManager(const FemSystem& fem, const std::vector<MechanicsInterfaceConfig>& configs)
 {
-    registry_.register_model<SingleFaceInterfacePressure>("single_face", {"assembly.interface_pressure"}); // 注册
-    registry_.register_model<DoubleFaceInterfacePressure>("double_face", {"assembly.interface_pressure"});
-    for (const auto& config : configs) // 安排并初始化各界面区域对应的 model required faces(vector{面片几何索引,压力})
+    registry_.register_model<MechanicsFromInternalGasPressure>("from_internal_gas_pressure", {"assembly.internal_gas_pressure"});
+    for (const auto& config : configs) // 安排界面模型及其储气区域
     {
         const auto& entry = registry_.registration(config.model_name);
-        interface_pressure_assignments_.emplace(config.boundary_attribute, Assignment{entry.factory(config.parameters), entry.required_states, {}});
+        interface_pressure_assignments_.emplace(config.boundary_attribute, Assignment{entry.factory(config.parameters), entry.required_states, static_cast<int>(std::get<double>(config.parameters.at("gas_region"))), {}});
     }
     for (const auto& interface : fem.mesh_data().interfaces()) // 遍历界面面片
     {
@@ -31,9 +29,9 @@ void MechanicsInterfacePressureManager::update(const PropertiesFieldData& proper
     {
         for (auto& face : assignment.faces) // 遍历该区域中的面片
         {
-            const auto values = assignment.model->evaluate(properties, *face.interface); // 取得当前面片各侧的压力贡献
-            assignment.dirty = assignment.dirty || values != face.values; // 更新 dirty
-            face.values = values; // 更新值
+            const auto value = assignment.model->evaluate(properties, *face.interface); // 取得非储气侧及区域气压
+            assignment.dirty = assignment.dirty || !(value == face.value); // 更新 dirty
+            face.value = value; // 更新值
         }
     }
 }
@@ -53,7 +51,7 @@ bool MechanicsInterfacePressureManager::coupled(const PropertiesSystem& properti
         for (const auto& dependency : assignment.required)
         {
             const std::string& name = dependency.name;
-            if (properties.coupled_with_field(name, attribute, field))
+            if (properties.coupled_with_field(name, assignment.gas_region, field))
             {
                 return true;
             }
@@ -94,10 +92,7 @@ std::unique_ptr<mfem::Vector> MechanicsInterfacePressureManager::assemble_load(i
     for (const auto& face : assignment.faces) // 遍历各面片
     {
         const InterfaceContext context(*face.interface, fem);
-        for (const auto& value : face.values) // 再遍历该面片的单侧或双侧压力贡献
-        {
-            assembly.add_pressure(context, value.side, value.pressure, weights); // 将各贡献积分并累加
-        }
+        assembly.add_pressure(context, face.value.side, face.value.pressure, weights); // 仅向非储气侧施加区域气压
     }
     return assembly.finalize(); // 返回汇总后的载荷向量
 }
