@@ -6,6 +6,7 @@ from ..thermal.examine import ThermalCardExamine
 class PropertiesCardExamine:
     COMMON_MODELS = {"common.constant", "common.time_series"}
     MODELS = {
+        "assembly.fission_gas_release": {"common.booth"},
         "assembly.interface_pressure": {"common.uniform_from_constant_value", "common.local_from_constant_value"},
         "assembly.interface_thermal_resistance": {"common.uniform_from_constant_value", "common.local_from_constant_value"},
         "external.power": COMMON_MODELS,
@@ -95,6 +96,20 @@ class PropertiesCardExamine:
         zone_names = [zone.name for zone in property_config.zone]
         if len(zone_names) != len(set(zone_names)):
             raise ValueError(f"{location}: 外表面分区名称不能重复")
+        if location == "assembly.fission_gas_release":
+            if not property_config.region or property_config.zone or property_config.global_ is not None:
+                raise ValueError(f"{location}: 请按 region 配置裂变气体释放模型")
+            for region in property_config.region:
+                parameters = region.parameters
+                mode_count = parameters.get("mode_count")
+                grain_radius = parameters.get("grain_radius")
+                if set(parameters) != {"mode_count", "grain_radius"}:
+                    raise ValueError(f"{location}.{region.name}: 必须且仅需指定 mode_count 和 grain_radius")
+                if not isinstance(mode_count, float) or not math.isfinite(mode_count) or mode_count <= 0 or not mode_count.is_integer():
+                    raise ValueError(f"{location}.{region.name}: mode_count 必须为正整数")
+                if not isinstance(grain_radius, float) or not math.isfinite(grain_radius) or grain_radius <= 0:
+                    raise ValueError(f"{location}.{region.name}: grain_radius 必须为有限正标量，单位为 m")
+            return
         if location == "derived.burnup_fima_fraction":
             if not property_config.region or property_config.zone or property_config.global_ is not None:
                 raise ValueError(f"{location}: 请按 region 配置 FIMA 份额")

@@ -30,6 +30,7 @@ class InputCardsExamine:
         cls.check_bacon_anisotropy_factor_dependencies(material, properties)
         cls.check_mechanics_material_dependencies(material, properties, thermal)
         cls.check_fission_gas_diffusion_dependencies(material, properties, thermal)
+        cls.check_fission_gas_release_dependencies(material, properties)
         if mechanics is not None:
             cls.check_mechanics_sources(geometry_mesh, mechanics)
         cls.check_postprocess_geometry(geometry_mesh, postprocess)
@@ -110,6 +111,23 @@ class InputCardsExamine:
             item.name == "derived.fast_neutron_fluence" and item.global_ is not None for item in properties.derived_property
         ):
             raise ValueError("BISON 力学物性模型需要全局 derived.fast_neutron_fluence")
+
+    @staticmethod
+    def check_fission_gas_release_dependencies(material: MaterialCard, properties: PropertiesCard) -> None:
+        """释放模型需要同一材料的扩散系数，以及同一区域的产生率与体积"""
+        materials = {item.name: item for item in material.mat}
+        derived = {item.name: item for item in properties.derived_property}
+        assignments = {item.name: item.mat for item in material.assign.region}
+        for property_config in properties.assembly_property:
+            if property_config.name != "assembly.fission_gas_release":
+                continue
+            for region in property_config.region:
+                names = {item.property_name for item in materials[assignments[region.name]].properties}
+                if "material.radioactivity.fission_gas_diffusion_coef" not in names:
+                    raise ValueError(f"区域 {region.name}: 裂变气体释放模型缺少 fission_gas_diffusion_coef")
+                for name in ("derived.fission_gas_production_rate", "derived.region_volume"):
+                    if name not in derived or region.name not in {item.name for item in derived[name].region}:
+                        raise ValueError(f"区域 {region.name}: 裂变气体释放模型缺少 {name}")
 
     @staticmethod
     def check_fission_gas_diffusion_dependencies(material: MaterialCard, properties: PropertiesCard, thermal: ThermalCard | None) -> None:
@@ -196,7 +214,7 @@ class InputCardsExamine:
         birth_rate = next((item for item in properties.external_property if item.name == "external.nuclide_birth_rate"), None)
         fast_neutron_flux = next((item for item in properties.external_property if item.name == "external.fast_neutron_flux"), None)
         fraction_regions = {region.name for item in properties.external_property if item.name == "external.uranium_fraction" for region in item.region}
-        for property_config in properties.external_property + properties.derived_property:
+        for property_config in properties.external_property + properties.derived_property + properties.assembly_property:
             configured_regions = {region.name for region in property_config.region}
             unknown = configured_regions - region_names
             if unknown:

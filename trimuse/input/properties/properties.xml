@@ -325,4 +325,11 @@
         </interface>
     </assembly_property>
     -->
+    <!-- 每个域求积点从零记录裂变气体产生与释放历史，grain_radius 为等效晶粒半径 -->
+    <assembly_property name="fission_gas_release">
+        <region name="[str]" model="common.booth">
+            <parameter name="mode_count" value="100" unit="[1]" si_unit="[1]"/>
+            <parameter name="grain_radius" value="1e-5" unit="[m]" si_unit="[m]"/>
+        </region>
+    </assembly_property>
 </properties>
