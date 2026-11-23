@@ -343,6 +343,13 @@
         </region>
     </assembly_property>
     -->
+    <!-- RK 真实气体模型，内置 CO/Kr/Xe 参数及 Kr/Xe 比例，可替换上面的理想气体模型
+    <assembly_property name="internal_gas_pressure">
+        <region name="buffer" model="common.rk_from_co_fission_gas_release">
+            <parameter name="source_region" value="kernel" unit="[1]" si_unit="[1]"/>
+        </region>
+    </assembly_property>
+    -->
     <!-- 指定区域气压，可替换上面的理想气体模型
     <assembly_property name="internal_gas_pressure">
         <region name="buffer" model="common.constant">

@@ -8,7 +8,7 @@ class PropertiesCardExamine:
     MODELS = {
         "assembly.cumulative_co_release": {"common.from_local_panama_opf", "common.from_homogenized_panama_opf"},
         "assembly.cumulative_fission_gas_release": {"common.from_local_booth_fission_gas_release", "common.from_homogenized_booth_fission_gas_release"},
-        "assembly.internal_gas_pressure": COMMON_MODELS | {"common.ideal_gas_from_co_fission_gas_release"},
+        "assembly.internal_gas_pressure": COMMON_MODELS | {"common.ideal_gas_from_co_fission_gas_release", "common.rk_from_co_fission_gas_release"},
         "assembly.interface_thermal_resistance": {"common.uniform_from_constant_value", "common.local_from_constant_value"},
         "external.power": COMMON_MODELS,
         "external.energy_per_fission": {"common.constant"},
@@ -197,7 +197,7 @@ class PropertiesCardExamine:
             raise ValueError(f"{location}: 请按 region 配置气体内压")
         for region in property_config.region:
             context = f"{location}.{region.name}"
-            if region.model == "common.ideal_gas_from_co_fission_gas_release":
+            if region.model in {"common.ideal_gas_from_co_fission_gas_release", "common.rk_from_co_fission_gas_release"}:
                 if set(region.parameters) != {"source_region"} or not isinstance(region.parameters["source_region"], str) or not region.parameters["source_region"].strip():
                     raise ValueError(f"{context}: 必须且仅需指定 source_region 区域名称")
             else:

@@ -128,17 +128,17 @@ class InputCardsExamine:
             if item.name != "assembly.internal_gas_pressure":
                 continue
             for region in item.region:
-                if region.model != "common.ideal_gas_from_co_fission_gas_release":
+                if region.model not in {"common.ideal_gas_from_co_fission_gas_release", "common.rk_from_co_fission_gas_release"}:
                     continue
                 if thermal is None:
-                    raise ValueError("理想气体内压模型需要 temperature 场和 thermal 输入卡")
+                    raise ValueError("气体内压状态方程需要 temperature 场和 thermal 输入卡")
                 source_region = region.parameters["source_region"]
                 gas_region = region.name
                 if source_region not in assignments or gas_region not in assignments:
                     raise ValueError(f"储气区域 {gas_region}: source_region 和储气区域必须为已分配材料的区域")
                 for name, regions in release_regions.items():
                     if source_region not in regions:
-                        raise ValueError(f"区域 {source_region}: 理想气体内压缺少 {name}")
+                        raise ValueError(f"区域 {source_region}: 气体内压状态方程缺少 {name}")
                 gas_material = materials[assignments[gas_region]]
                 porosity = next((value for value in gas_material.properties if value.property_name == "material.general.porosity"), None)
                 if porosity is None or (porosity.model == "common.constant" and porosity.parameters["constant_value"] <= 0.0):

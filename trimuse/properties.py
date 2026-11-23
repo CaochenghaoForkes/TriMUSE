@@ -82,7 +82,7 @@ class PropertiesManager:
     def fill_region_parameters(name: str, region: PropertiesCard.Region, region_attributes: dict[str, int]) -> dict[str, float | list[float]]:
         """统一处理区域属性模型需要的参数转换，保留原始输入"""
         parameters = dict(region.parameters)
-        if name == "assembly.internal_gas_pressure" and region.model == "common.ideal_gas_from_co_fission_gas_release":
+        if name == "assembly.internal_gas_pressure" and region.model in {"common.ideal_gas_from_co_fission_gas_release", "common.rk_from_co_fission_gas_release"}:
             parameters["source_region"] = float(region_attributes[parameters["source_region"]])
         return parameters
 
