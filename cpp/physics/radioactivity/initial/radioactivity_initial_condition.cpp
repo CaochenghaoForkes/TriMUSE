@@ -26,7 +26,7 @@ public:
     }
 
 private:
-    const std::unordered_map<int, double>& region_values_; // 区域编号 -> 初始浓度 atom/m³
+    const std::unordered_map<int, double>& region_values_; // 区域编号 -> 初始浓度 mol/m³
 };
 
 class ProjectionMassIntegrator final : public mfem::MassIntegrator // 使用统一求积规则组装带几何权重的 L2 投影质量矩阵
@@ -81,7 +81,7 @@ std::unordered_map<int, double> initial_values(const FemSystem& fem_system, cons
             throw std::invalid_argument("尚未支持的初始浓度模型: " + config.model_name);
         }
         const double inventory = std::get<double>(config.parameters.at("inventory"));
-        region_values[config.region_attribute] = inventory / fem_system.mesh_data().region_volumes().at(config.region_attribute); // atom / m³
+        region_values[config.region_attribute] = inventory / fem_system.mesh_data().region_volumes().at(config.region_attribute); // mol / m³
     }
     return region_values;
 }

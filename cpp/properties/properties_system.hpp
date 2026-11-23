@@ -109,9 +109,9 @@ private:
         {"external.time", PropertyType::External, PropertyScope::Global},
         {"external.time_step", PropertyType::External, PropertyScope::Global}, // s, 本次推进的时间增量
         {"external.environment_temperature", PropertyType::External, PropertyScope::Zone},
-        {"external.environment_nuclide_concentration", PropertyType::External, PropertyScope::Zone}, // atom/m³
-        {"external.surface_nuclide_concentration", PropertyType::External, PropertyScope::Zone}, // atom/m³, 指定表面浓度
-        {"external.nuclide_flux", PropertyType::External, PropertyScope::Zone}, // atom/(m²·s), 外流为正、流入为负
+        {"external.environment_nuclide_concentration", PropertyType::External, PropertyScope::Zone}, // mol/m³
+        {"external.surface_nuclide_concentration", PropertyType::External, PropertyScope::Zone}, // mol/m³, 指定表面浓度
+        {"external.nuclide_flux", PropertyType::External, PropertyScope::Zone}, // mol/(m²·s), 外流为正、流入为负
         {"external.surface_temperature", PropertyType::External, PropertyScope::Zone}, // K, 指定表面温度
         {"external.surface_traction", PropertyType::External, PropertyScope::Zone}, // Pa, 求解坐标系中的面力分量
         {"external.surface_displacement", PropertyType::External, PropertyScope::Zone}, // m, 求解坐标系中的位移分量
@@ -119,9 +119,9 @@ private:
         {"external.heat_flux", PropertyType::External, PropertyScope::Zone}, // W/m², 外流为正、流入为负
         {"external.power", PropertyType::External, PropertyScope::Region},
         {"external.energy_per_fission", PropertyType::External, PropertyScope::Global}, // J，每次裂变的释热能量
-        {"external.nuclide_birth_rate", PropertyType::External, PropertyScope::Global}, // atom/s, 全局核素产生率
+        {"external.nuclide_birth_rate", PropertyType::External, PropertyScope::Global}, // mol/s, 全局核素产生率
         {"external.fast_neutron_flux", PropertyType::External, PropertyScope::Global}, // 1/(m²·s), 全局快中子通量
-        {"external.initial_heavy_metal_inventory", PropertyType::External, PropertyScope::Region}, // atom，区域初始重金属原子总数
+        {"external.initial_heavy_metal_inventory", PropertyType::External, PropertyScope::Region}, // mol，区域初始重金属物质的量
         {"external.uranium_fraction", PropertyType::External, PropertyScope::Region}, // 各区域占全局产生率的份额
         {"derived.region_volume", PropertyType::Derived, PropertyScope::Region}, // m³，当前区域体积
         {"derived.heat_transfer_coef", PropertyType::Derived, PropertyScope::Zone},
@@ -130,7 +130,7 @@ private:
         {"derived.fission_gas_production_rate", PropertyType::Derived, PropertyScope::Region}, // mol/s，区域裂变气体总产生率
         {"derived.burnup_fima_fraction", PropertyType::Derived, PropertyScope::Region}, // 0～1 的 FIMA 份额
         {"derived.volumetric_power", PropertyType::Derived, PropertyScope::DomainIntegrationPoint},
-        {"derived.volumetric_nuclide_birth_rate", PropertyType::Derived, PropertyScope::DomainIntegrationPoint}, // atom/(m³·s)
+        {"derived.volumetric_nuclide_birth_rate", PropertyType::Derived, PropertyScope::DomainIntegrationPoint}, // mol/(m³·s)
         {"derived.irradiation_time", PropertyType::Derived, PropertyScope::Global}, // s，累计辐照时间
         {"derived.fast_neutron_fluence", PropertyType::Derived, PropertyScope::Global}, // 1/m², 累积快中子注量
         {"material.general.porosity", PropertyType::Material, PropertyScope::DomainIntegrationPoint},

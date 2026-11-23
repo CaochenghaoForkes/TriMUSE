@@ -9,7 +9,7 @@ VolumetricNuclideBirthRateSource::VolumetricNuclideBirthRateSource(const ModelPa
 
 double VolumetricNuclideBirthRateSource::evaluate(const PropertiesFieldData& properties, std::size_t point) const
 {
-    return scalar(properties, "derived.volumetric_nuclide_birth_rate", point); // atom/(m³·s)
+    return scalar(properties, "derived.volumetric_nuclide_birth_rate", point); // mol/(m³·s)
 }
 
 }

@@ -8,10 +8,10 @@
             <parameter name="constant_value" value="3.20435e-11" unit="[J]" si_unit="[J]"/>
         </global>
     </external_property>
-    <!-- 各区域的初始重金属原子总数，固定不随燃耗减少，仅支持 common.constant -->
+    <!-- 各区域的初始重金属物质的量，固定不随燃耗减少，仅支持 common.constant -->
     <external_property name="initial_heavy_metal_inventory">
         <region name="[str]" model="common.constant">
-            <parameter name="constant_value" value="[float]" unit="[atom]" si_unit="[atom]"/>
+            <parameter name="constant_value" value="[float]" unit="[mol]" si_unit="[mol]"/>
         </region>
     </external_property>
     <external_property name="power">
@@ -59,28 +59,28 @@
         </zone>
         -->
     </external_property>
-    <!-- 核素 Dirichlet 边界: 同名 zone 的指定浓度, 内部单位 atom/m³, 数值非负 -->
-    <!-- 核素数量可用 atom、mol 及相应前缀单位, si_unit 保持 atom 体系; 不支持活度单位 Bq/Ci -->
+    <!-- 核素 Dirichlet 边界: 同名 zone 的指定浓度, 内部单位 mol/m³, 数值非负 -->
+    <!-- 核素数量可用 atom、mol 及相应前缀单位, si_unit 使用 mol 体系; 不支持活度单位 Bq/Ci -->
     <external_property name="surface_nuclide_concentration">
         <zone name="[str]" model="common.constant">
-            <parameter name="constant_value" value="[float]" unit="[atom]/[m]^3" si_unit="[atom]/[m]^3"/>
+            <parameter name="constant_value" value="[float]" unit="[mol]/[m]^3" si_unit="[mol]/[m]^3"/>
         </zone>
         <!-- 时间表可替换上面的常数模型; times 严格递增, values 非负。
         <zone name="[str]" model="common.time_series">
             <parameter name="times" value="[float] [float]" unit="[s]" si_unit="[s]"/>
-            <parameter name="values" value="[float] [float]" unit="[atom]/[m]^3" si_unit="[atom]/[m]^3"/>
+            <parameter name="values" value="[float] [float]" unit="[mol]/[m]^3" si_unit="[mol]/[m]^3"/>
         </zone>
         -->
     </external_property>
     <!-- 核素 Neumann 边界: 正值向外释放, 负值向内输入, 0 为无通量 -->
     <external_property name="nuclide_flux">
         <zone name="[str]" model="common.constant">
-            <parameter name="constant_value" value="[float]" unit="[atom]/[m]^2[s]" si_unit="[atom]/[m]^2[s]"/>
+            <parameter name="constant_value" value="[float]" unit="[mol]/[m]^2[s]" si_unit="[mol]/[m]^2[s]"/>
         </zone>
         <!-- 时间表可替换上面的常数模型; values 可正可负。
         <zone name="[str]" model="common.time_series">
             <parameter name="times" value="[float] [float]" unit="[s]" si_unit="[s]"/>
-            <parameter name="values" value="[float] [float]" unit="[atom]/[m]^2[s]" si_unit="[atom]/[m]^2[s]"/>
+            <parameter name="values" value="[float] [float]" unit="[mol]/[m]^2[s]" si_unit="[mol]/[m]^2[s]"/>
         </zone>
         -->
     </external_property>
@@ -189,12 +189,12 @@
     </derived_property>
     <external_property name="nuclide_birth_rate">
         <global model="common.constant">
-            <parameter name="constant_value" value="[float]" unit="[atom]/[s]" si_unit="[atom]/[s]"/>
+            <parameter name="constant_value" value="[float]" unit="[mol]/[s]" si_unit="[mol]/[s]"/>
         </global>
         <!-- 如需时间表，替换上面的节点；times/values 等长且至少两个点，times 严格递增。
         <global model="common.time_series">
             <parameter name="times" value="[float] [float]" unit="[s]" si_unit="[s]"/>
-            <parameter name="values" value="[float] [float]" unit="[atom]/[s]" si_unit="[atom]/[s]"/>
+            <parameter name="values" value="[float] [float]" unit="[mol]/[s]" si_unit="[mol]/[s]"/>
         </global>
         -->
     </external_property>
@@ -211,18 +211,18 @@
     </external_property>
     <external_property name="environment_nuclide_concentration">
         <zone name="[str]" model="common.constant">
-            <parameter name="constant_value" value="[float]" unit="[atom]/[m]^3" si_unit="[atom]/[m]^3"/>
+            <parameter name="constant_value" value="[float]" unit="[mol]/[m]^3" si_unit="[mol]/[m]^3"/>
         </zone>
         <!-- 如需时间表，替换上面的节点；times/values 等长且至少两个点，times 严格递增。
         <zone name="[str]" model="common.time_series">
             <parameter name="times" value="[float] [float]" unit="[s]" si_unit="[s]"/>
-            <parameter name="values" value="[float] [float]" unit="[atom]/[m]^3" si_unit="[atom]/[m]^3"/>
+            <parameter name="values" value="[float] [float]" unit="[mol]/[m]^3" si_unit="[mol]/[m]^3"/>
         </zone>
         -->
     </external_property>
     <!-- nuclide_birth_rate 为全局产生率；uranium_fraction 为各区域分配份额（0 到 1），不是材料铀含量。
          所有核素数量类参数只接受 atom、mol 等数量单位，不接受 Bq/Ci。
-         mass_transfer_coef 为 Robin 传质系数；表面浓度单位 atom/m³。
+         mass_transfer_coef 为 Robin 传质系数；表面浓度单位 mol/m³。
          constant 只需 constant_value；time_series 只需 times 和 values。
          时间表在点间线性插值，超出表格范围取最近端点值。 -->
     <derived_property name="mass_transfer_coef">
@@ -241,11 +241,11 @@
         <region name="[str]" model="common.uniform_from_birth_rate"/>
         <!-- 也可直接给定体积产生率，替换上面的 region：
         <region name="[str]" model="common.constant">
-            <parameter name="constant_value" value="[float]" unit="[atom]/[m]^3[s]" si_unit="[atom]/[m]^3[s]"/>
+            <parameter name="constant_value" value="[float]" unit="[mol]/[m]^3[s]" si_unit="[mol]/[m]^3[s]"/>
         </region>
         <region name="[str]" model="common.time_series">
             <parameter name="times" value="[float] [float]" unit="[s]" si_unit="[s]"/>
-            <parameter name="values" value="[float] [float]" unit="[atom]/[m]^3[s]" si_unit="[atom]/[m]^3[s]"/>
+            <parameter name="values" value="[float] [float]" unit="[mol]/[m]^3[s]" si_unit="[mol]/[m]^3[s]"/>
         </region>
         -->
     </derived_property>

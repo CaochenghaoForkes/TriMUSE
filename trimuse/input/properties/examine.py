@@ -138,7 +138,7 @@ class PropertiesCardExamine:
             for region in property_config.region:
                 cls.check_time_model(region, f"{location}.{region.name}")
                 if region.parameters["constant_value"] <= 0.0:
-                    raise ValueError(f"{location}.{region.name}: 初始重金属原子总数必须为正数")
+                    raise ValueError(f"{location}.{region.name}: 初始重金属物质的量必须为正数")
             return
         if location == "external.energy_per_fission":
             if property_config.global_ is None or property_config.region or property_config.zone:

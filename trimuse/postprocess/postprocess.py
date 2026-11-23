@@ -26,7 +26,7 @@ class PostprocessManager:
         self.image_directory: Path | None = None
         self.property_metadata = {
             "temperature": {"unit": "K", "color": "inferno"},
-            "concentration": {"unit": "atom/m³", "color": "viridis"},
+            "concentration": {"unit": "mol/m³", "color": "viridis"},
             "max_principal_stress": {"unit": "Pa", "color": "jet"},
             "max_shear_stress": {"unit": "Pa", "color": "jet"},
         }

@@ -24,7 +24,7 @@ class RadioactivityCardExamine:
                 raise ValueError(f"{location}: model 必须为 uniform_from_inventory")
             inventory = item.parameters.get("inventory")
             if not isinstance(inventory, float) or not math.isfinite(inventory) or inventory < 0:
-                raise ValueError(f"{location}: inventory 必须为有限非负标量，内部单位为 atom")
+                raise ValueError(f"{location}: inventory 必须为有限非负标量，内部单位为 mol")
 
     @staticmethod
     def check_models(locations, allowed: dict[str, set[str]], context: str) -> None:

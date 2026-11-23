@@ -153,7 +153,7 @@ void RadioactivityProblem::iterate(double time_step, double theta) // 在完整�
         {
             accept_concentration(); // 满足 Picard 判据后提交正式场
             output_manager_.append_solve_information("concentration", "picard_iterations", iteration + 1);
-            output_manager_.append_solve_information("concentration", "final_concentration_increment_inf_norm_atom_per_m3", increment);
+            output_manager_.append_solve_information("concentration", "final_concentration_increment_inf_norm_mol_per_m3", increment);
             return;
         }
     }

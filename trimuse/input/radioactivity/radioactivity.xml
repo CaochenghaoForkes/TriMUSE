@@ -6,9 +6,9 @@
         <parameter name="half_life" value="30.05" unit="[year]" si_unit="[s]"/>
     </parameters>
     <initial>
-        <!-- inventory 是区域总盘存，单位换算到 atom -->
+        <!-- inventory 是区域总盘存，单位换算到 mol -->
         <concentration region="residual" model="uniform_from_inventory">
-            <parameter name="inventory" value="[float]" unit="[atom]" si_unit="[atom]"/>
+            <parameter name="inventory" value="[float]" unit="[mol]" si_unit="[mol]"/>
         </concentration>
     </initial>
     <regions>

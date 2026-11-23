@@ -17,7 +17,7 @@ struct RadioactivityBoundaryValues // 边界模型统一返回矩阵系数、右
 {
     double matrix = 0.0; // Robin 的 h_m
     double load = 0.0; // Robin 的 h_m*c_infinity 或 Neumann 的 -j_n
-    double concentration = 0.0; // Dirichlet 指定浓度，atom/m³
+    double concentration = 0.0; // Dirichlet 指定浓度，mol/m³
 };
 
 enum class RadioactivityBoundaryPart

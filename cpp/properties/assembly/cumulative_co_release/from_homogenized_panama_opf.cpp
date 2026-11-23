@@ -11,8 +11,7 @@ FromHomogenizedPanamaOpf::FromHomogenizedPanamaOpf(const ModelParameterMap&)
 double FromHomogenizedPanamaOpf::evaluate(const PropertiesStatePoint& point) const
 {
     const double opf = point.vector("assembly.homogenized_panama_opf")[LocalPanamaOpfState::opf];
-    constexpr double avogadro_constant = 6.02214076e23; // mol⁻¹
-    return point.scalar("external.initial_heavy_metal_inventory") / avogadro_constant * point.scalar("derived.burnup_fima_fraction") * opf; // mol，进入颗粒内部自由空间的 CO 累计量
+    return point.scalar("external.initial_heavy_metal_inventory") * point.scalar("derived.burnup_fima_fraction") * opf; // mol，进入颗粒内部自由空间的 CO 累计量
 }
 
 }
