@@ -11,14 +11,14 @@
 namespace trimuse
 {
 
-class LocalFissionGasReleaseStateModel
+class LocalBoothFissionGasReleaseStateModel
 {
 public:
-    virtual ~LocalFissionGasReleaseStateModel();
+    virtual ~LocalBoothFissionGasReleaseStateModel();
     virtual VectorValue evaluate(const PropertiesStatePoint& state_point) const = 0;
 };
 
-class LocalFissionGasReleaseStateModelManager
+class LocalBoothFissionGasReleaseStateModelManager
 {
 public:
     void register_models();
@@ -27,8 +27,8 @@ public:
     const std::vector<RequiredState>& required_states(const std::string& model_name) const;
 
 private:
-    ModelRegistry<LocalFissionGasReleaseStateModel> registry_;
-    std::unordered_map<int, std::unique_ptr<LocalFissionGasReleaseStateModel>> region_model_map_;
+    ModelRegistry<LocalBoothFissionGasReleaseStateModel> registry_;
+    std::unordered_map<int, std::unique_ptr<LocalBoothFissionGasReleaseStateModel>> region_model_map_;
 };
 
 }

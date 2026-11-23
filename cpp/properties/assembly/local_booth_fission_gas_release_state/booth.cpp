@@ -1,4 +1,4 @@
-#include "properties/assembly/local_fission_gas_release_state/booth.hpp"
+#include "properties/assembly/local_booth_fission_gas_release_state/booth.hpp"
 
 #include <cmath>
 
@@ -20,7 +20,7 @@ BoothLocalFissionGasReleaseState::BoothLocalFissionGasReleaseState(const ModelPa
 
 VectorValue BoothLocalFissionGasReleaseState::evaluate(const PropertiesStatePoint& point) const
 {
-    VectorValue state(LocalFissionGasReleaseState::modes_begin + weights_.size(), 0.0);
+    VectorValue state(LocalBoothFissionGasReleaseState::modes_begin + weights_.size(), 0.0);
     if (point.previous_value)
     {
         state = std::get<VectorValue>(*point.previous_value); // 每次从已接受历史重新推进，试算与耦合迭代不重复累积
@@ -28,8 +28,8 @@ VectorValue BoothLocalFissionGasReleaseState::evaluate(const PropertiesStatePoin
     const double diffusion = point.scalar("material.radioactivity.fission_gas_diffusion_coef"); // m²/s，当前步内取常数
     const double time_step = point.scalar("external.time_step"); // 实际时间步长，停堆后仍推进扩散
     const double produced_increment = point.scalar("derived.fission_gas_production_rate") / point.scalar("derived.region_volume") * time_step; // g Δt，mol/m³
-    state[LocalFissionGasReleaseState::produced_density] += produced_increment;
-    state[LocalFissionGasReleaseState::released_density] = 0.0;
+    state[LocalBoothFissionGasReleaseState::produced_density] += produced_increment;
+    state[LocalBoothFissionGasReleaseState::released_density] = 0.0;
     for (std::size_t mode = 0; mode < weights_.size(); ++mode)
     {
         const double h = diffusion_factors_[mode] * diffusion * time_step;
@@ -38,14 +38,14 @@ VectorValue BoothLocalFissionGasReleaseState::evaluate(const PropertiesStatePoin
         {
             source_factor = -std::expm1(-h) / h; // expm1 避免小 h 时 1 − exp(−h) 相减损失精度
         }
-        double& z = state[LocalFissionGasReleaseState::modes_begin + mode];
+        double& z = state[LocalBoothFissionGasReleaseState::modes_begin + mode];
         z = std::exp(-h) * z + produced_increment * source_factor;
-        state[LocalFissionGasReleaseState::released_density] += weights_[mode] * (state[LocalFissionGasReleaseState::produced_density] - z); // nrel = Σ Aₙ(P − zₙ)，保留前 M 项
+        state[LocalBoothFissionGasReleaseState::released_density] += weights_[mode] * (state[LocalBoothFissionGasReleaseState::produced_density] - z); // nrel = Σ Aₙ(P − zₙ)，保留前 M 项
     }
-    state[LocalFissionGasReleaseState::release_fraction] = 0.0;
-    if (state[LocalFissionGasReleaseState::produced_density] > 0.0)
+    state[LocalBoothFissionGasReleaseState::release_fraction] = 0.0;
+    if (state[LocalBoothFissionGasReleaseState::produced_density] > 0.0)
     {
-        state[LocalFissionGasReleaseState::release_fraction] = state[LocalFissionGasReleaseState::released_density] / state[LocalFissionGasReleaseState::produced_density];
+        state[LocalBoothFissionGasReleaseState::release_fraction] = state[LocalBoothFissionGasReleaseState::released_density] / state[LocalBoothFissionGasReleaseState::produced_density];
     }
     return state;
 }

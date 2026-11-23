@@ -1,12 +1,12 @@
 #pragma once
 
 #include <cstddef>
-#include "properties/assembly/local_fission_gas_release_state/local_fission_gas_release_state_model_manager.hpp"
+#include "properties/assembly/homogenized_booth_fission_gas_release_state/homogenized_booth_fission_gas_release_state_model_manager.hpp"
 
 namespace trimuse
 {
 
-struct LocalFissionGasReleaseState // 每个域求积点保存一个长度为 mode_count + 3 的向量
+struct HomogenizedBoothFissionGasReleaseState // 每个区域保存一个长度为 mode_count + 3 的均匀化状态向量
 {
     inline static constexpr std::size_t released_density = 0; // mol/m³，累计释放量密度
     inline static constexpr std::size_t produced_density = 1; // mol/m³，累计产生量密度
@@ -14,10 +14,10 @@ struct LocalFissionGasReleaseState // 每个域求积点保存一个长度为 mo
     inline static constexpr std::size_t modes_begin = 3; // 从此处依次保存 z₁、z₂、…、zM，单位 mol/m³
 };
 
-class BoothLocalFissionGasReleaseState final : public LocalFissionGasReleaseStateModel
+class BoothHomogenizedFissionGasReleaseState final : public HomogenizedBoothFissionGasReleaseStateModel
 {
 public:
-    explicit BoothLocalFissionGasReleaseState(const ModelParameterMap& parameters);
+    explicit BoothHomogenizedFissionGasReleaseState(const ModelParameterMap& parameters);
     VectorValue evaluate(const PropertiesStatePoint& point) const override;
 
 private:

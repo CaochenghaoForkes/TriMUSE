@@ -10,6 +10,24 @@ if TYPE_CHECKING:
     from .input.material.config import MaterialCard
     from .input.properties.config import PropertiesCard
 
+class PropertyModelExpander:
+    """将上层属性模型展开为实际配置的属性模型组合"""
+
+    @staticmethod
+    def expand(name: str, model: str, parameters: dict[str, float | list[float]]) -> list[tuple[str, dict[str, float | list[float]]]]:
+        if name == "assembly.cumulative_fission_gas_release":
+            return PropertyModelExpander.expand_booth_fission_gas_release(model, parameters)
+        return [(f"{name}.{model}", parameters)]
+
+    @staticmethod
+    def expand_booth_fission_gas_release(model: str, parameters: dict[str, float | list[float]]) -> list[tuple[str, dict[str, float | list[float]]]]:
+        """Booth 参数交给状态模型，累计释放量模型只汇总状态"""
+        states = {
+            "common.from_local_booth_fission_gas_release": "assembly.local_booth_fission_gas_release_state",
+            "common.from_homogenized_booth_fission_gas_release": "assembly.homogenized_booth_fission_gas_release_state",
+        }
+        return [(f"{states[model]}.common.booth", parameters), (f"assembly.cumulative_fission_gas_release.{model}", {})]
+
 class PropertiesManager:
     """管理 C++ 属性系统的模型配置与更新"""
 
@@ -33,27 +51,32 @@ class PropertiesManager:
         return parameters
 
     def assign_properties_card(self, properties: PropertiesCard, mesh_info: MeshInfo) -> None:
-        """分配属性卡中的外部量和派生量"""
+        """展开绑定模型并分配属性卡中的各类属性"""
         region_attributes = mesh_info.region_attributes
         zone_attributes = mesh_info.boundary_attributes
         for configs in (properties.external_property, properties.derived_property, properties.assembly_property):
             for property_config in configs:
                 for region in property_config.region:
-                    self.properties_system.assign(region_attributes[region.name], f"{property_config.name}.{region.model}", region.parameters)
+                    self.assign_property(region_attributes[region.name], property_config.name, region.model, region.parameters)
                 for zone in property_config.zone:
-                    self.properties_system.assign(zone_attributes[zone.name], f"{property_config.name}.{zone.model}", zone.parameters)
+                    self.assign_property(zone_attributes[zone.name], property_config.name, zone.model, zone.parameters)
                 for interface in property_config.interface:
-                    self.properties_system.assign(zone_attributes[interface.name], f"{property_config.name}.{interface.model}", interface.parameters)
+                    self.assign_property(zone_attributes[interface.name], property_config.name, interface.model, interface.parameters)
                 if property_config.global_ is not None:
                     global_config = property_config.global_
-                    self.properties_system.assign(0, f"{property_config.name}.{global_config.model}", global_config.parameters)
+                    self.assign_property(0, property_config.name, global_config.model, global_config.parameters)
+
+    def assign_property(self, attribute: int, name: str, model: str, parameters: dict[str, float | list[float]]) -> None:
+        """将上层模型及其绑定的下层模型分配给同一位置"""
+        for model_name, model_parameters in PropertyModelExpander.expand(name, model, parameters):
+            self.properties_system.assign(attribute, model_name, model_parameters)
 
     def assign_material_card(self, material: MaterialCard, mesh_info: MeshInfo) -> None:
         """按区域分配材料卡中的全部物性"""
         materials = {item.name: item for item in material.mat}
         for assignment in material.assign.region:
             for property_config in materials[assignment.mat].properties:
-                self.properties_system.assign(mesh_info.region_attributes[assignment.name], f"{property_config.property_name}.{property_config.model}", property_config.parameters)
+                self.assign_property(mesh_info.region_attributes[assignment.name], property_config.property_name, property_config.model, property_config.parameters)
 
     def update_external(self, time: float, time_step: float) -> None:
         """更新给定时刻的外部属性"""

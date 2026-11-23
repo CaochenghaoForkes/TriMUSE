@@ -12,8 +12,8 @@ AssemblyModelManager::AssemblyModelManager()
 
 void AssemblyModelManager::register_models()
 {
-    local_fission_gas_release_state_model_manager_.register_models();
-    homogenized_fission_gas_release_state_model_manager_.register_models();
+    local_booth_fission_gas_release_state_model_manager_.register_models();
+    homogenized_booth_fission_gas_release_state_model_manager_.register_models();
     cumulative_fission_gas_release_model_manager_.register_models();
     interface_thermal_resistance_model_manager_.register_models();
     interface_pressure_model_manager_.register_models();
@@ -21,9 +21,9 @@ void AssemblyModelManager::register_models()
 
 void AssemblyModelManager::assign(const std::string& name, int attribute, const std::string& model_name, const ModelParameterMap& parameters)
 {
-    if (name == "assembly.homogenized_fission_gas_release_state")
+    if (name == "assembly.homogenized_booth_fission_gas_release_state")
     {
-        homogenized_fission_gas_release_state_model_manager_.assign(attribute, model_name, parameters);
+        homogenized_booth_fission_gas_release_state_model_manager_.assign(attribute, model_name, parameters);
         return;
     }
     if (name == "assembly.cumulative_fission_gas_release")
@@ -31,9 +31,9 @@ void AssemblyModelManager::assign(const std::string& name, int attribute, const 
         cumulative_fission_gas_release_model_manager_.assign(attribute, model_name, parameters);
         return;
     }
-    if (name == "assembly.local_fission_gas_release_state")
+    if (name == "assembly.local_booth_fission_gas_release_state")
     {
-        local_fission_gas_release_state_model_manager_.assign(attribute, model_name, parameters);
+        local_booth_fission_gas_release_state_model_manager_.assign(attribute, model_name, parameters);
         return;
     }
     if (name == "assembly.interface_thermal_resistance")
@@ -51,17 +51,17 @@ void AssemblyModelManager::assign(const std::string& name, int attribute, const 
 
 std::optional<StateValue> AssemblyModelManager::evaluate(const std::string& name, const PropertiesStatePoint& point) const
 {
-    if (name == "assembly.homogenized_fission_gas_release_state")
+    if (name == "assembly.homogenized_booth_fission_gas_release_state")
     {
-        return homogenized_fission_gas_release_state_model_manager_.evaluate(point);
+        return homogenized_booth_fission_gas_release_state_model_manager_.evaluate(point);
     }
     if (name == "assembly.cumulative_fission_gas_release")
     {
         return cumulative_fission_gas_release_model_manager_.evaluate(point);
     }
-    if (name == "assembly.local_fission_gas_release_state")
+    if (name == "assembly.local_booth_fission_gas_release_state")
     {
-        return local_fission_gas_release_state_model_manager_.evaluate(point);
+        return local_booth_fission_gas_release_state_model_manager_.evaluate(point);
     }
     if (name == "assembly.interface_thermal_resistance")
     {
@@ -76,17 +76,17 @@ std::optional<StateValue> AssemblyModelManager::evaluate(const std::string& name
 
 const std::vector<RequiredState>& AssemblyModelManager::required_states(const std::string& name, const std::string& model_name) const
 {
-    if (name == "assembly.homogenized_fission_gas_release_state")
+    if (name == "assembly.homogenized_booth_fission_gas_release_state")
     {
-        return homogenized_fission_gas_release_state_model_manager_.required_states(model_name);
+        return homogenized_booth_fission_gas_release_state_model_manager_.required_states(model_name);
     }
     if (name == "assembly.cumulative_fission_gas_release")
     {
         return cumulative_fission_gas_release_model_manager_.required_states(model_name);
     }
-    if (name == "assembly.local_fission_gas_release_state")
+    if (name == "assembly.local_booth_fission_gas_release_state")
     {
-        return local_fission_gas_release_state_model_manager_.required_states(model_name);
+        return local_booth_fission_gas_release_state_model_manager_.required_states(model_name);
     }
     if (name == "assembly.interface_thermal_resistance")
     {

@@ -5,10 +5,10 @@
 namespace trimuse
 {
 
-class FromHomogenizedFissionGasRelease final : public CumulativeFissionGasReleaseModel
+class FromHomogenizedBoothFissionGasRelease final : public CumulativeFissionGasReleaseModel
 {
 public:
-    explicit FromHomogenizedFissionGasRelease(const ModelParameterMap& parameters);
+    explicit FromHomogenizedBoothFissionGasRelease(const ModelParameterMap& parameters);
     double evaluate(const PropertiesStatePoint& point) const override;
 };
 
