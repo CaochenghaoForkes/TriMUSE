@@ -6,8 +6,7 @@ from ..thermal.examine import ThermalCardExamine
 class PropertiesCardExamine:
     COMMON_MODELS = {"common.constant", "common.time_series"}
     MODELS = {
-        "assembly.homogenized_panama_opf": {"common.panama"},
-        "assembly.local_panama_opf": {"common.panama"},
+        "assembly.cumulative_co_release": {"common.from_local_panama_opf", "common.from_homogenized_panama_opf"},
         "assembly.cumulative_fission_gas_release": {"common.from_local_booth_fission_gas_release", "common.from_homogenized_booth_fission_gas_release"},
         "assembly.interface_pressure": {"common.uniform_from_constant_value", "common.local_from_constant_value"},
         "assembly.interface_thermal_resistance": {"common.uniform_from_constant_value", "common.local_from_constant_value"},
@@ -98,9 +97,9 @@ class PropertiesCardExamine:
         zone_names = [zone.name for zone in property_config.zone]
         if len(zone_names) != len(set(zone_names)):
             raise ValueError(f"{location}: 外表面分区名称不能重复")
-        if location in ("assembly.local_panama_opf", "assembly.homogenized_panama_opf"):
+        if location == "assembly.cumulative_co_release":
             if not property_config.region or property_config.zone or property_config.global_ is not None:
-                raise ValueError(f"{location}: 请按 region 配置 PANAMA OPF")
+                raise ValueError(f"{location}: 请按 region 配置累计 CO 释放量")
             for region in property_config.region:
                 accident_time = region.parameters.get("accident_time")
                 if set(region.parameters) != {"accident_time"} or not isinstance(accident_time, float) or not math.isfinite(accident_time) or accident_time < 0.0:

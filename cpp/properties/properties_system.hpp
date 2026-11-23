@@ -149,6 +149,7 @@ private:
         {"material.radioactivity.nuclide_diffusion_coef", PropertyType::Material, PropertyScope::DomainIntegrationPoint}, // m²/s
         {"assembly.homogenized_panama_opf", PropertyType::Assembly, PropertyScope::Region}, // 向量：[OPF, H, J, 辐照时长, 上一步平均温度]，基于区域体积平均温度
         {"assembly.local_panama_opf", PropertyType::Assembly, PropertyScope::DomainIntegrationPoint}, // 向量：[OPF, H, J, 辐照时长, 上一步温度]，UO₂ 的 PANAMA CO 模型
+        {"assembly.cumulative_co_release", PropertyType::Assembly, PropertyScope::Region}, // mol，累计释放到颗粒内部自由空间的 CO 量
         {"assembly.local_booth_fission_gas_release_state", PropertyType::Assembly, PropertyScope::DomainIntegrationPoint}, // 向量：[累计释放量密度, 累计产生量密度, 释放份额, z₁, …, zM]
         {"assembly.homogenized_booth_fission_gas_release_state", PropertyType::Assembly, PropertyScope::Region}, // 区域均匀化状态：[累计释放量密度, 累计产生量密度, 释放份额, z₁, …, zM]
         {"assembly.cumulative_fission_gas_release", PropertyType::Assembly, PropertyScope::Region}, // mol，区域内累计释放的裂变气体总量

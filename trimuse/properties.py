@@ -15,6 +15,8 @@ class PropertyModelExpander:
 
     @staticmethod
     def expand(name: str, model: str, parameters: dict[str, float | list[float]]) -> list[tuple[str, dict[str, float | list[float]]]]:
+        if name == "assembly.cumulative_co_release":
+            return PropertyModelExpander.expand_panama_co_release(model, parameters)
         if name == "assembly.cumulative_fission_gas_release":
             return PropertyModelExpander.expand_booth_fission_gas_release(model, parameters)
         return [(f"{name}.{model}", parameters)]
@@ -27,6 +29,15 @@ class PropertyModelExpander:
             "common.from_homogenized_booth_fission_gas_release": "assembly.homogenized_booth_fission_gas_release_state",
         }
         return [(f"{states[model]}.common.booth", parameters), (f"assembly.cumulative_fission_gas_release.{model}", {})]
+
+    @staticmethod
+    def expand_panama_co_release(model: str, parameters: dict[str, float | list[float]]) -> list[tuple[str, dict[str, float | list[float]]]]:
+        """停堆时刻交给 OPF 模型，累计 CO 量模型负责盘存换算"""
+        states = {
+            "common.from_local_panama_opf": "assembly.local_panama_opf",
+            "common.from_homogenized_panama_opf": "assembly.homogenized_panama_opf",
+        }
+        return [(f"{states[model]}.common.panama", parameters), (f"assembly.cumulative_co_release.{model}", {})]
 
 class PropertiesManager:
     """管理 C++ 属性系统的模型配置与更新"""

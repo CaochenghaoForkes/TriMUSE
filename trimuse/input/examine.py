@@ -31,7 +31,7 @@ class InputCardsExamine:
         cls.check_mechanics_material_dependencies(material, properties, thermal)
         cls.check_fission_gas_diffusion_dependencies(material, properties, thermal)
         cls.check_fission_gas_release_dependencies(material, properties)
-        cls.check_panama_opf_dependencies(properties, thermal)
+        cls.check_co_release_dependencies(properties, thermal)
         if mechanics is not None:
             cls.check_mechanics_sources(geometry_mesh, mechanics)
         cls.check_postprocess_geometry(geometry_mesh, postprocess)
@@ -114,10 +114,20 @@ class InputCardsExamine:
             raise ValueError("BISON 力学物性模型需要全局 derived.fast_neutron_fluence")
 
     @staticmethod
-    def check_panama_opf_dependencies(properties: PropertiesCard, thermal: ThermalCard | None) -> None:
-        """局部及均匀化 PANAMA OPF 都需要温度场"""
-        if thermal is None and any(item.name in ("assembly.local_panama_opf", "assembly.homogenized_panama_opf") for item in properties.assembly_property):
-            raise ValueError("PANAMA OPF 需要 temperature 场和 thermal 输入卡")
+    def check_co_release_dependencies(properties: PropertiesCard, thermal: ThermalCard | None) -> None:
+        """累计 CO 释放量依赖温度、初始重金属盘存和区域 FIMA"""
+        inventory_regions = {region.name for item in properties.external_property if item.name == "external.initial_heavy_metal_inventory" for region in item.region}
+        burnup_regions = {region.name for item in properties.derived_property if item.name == "derived.burnup_fima_fraction" for region in item.region}
+        for item in properties.assembly_property:
+            if item.name != "assembly.cumulative_co_release":
+                continue
+            if thermal is None:
+                raise ValueError("累计 CO 释放量的 PANAMA 模型需要 temperature 场和 thermal 输入卡")
+            for region in item.region:
+                if region.name not in inventory_regions:
+                    raise ValueError(f"区域 {region.name}: 累计 CO 释放量缺少 external.initial_heavy_metal_inventory")
+                if region.name not in burnup_regions:
+                    raise ValueError(f"区域 {region.name}: 累计 CO 释放量缺少 derived.burnup_fima_fraction")
 
     @staticmethod
     def check_fission_gas_release_dependencies(material: MaterialCard, properties: PropertiesCard) -> None:
