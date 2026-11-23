@@ -118,14 +118,21 @@ class InputCardsExamine:
         materials = {item.name: item for item in material.mat}
         derived = {item.name: item for item in properties.derived_property}
         assignments = {item.name: item.mat for item in material.assign.region}
-        release_regions = {region.name for item in properties.assembly_property if item.name == "assembly.fission_gas_release" for region in item.region}
+        state_names = ("assembly.local_fission_gas_release_state", "assembly.homogenized_fission_gas_release_state")
+        release_regions = {name: set() for name in state_names}
+        for item in properties.assembly_property:
+            if item.name in release_regions:
+                for region in item.region:
+                    release_regions[item.name].add(region.name)
+        total_models = {"common.from_local_fission_gas_release": state_names[0], "common.from_homogenized_fission_gas_release": state_names[1]}
         for item in properties.assembly_property:
             if item.name == "assembly.cumulative_fission_gas_release":
                 for region in item.region:
-                    if region.name not in release_regions:
-                        raise ValueError(f"区域 {region.name}: 累计释放量需要同一区域的 assembly.fission_gas_release")
+                    required_state = total_models[region.model]
+                    if region.name not in release_regions[required_state]:
+                        raise ValueError(f"区域 {region.name}: 累计释放量模型需要同一区域的 {required_state}")
         for property_config in properties.assembly_property:
-            if property_config.name != "assembly.fission_gas_release":
+            if property_config.name not in state_names:
                 continue
             for region in property_config.region:
                 names = {item.property_name for item in materials[assignments[region.name]].properties}

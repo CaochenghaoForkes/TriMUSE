@@ -6,8 +6,9 @@ from ..thermal.examine import ThermalCardExamine
 class PropertiesCardExamine:
     COMMON_MODELS = {"common.constant", "common.time_series"}
     MODELS = {
-        "assembly.cumulative_fission_gas_release": {"common.from_fission_gas_release"},
-        "assembly.fission_gas_release": {"common.booth"},
+        "assembly.homogenized_fission_gas_release_state": {"common.booth"},
+        "assembly.cumulative_fission_gas_release": {"common.from_local_fission_gas_release", "common.from_homogenized_fission_gas_release"},
+        "assembly.local_fission_gas_release_state": {"common.booth"},
         "assembly.interface_pressure": {"common.uniform_from_constant_value", "common.local_from_constant_value"},
         "assembly.interface_thermal_resistance": {"common.uniform_from_constant_value", "common.local_from_constant_value"},
         "external.power": COMMON_MODELS,
@@ -102,9 +103,9 @@ class PropertiesCardExamine:
                 raise ValueError(f"{location}: 请按 region 配置区域累计释放量")
             for region in property_config.region:
                 if region.parameters:
-                    raise ValueError(f"{location}.{region.name}: common.from_fission_gas_release 不需要模型参数")
+                    raise ValueError(f"{location}.{region.name}: {region.model} 不需要模型参数")
             return
-        if location == "assembly.fission_gas_release":
+        if location in ("assembly.local_fission_gas_release_state", "assembly.homogenized_fission_gas_release_state"):
             if not property_config.region or property_config.zone or property_config.global_ is not None:
                 raise ValueError(f"{location}: 请按 region 配置裂变气体释放模型")
             for region in property_config.region:

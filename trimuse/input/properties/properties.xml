@@ -326,7 +326,7 @@
     </assembly_property>
     -->
     <!-- 每个域求积点从零记录裂变气体产生与释放历史，grain_radius 为等效晶粒半径 -->
-    <assembly_property name="fission_gas_release">
+    <assembly_property name="local_fission_gas_release_state">
         <region name="[str]" model="common.booth">
             <parameter name="mode_count" value="100" unit="[1]" si_unit="[1]"/>
             <parameter name="grain_radius" value="1e-5" unit="[m]" si_unit="[m]"/>
@@ -334,6 +334,17 @@
     </assembly_property>
     <!-- 对指定区域的求积点累计释放量密度作体积积分，结果单位为 mol -->
     <assembly_property name="cumulative_fission_gas_release">
-        <region name="[str]" model="common.from_fission_gas_release"/>
+        <region name="[str]" model="common.from_local_fission_gas_release"/>
     </assembly_property>
+    <!-- 均匀化版本：以区域平均扩散系数推进一套释放历史，可替换上面的逐求积点状态及累计释放量配置
+    <assembly_property name="homogenized_fission_gas_release_state">
+        <region name="[str]" model="common.booth">
+            <parameter name="mode_count" value="100" unit="[1]" si_unit="[1]"/>
+            <parameter name="grain_radius" value="1e-5" unit="[m]" si_unit="[m]"/>
+        </region>
+    </assembly_property>
+    <assembly_property name="cumulative_fission_gas_release">
+        <region name="[str]" model="common.from_homogenized_fission_gas_release"/>
+    </assembly_property>
+    -->
 </properties>
