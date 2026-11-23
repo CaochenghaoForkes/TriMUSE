@@ -340,4 +340,17 @@
         </region>
     </assembly_property>
     -->
+    <!-- UO₂ 的 PANAMA OPF：逐求积点保存 [OPF, H, J, 辐照时长, 上一步温度]，accident_time 为停堆时刻 -->
+    <assembly_property name="local_panama_opf">
+        <region name="[str]" model="common.panama">
+            <parameter name="accident_time" value="86400" unit="[s]" si_unit="[s]"/>
+        </region>
+    </assembly_property>
+    <!-- 均匀化 PANAMA OPF：先对区域温度作体积平均，再推进一套五分量历史，可替换上面的局部 OPF 配置
+    <assembly_property name="homogenized_panama_opf">
+        <region name="[str]" model="common.panama">
+            <parameter name="accident_time" value="86400" unit="[s]" si_unit="[s]"/>
+        </region>
+    </assembly_property>
+    -->
 </properties>

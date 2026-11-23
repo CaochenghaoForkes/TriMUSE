@@ -31,6 +31,7 @@ class InputCardsExamine:
         cls.check_mechanics_material_dependencies(material, properties, thermal)
         cls.check_fission_gas_diffusion_dependencies(material, properties, thermal)
         cls.check_fission_gas_release_dependencies(material, properties)
+        cls.check_panama_opf_dependencies(properties, thermal)
         if mechanics is not None:
             cls.check_mechanics_sources(geometry_mesh, mechanics)
         cls.check_postprocess_geometry(geometry_mesh, postprocess)
@@ -111,6 +112,12 @@ class InputCardsExamine:
             item.name == "derived.fast_neutron_fluence" and item.global_ is not None for item in properties.derived_property
         ):
             raise ValueError("BISON 力学物性模型需要全局 derived.fast_neutron_fluence")
+
+    @staticmethod
+    def check_panama_opf_dependencies(properties: PropertiesCard, thermal: ThermalCard | None) -> None:
+        """局部及均匀化 PANAMA OPF 都需要温度场"""
+        if thermal is None and any(item.name in ("assembly.local_panama_opf", "assembly.homogenized_panama_opf") for item in properties.assembly_property):
+            raise ValueError("PANAMA OPF 需要 temperature 场和 thermal 输入卡")
 
     @staticmethod
     def check_fission_gas_release_dependencies(material: MaterialCard, properties: PropertiesCard) -> None:

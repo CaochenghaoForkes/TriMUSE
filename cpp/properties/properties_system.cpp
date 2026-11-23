@@ -203,9 +203,9 @@ void PropertiesSystem::prepare_dependencies() // 标记各个属性在各个区�
                 }
                 if (field_state_owners_.count(required_name) != 0) // 检查依赖是否为求解场或由求解场恢复的状态量
                 {
-                    if (property.type == PropertyType::External || property.scope != PropertyScope::DomainIntegrationPoint)
+                    if (property.type == PropertyType::External)
                     {
-                        throw std::logic_error("该属性的求值位置不支持直接读取求解场: " + property.name);
+                        throw std::logic_error("External 属性不允许依赖求解场: " + property.name);
                     }
                     property.field_regions[field_state_owners_.at(required_name)].insert(location); // 按所属求解场登记依赖，stress 和 strain 随 displacement 更新
                     continue;
@@ -953,7 +953,31 @@ void PropertiesSystem::evaluate_property(const Manager& manager, const PropertyI
     else
     {
         auto point = make_state_point(property.scope, location);
-        load_model_states(point, property, location, required);
+        std::vector<RequiredState> property_required;
+        for (const auto& dependency : required)
+        {
+            if (field_state_owners_.count(dependency.name) == 0) // 普通属性依赖（并非温度、应力等）
+            {
+                property_required.push_back(dependency); // 放入 property_required，最后仍由 load_model_states() 按原来的方式加载，包括模型自己的历史状态
+                continue;
+            }
+            // 求解场依赖
+            const auto trial = trial_fields.find(dependency.name); // 有传入试探场就使用试探场，否则使用正式场
+            const auto view = trial != trial_fields.end() ? trial->second : fem_system_.field_view(dependency.name);
+            VectorValue samples;
+            samples.reserve(point.region_point_indices().size());
+            const auto& mesh = fem_system_.mesh_data().mfem_mesh();
+            for (int element : fem_system_.mesh_data().region_elements(location))
+            {
+                const auto* rule = fem_system_.domain_quadrature_rule(mesh.GetElementBaseGeometry(element));
+                for (int q = 0; q < rule->GetNPoints(); ++q)
+                {
+                    samples.push_back(std::get<double>(view.evaluate(location, element, rule->IntPoint(q))));
+                }
+            }
+            point.values[dependency.name] = std::move(samples); // Region 模型显式声明 reference=true 时，读取该区域标量场的求积点样本
+        }
+        load_model_states(point, property, location, property_required);
         evaluate_and_store(manager, property.name, point);
     }
 }

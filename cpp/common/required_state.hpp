@@ -12,7 +12,7 @@ struct RequiredState
     bool operator==(const std::string& other) const;
 
     std::string name;
-    bool reference = false; // true 引用完整属性，false 读取当前位置的值
+    bool reference = false; // true 引用完整属性，或为 Region 模型读取区域内标量场的求积点样本；false 读取当前位置的值
 };
 
 }

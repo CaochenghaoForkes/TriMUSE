@@ -12,6 +12,8 @@ AssemblyModelManager::AssemblyModelManager()
 
 void AssemblyModelManager::register_models()
 {
+    local_panama_opf_model_manager_.register_models();
+    homogenized_panama_opf_model_manager_.register_models();
     local_booth_fission_gas_release_state_model_manager_.register_models();
     homogenized_booth_fission_gas_release_state_model_manager_.register_models();
     cumulative_fission_gas_release_model_manager_.register_models();
@@ -21,6 +23,16 @@ void AssemblyModelManager::register_models()
 
 void AssemblyModelManager::assign(const std::string& name, int attribute, const std::string& model_name, const ModelParameterMap& parameters)
 {
+    if (name == "assembly.homogenized_panama_opf")
+    {
+        homogenized_panama_opf_model_manager_.assign(attribute, model_name, parameters);
+        return;
+    }
+    if (name == "assembly.local_panama_opf")
+    {
+        local_panama_opf_model_manager_.assign(attribute, model_name, parameters);
+        return;
+    }
     if (name == "assembly.homogenized_booth_fission_gas_release_state")
     {
         homogenized_booth_fission_gas_release_state_model_manager_.assign(attribute, model_name, parameters);
@@ -51,6 +63,14 @@ void AssemblyModelManager::assign(const std::string& name, int attribute, const 
 
 std::optional<StateValue> AssemblyModelManager::evaluate(const std::string& name, const PropertiesStatePoint& point) const
 {
+    if (name == "assembly.homogenized_panama_opf")
+    {
+        return homogenized_panama_opf_model_manager_.evaluate(point);
+    }
+    if (name == "assembly.local_panama_opf")
+    {
+        return local_panama_opf_model_manager_.evaluate(point);
+    }
     if (name == "assembly.homogenized_booth_fission_gas_release_state")
     {
         return homogenized_booth_fission_gas_release_state_model_manager_.evaluate(point);
@@ -76,6 +96,14 @@ std::optional<StateValue> AssemblyModelManager::evaluate(const std::string& name
 
 const std::vector<RequiredState>& AssemblyModelManager::required_states(const std::string& name, const std::string& model_name) const
 {
+    if (name == "assembly.homogenized_panama_opf")
+    {
+        return homogenized_panama_opf_model_manager_.required_states(model_name);
+    }
+    if (name == "assembly.local_panama_opf")
+    {
+        return local_panama_opf_model_manager_.required_states(model_name);
+    }
     if (name == "assembly.homogenized_booth_fission_gas_release_state")
     {
         return homogenized_booth_fission_gas_release_state_model_manager_.required_states(model_name);
