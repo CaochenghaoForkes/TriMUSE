@@ -15,7 +15,7 @@ double IdealGasFromCoFissionGasRelease::evaluate(const PropertiesStatePoint& poi
     const double co = std::get<double>(point.attribute_values("assembly.cumulative_co_release").at(source_region_).value()); // mol，来源区域的 CO
     const auto& porosities = point.domain_values("material.general.porosity");
     const auto& weights = point.domain_values("precomputed.initial_domain_quadrature_weight");
-    const auto& temperatures = point.vector("temperature");
+    const auto& temperatures = point.domain_values("temperature");
     const auto& indices = point.region_point_indices(); // 当前求值区域就是 gas_region
     double free_volume = 0.0, temperature_integral = 0.0;
     for (std::size_t q = 0; q < indices.size(); ++q)
@@ -23,7 +23,7 @@ double IdealGasFromCoFissionGasRelease::evaluate(const PropertiesStatePoint& poi
         const std::size_t index = indices[q];
         const double pore_volume = std::get<double>(weights[index].value()) * std::get<double>(porosities[index].value());
         free_volume += pore_volume;
-        temperature_integral += pore_volume * temperatures[q];
+        temperature_integral += pore_volume * std::get<double>(temperatures[index].value());
     }
     const double gas_temperature = temperature_integral / free_volume; // K，按孔隙体积加权的代表温度
     constexpr double gas_constant = 8.31446261815324; // Pa·m³/(mol·K)

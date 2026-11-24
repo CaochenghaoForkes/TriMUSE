@@ -98,21 +98,10 @@ PYBIND11_MODULE(_core, module)
             py::arg("parameters")
         )
         .def("prepare_dependencies", &trimuse::PropertiesSystem::prepare_dependencies)
-        .def("update_external", &trimuse::PropertiesSystem::update_external, py::arg("time"), py::arg("time_step"))
-        .def("update_derived", &trimuse::PropertiesSystem::update_derived)
-        .def("update_material", &trimuse::PropertiesSystem::update_material)
-        .def("update_assembly", &trimuse::PropertiesSystem::update_assembly)
-        .def("update_field_dependent_derived", [](trimuse::PropertiesSystem& system, const std::string& field_name)
+        .def("update_field_independent_properties", &trimuse::PropertiesSystem::update_field_independent_properties, py::arg("time"), py::arg("time_step"))
+        .def("update_field_dependent_properties", [](trimuse::PropertiesSystem& system, const std::string& field_name)
         {
-            system.update_field_dependent_derived(field_name);
-        }, py::arg("field_name"))
-        .def("update_field_dependent_materials", [](trimuse::PropertiesSystem& system, const std::string& field_name)
-        {
-            system.update_field_dependent_materials(field_name);
-        }, py::arg("field_name"))
-        .def("update_field_dependent_assembly", [](trimuse::PropertiesSystem& system, const std::string& field_name)
-        {
-            system.update_field_dependent_assembly(field_name);
+            system.update_field_dependent_properties(field_name);
         }, py::arg("field_name"))
         .def("accept_current_state", &trimuse::PropertiesSystem::accept_current_state);
 

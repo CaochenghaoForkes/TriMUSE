@@ -47,9 +47,7 @@ void ThermalProblem::accept_temperature() // 收敛后的属性与最终温度�
 {
     trial_temperature_.accept(); // 把当前试探场的场值复制回正式场，接受本次求解结果
     const PropertiesSystem::FieldMap trial_fields{{"temperature", trial_temperature_.view()}};
-    properties_.update_field_dependent_derived("temperature", trial_fields, true);
-    properties_.update_field_dependent_materials("temperature", trial_fields, true);
-    properties_.update_field_dependent_assembly("temperature", trial_fields, true);
+    properties_.update_field_dependent_properties("temperature", trial_fields, true); // 同轮场采样由三类属性共用
 }
 
 void ThermalProblem::solve(double time_step, double theta) // 热问题的统一求解入口: 准备试探场、区分初始时刻与正常求解，并记录本次耗时和组装次数
@@ -105,9 +103,7 @@ void ThermalProblem::iterate(double time_step, double theta) // 准备旧时刻�
         if (!transient_ || theta > 0.0) // 如果需要当前属性(稳态或瞬态theta>0)
         {
             const PropertiesSystem::FieldMap trial_fields{{"temperature", trial_temperature_.view()}};
-            properties_.update_field_dependent_derived("temperature", trial_fields, true);
-            properties_.update_field_dependent_materials("temperature", trial_fields, true); // 用当前试探温度更新与温度相互耦合的材料属性
-            properties_.update_field_dependent_assembly("temperature", trial_fields, true);
+            properties_.update_field_dependent_properties("temperature", trial_fields, true); // 同轮场采样由三类属性共用
             current = assembly_.update(properties_.field_data(), transient_); // 取得本轮的 M,K,F，仅重组发生变化的贡献 稳态不需要容量项
         }
         std::unique_ptr<mfem::SparseMatrix> matrix; // 完整自由度上的左端矩阵，瞬态时包含时间离散贡献

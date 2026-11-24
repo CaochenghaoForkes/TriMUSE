@@ -71,17 +71,12 @@ class CouplingManager:
 
     def update_and_solve(self) -> None:
         """更新属性, 按步骤求解场, 然后接受当前时刻"""
-        self.properties_manager.update_external(self.time, self.time_step)
-        self.properties_manager.update_derived()
-        self.properties_manager.update_material()
-        self.properties_manager.update_assembly()
+        self.properties_manager.update_field_independent_properties(self.time, self.time_step)
         for step in self.steps:
             for field_name in step.fields:
                 problem = self.problems[field_name]
                 theta = self.field_theta[field_name]
                 problem.solve(self.time_step, 1.0 if theta is None else theta)
                 self.output_manager.save_solve_information(field_name, self.cycle, self.time, self.time_step)
-                self.properties_manager.update_field_dependent_derived(problem.field_state)
-                self.properties_manager.update_field_dependent_materials(problem.field_state)
-                self.properties_manager.update_field_dependent_assembly(problem.field_state)
+                self.properties_manager.update_field_dependent_properties(problem.field_state)
         self.properties_manager.accept_current_state()

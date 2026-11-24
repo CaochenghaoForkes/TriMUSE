@@ -27,13 +27,8 @@ public:
     void assign(int attribute, const std::string& model_name, const ModelParameterMap& parameters); // 为某个属性在指定 体积域/边界域 上配置一个计算模型 并把该位置已有的“计算完成”标记清掉
     void prepare_dependencies(); // 补齐固定关系属性并标记场依赖
     void mark_coupled(const std::string& field_name, const std::vector<RequiredState>& property_names); // 把指定属性中依赖某个求解场的位置标记为“参与耦合更新”，并沿依赖关系向上游传递这个标记
-    void update_external(double time, double time_step); // 更新当前时间，然后检查各个外部属性，只在“尚未计算”或“依赖发生变化”时重新计算它们
-    void update_derived(); // 更新不依赖场的派生属性；累积模型使用上一个已接受值和 external.time_step
-    void update_material(); // 更新不依赖场的材料属性
-    void update_assembly(); // 更新不依赖场的组装属性，随后保存整表依赖快照
-    void update_field_dependent_derived(const std::string& field_name, const FieldMap& trial_fields = {}, bool coupled_only = false); // 更新依赖该场的派生属性
-    void update_field_dependent_materials(const std::string& field_name, const FieldMap& trial_fields = {}, bool coupled_only = false); // 更新依赖该场的材料属性
-    void update_field_dependent_assembly(const std::string& field_name, const FieldMap& trial_fields = {}, bool coupled_only = false); // 更新依赖该场的组装属性
+    void update_field_independent_properties(double time, double time_step); // 更新时间和不依赖场的属性，最后保存依赖快照
+    void update_field_dependent_properties(const std::string& field_name, const FieldMap& trial_fields = {}, bool coupled_only = false); // 采样本轮所需场一次，再依次更新依赖该场的派生、材料及组装属性
     void accept_current_state(); // 把当前全部属性数据复制一份，保存为“已接受状态”的快照
     const PropertiesFieldData& previous_field_data() const;
     bool coupled_with_field(const std::string& property_name, int region_attribute, const std::string& field_name) const; // 判断: 某个属性在指定区域，是否已被标记为参与指定求解场的耦合更新
@@ -43,6 +38,7 @@ public:
 private:
     enum class PropertyType
     {
+        Field,
         Precomputed,
         External,
         Derived,
@@ -75,13 +71,13 @@ private:
     const std::vector<RequiredState>& model_required_states(const PropertyInfo& property, const std::string& model_name) const; // 返回计算 property 属性的 model_name 模型所需要的参数
     bool depends_on_field(const std::string& property_name, int region_attribute, const std::string& field_name) const; // 判断: 某个属性在指定区域，是否依赖求解场
     PropertiesStatePoint make_state_point(PropertyScope scope, int attribute) const; // 根据属性的作用范围和位置编号，创建一个 PropertiesStatePoint 状态点对象，并设置它的区域/边界分区编号
-    VectorValue sample_region_field(const std::string& field_name, int region, const FieldMap& trial_fields) const; // 按区域求积点顺序读取标量场样本，优先使用传入的试探场
+    void sample_required_fields(const FieldMap& trial_fields); // 将本轮所需场统一采样到全域积分点数组，优先读取试探场
     template <typename Manager>
     void evaluate_and_store(const Manager& manager, const std::string& name, const PropertiesStatePoint& point); // 调用管理器计算某项属性，把结果存到对应位置，并标记该位置已经计算完成 (这个方法只用于 Global、Region、Zone 属性)
     template <typename Manager>
-    void evaluate_and_store_domain_points(const Manager& manager, const PropertyInfo& property, int region_attribute, const std::vector<RequiredState>& required, const FieldMap& trial_fields = {}); // 计算某个属性在指定区域内全部积分点上的值，存入全域积分点数组，最后标记该区域已计算
+    void evaluate_and_store_domain_points(const Manager& manager, const PropertyInfo& property, int region_attribute, const std::vector<RequiredState>& required); // 计算某个属性在指定区域内全部积分点上的值，存入全域积分点数组，最后标记该区域已计算
     template <typename Manager>
-    void evaluate_property(const Manager& manager, const PropertyInfo& property, int location, const std::vector<RequiredState>& required, const FieldMap& trial_fields = {}); // 根据存储范围求值并保存属性
+    void evaluate_property(const Manager& manager, const PropertyInfo& property, int location, const std::vector<RequiredState>& required); // 根据存储范围求值并保存属性
     template <typename Manager>
     void evaluate_and_store_face_points(const Manager& manager, const PropertyInfo& property, int attribute, const std::vector<RequiredState>& required); // 计算指定外边界或内部界面的各面求积点属性
     void load_required_states(PropertiesStatePoint& point, const std::vector<RequiredState>& names, std::optional<std::size_t> point_index = std::nullopt) const; // 给 point 装配需要的属性，point_index 为域或面积分点数组的全局下标
@@ -90,6 +86,11 @@ private:
     bool required_states_changed(int attribute, const std::vector<RequiredState>& required_states) const; // 判断: 某个区域或边界分区所依赖的属性，相比之前保存的快照，是否发生变化
 
     std::vector<PropertyInfo> properties_ = {
+        {"temperature", PropertyType::Field, PropertyScope::DomainIntegrationPoint}, // K，温度场的域积分点采样
+        {"concentration", PropertyType::Field, PropertyScope::DomainIntegrationPoint}, // mol/m³，浓度场的域积分点采样
+        {"displacement", PropertyType::Field, PropertyScope::DomainIntegrationPoint}, // m，位移场的域积分点采样
+        {"stress", PropertyType::Field, PropertyScope::DomainIntegrationPoint}, // Pa，位移场恢复的应力状态
+        {"strain", PropertyType::Field, PropertyScope::DomainIntegrationPoint}, // 无量纲，位移场恢复的应变状态
         {"precomputed.initial_region_volume", PropertyType::Precomputed, PropertyScope::Region},
         {"precomputed.initial_domain_quadrature_weight", PropertyType::Precomputed, PropertyScope::DomainIntegrationPoint}, // m³，域内求积点初始物理体积权重
         {"precomputed.initial_face_quadrature_weight", PropertyType::Precomputed, PropertyScope::FaceIntegrationPoint}, // m²，初始面求积点物理面积权重
@@ -170,6 +171,7 @@ private:
     };
     const FemSystem& fem_system_;
     std::vector<std::string> field_names_; // 本次启用的求解场，由外部传入
+    std::unordered_set<std::string> required_field_names_; // 当前已配置的所有属性模型直接依赖的场名称的集合
     ModelParameterMap build_parameters_; // 初始化阶段设置的公共构造参数, 在最上层 assign 中合并给所有模型
     MaterialModelManager material_model_manager_; // 材料属性模型管理器
     AssemblyModelManager assembly_model_manager_; // 物理模块模型属性管理器

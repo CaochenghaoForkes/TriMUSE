@@ -98,33 +98,13 @@ class PropertiesManager:
             for property_config in materials[assignment.mat].properties:
                 self.assign_property(mesh_info.region_attributes[assignment.name], property_config.property_name, property_config.model, property_config.parameters)
 
-    def update_external(self, time: float, time_step: float) -> None:
-        """更新给定时刻的外部属性"""
-        self.properties_system.update_external(time, time_step)
+    def update_field_independent_properties(self, time: float, time_step: float) -> None:
+        """更新时间及不依赖场的属性，最后保存依赖快照"""
+        self.properties_system.update_field_independent_properties(time, time_step)
 
-    def update_derived(self) -> None:
-        """更新不依赖场的派生属性"""
-        self.properties_system.update_derived()
-
-    def update_material(self) -> None:
-        """更新当前可计算的材料属性"""
-        self.properties_system.update_material()
-
-    def update_assembly(self) -> None:
-        """更新不依赖场的组装属性并保存依赖快照"""
-        self.properties_system.update_assembly()
-
-    def update_field_dependent_derived(self, field_name: str) -> None:
-        """根据指定场的当前解更新依赖它的派生属性"""
-        self.properties_system.update_field_dependent_derived(field_name)
-
-    def update_field_dependent_materials(self, field_name: str) -> None:
-        """根据指定场的当前解更新依赖它的材料属性"""
-        self.properties_system.update_field_dependent_materials(field_name)
-
-    def update_field_dependent_assembly(self, field_name: str) -> None:
-        """根据指定场的当前解更新依赖它的组装属性"""
-        self.properties_system.update_field_dependent_assembly(field_name)
+    def update_field_dependent_properties(self, field_name: str) -> None:
+        """采样正式场，再依次更新依赖该场的派生量、材料与组装属性"""
+        self.properties_system.update_field_dependent_properties(field_name)
 
     def accept_current_state(self) -> None:
         """保存已接受时刻的完整属性快照"""
