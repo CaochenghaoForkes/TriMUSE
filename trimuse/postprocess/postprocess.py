@@ -32,10 +32,10 @@ class PostprocessManager:
         self.center = (center.x, center.y if self.dimension > 1 else 0.0, center.z if self.dimension > 2 else 0.0)
         # 初始化类对象
         self.reader = OutputReader(self.output_directory, self.config.properties)
-        colors = {"temperature": "inferno", "concentration": "viridis", "max_principal_stress": "jet", "max_shear_stress": "jet"}
+        colors = {"temperature": "plasma", "concentration": "viridis", "von_mises_stress": "jet", "max_principal_stress": "jet"}
         self.property_metadata = {}
         for name in self.config.properties:
-            self.property_metadata[name] = {"unit": self.reader.units[name], "color": colors.get(name, "viridis")}
+            self.property_metadata[name] = {"unit": self.reader.units[name], "color": colors.get(name, "coolwarm")}
         self.point_plotter = PointPlotter(self.output_directory, self.postprocess_directory, self.reader, self.center, self.property_metadata)
         self.line_plotter = LinePlotter(self.output_directory, self.postprocess_directory, self.reader, self.center, self.property_metadata)
         self.section_plotter = SectionPlotter(self.output_directory, self.postprocess_directory, self.reader, self.center, self.property_metadata)

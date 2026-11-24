@@ -16,8 +16,8 @@ MechanicsProblem::MechanicsProblem(FemSystem& fem, RegionFieldData& accepted_dis
 {
     assembly_.mark_coupled(properties_);
     const auto& state = mechanics_state_.accepted_values();
+    properties_.require_field("von_mises_stress", &state.von_mises_stress);
     properties_.require_field("max_principal_stress", &state.max_principal_stress);
-    properties_.require_field("max_shear_stress", &state.max_shear_stress);
 }
 
 void MechanicsProblem::solve()

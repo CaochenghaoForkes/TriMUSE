@@ -2,6 +2,7 @@
 #include "physics/mechanics/assembly/mechanics_integrator.hpp"
 
 #include <algorithm>
+#include <cmath>
 
 namespace trimuse
 {
@@ -30,16 +31,19 @@ MechanicsState::MechanicsState(std::size_t point_count) // 传入 point_count �
 {
 }
 
-void MechanicsState::update(const MechanicsIntegrator& integrator, const std::vector<ElasticityTensorValue>& elasticity, const std::vector<VectorValue>& eigenstrain_coefficients) // 调用积分器，根据当前试探位移和传入的本构系数，更新各求积点的试探应变、应力及其主值和最大剪应力
+void MechanicsState::update(const MechanicsIntegrator& integrator, const std::vector<ElasticityTensorValue>& elasticity, const std::vector<VectorValue>& eigenstrain_coefficients) // 调用积分器，根据当前试探位移和传入的本构系数，更新各求积点的试探应变、应力及其主值和 von Mises 应力
 {
     integrator.recover_state(elasticity, eigenstrain_coefficients, trial_values_.strain, trial_values_.stress);
     for (std::size_t point = 0; point < trial_values_.strain.size(); ++point)
     {
         principal_values(trial_values_.strain[point], trial_values_.principal_strain[point]); // 主应变就是应变张量的特征值
         principal_values(trial_values_.stress[point], trial_values_.principal_stress[point]); // 主应力就是应力张量的特征值
-        const auto& principal_stress = trial_values_.principal_stress[point];
-        trial_values_.max_principal_stress[point] = principal_stress[0];
-        trial_values_.max_shear_stress[point] = 0.5 * (principal_stress[0] - principal_stress[2]); // 最大剪应力
+        trial_values_.max_principal_stress[point] = trial_values_.principal_stress[point][0];
+        const auto& stress = trial_values_.stress[point];
+        const double difference12 = stress[0] - stress[1];
+        const double difference23 = stress[1] - stress[2];
+        const double difference31 = stress[2] - stress[0];
+        trial_values_.von_mises_stress[point] = std::sqrt(0.5 * (difference12 * difference12 + difference23 * difference23 + difference31 * difference31) + 3.0 * (stress[3] * stress[3] + stress[4] * stress[4] + stress[5] * stress[5])); // sigma_vm = sqrt(3/2 s:s)，包含三个剪应力分量
     }
 }
 

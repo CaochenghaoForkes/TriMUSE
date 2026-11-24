@@ -102,8 +102,8 @@ private:
         {"temperature", PropertyType::Field, PropertyScope::DomainIntegrationPoint, "[K]"}, // K，温度场的域积分点采样
         {"concentration", PropertyType::Field, PropertyScope::DomainIntegrationPoint, "[mol]/[m]^3"}, // mol/m³，浓度场的域积分点采样
         {"displacement", PropertyType::Field, PropertyScope::DomainIntegrationPoint, "[m]"}, // m，位移场的域积分点采样
-        {"max_principal_stress", PropertyType::Field, PropertyScope::DomainIntegrationPoint, "[Pa]"}, // Pa，最大主应力
-        {"max_shear_stress", PropertyType::Field, PropertyScope::DomainIntegrationPoint, "[Pa]"}, // Pa，最大剪应力
+        {"von_mises_stress", PropertyType::Field, PropertyScope::DomainIntegrationPoint, "[Pa]"}, // Pa，von Mises 等效应力
+        {"max_principal_stress", PropertyType::Field, PropertyScope::DomainIntegrationPoint, "[Pa]"}, // Pa，第一主应力
         {"precomputed.initial_region_volume", PropertyType::Precomputed, PropertyScope::Region, "[m]^3"},
         {"precomputed.initial_domain_quadrature_weight", PropertyType::Precomputed, PropertyScope::DomainIntegrationPoint, "[m]^3"}, // m³，域内求积点初始物理体积权重
         {"precomputed.initial_face_quadrature_weight", PropertyType::Precomputed, PropertyScope::FaceIntegrationPoint, "[m]^2"}, // m²，初始面求积点物理面积权重
@@ -173,8 +173,8 @@ private:
         {"temperature", "temperature"},
         {"concentration", "concentration"},
         {"displacement", "displacement"},
-        {"max_principal_stress", "displacement"},
-        {"max_shear_stress", "displacement"}
+        {"von_mises_stress", "displacement"},
+        {"max_principal_stress", "displacement"}
     };
     // 场名 -> 程序内置且无需用户选择模型的固定关系属性
     inline static const std::unordered_map<std::string, std::vector<std::string>> field_required_properties_ = {

@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 class OutputReader:
     """读取属性时间序列索引, 按需加载各帧, 不一次缓存全部场数据"""
 
-    property_field_map = {"temperature": "thermal", "concentration": "radioactivity", "max_principal_stress": "mechanics", "max_shear_stress": "mechanics"} # 每个属性的分类 用于寻找其在哪个目录下
+    property_field_map = {"temperature": "thermal", "concentration": "radioactivity", "von_mises_stress": "mechanics", "max_principal_stress": "mechanics"} # 每个属性的分类 用于寻找其在哪个目录下
 
     def __init__(self, output_directory: str | Path, properties: list[str]) -> None:
         """output_directory 为包含 seed 子目录后实际使用的输出根目录"""

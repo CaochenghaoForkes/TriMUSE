@@ -58,7 +58,7 @@ class OutputManager:
         from _core import OutputManager as CoreOutputManager
         self.record_mesh(fem_manager.mesh_info.path)
         self.field_output = CoreOutputManager(fem_manager.fem_system, str(self.directory))
-        directories = {"temperature": "thermal", "concentration": "radioactivity", "max_principal_stress": "mechanics", "max_shear_stress": "mechanics"}
+        directories = {"temperature": "thermal", "concentration": "radioactivity", "von_mises_stress": "mechanics", "max_principal_stress": "mechanics"}
         configs = {"domain": [], "scalar": []}
         for name in self.input_cards.simulation.output.domain_properties:
             configs["domain"].append((name, directories.get(name, "properties")))

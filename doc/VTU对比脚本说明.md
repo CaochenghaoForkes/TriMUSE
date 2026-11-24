@@ -10,12 +10,11 @@
 python doc/compare_vtu.py \
   --trimuse-dir cases/region_heat_resistance/output/seed_20261111/mechanics \
   --comsol cases/region_heat_resistance/comsol.vtu \
-  --field max_principal_stress 第一主应力 sigma1 Pa \
-  --field max_shear_stress Data tau_max Pa \
+  --field von_mises_stress solid.mises sigma_vm Pa \
   --output cases/region_heat_resistance/comparison
 ```
 
-每个 `--field` 的四个参数依次为 TriMUSE 字段名、COMSOL 字段名、图例标签、单位，可以重复指定。`Data` 只是当前 COMSOL 文件中的数组名称，须确认它对应最大剪应力，脚本无法从这个名称判断原始表达式。输入单位指定为 Pa 时，绘图会将场值与差值共同换算为 MPa；其他单位按输入数值展示。
+每个 `--field` 的四个参数依次为 TriMUSE 字段名、COMSOL 字段名、图例标签、单位，可以重复指定。`solid.mises` 是示例 COMSOL 数组名称，使用时须替换为实际导出的 von Mises 应力数组名。输入单位指定为 Pa 时，绘图会将场值与差值共同换算为 MPa；其他单位按输入数值展示。
 
 默认选取所有字段共有的最后一个 TriMUSE 输出周期，可通过 `--cycle 1` 指定；COMSOL 文件应提前导出相同物理状态。
 
