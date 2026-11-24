@@ -69,7 +69,12 @@ class OutputManager:
             location_names["region"][attribute] = name
         for name, attribute in fem_manager.mesh_info.boundary_attributes.items():
             location_names["zone"][attribute] = name
-        self.field_output.initialize(properties_manager.properties_system, configs, location_names)
+        domain = self.input_cards.postprocess.domain_properties
+        domain_statistics = {}
+        if domain.extra_process:
+            for name in domain.names:
+                domain_statistics[name] = domain.extra_process
+        self.field_output.initialize(properties_manager.properties_system, configs, location_names, domain_statistics)
         self.report_file.write_text("TriMUSE simulation report\n", encoding="utf-8")
 
     def save(self, cycle: int, time: float, time_step: float) -> None:

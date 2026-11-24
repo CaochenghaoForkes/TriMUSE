@@ -51,6 +51,7 @@ class PostprocessCard:
     @dataclass
     class DomainProperties:
         names: list[str] = field(default_factory=list)
+        extra_process: list[str] = field(default_factory=list)
         points: list[PostprocessCard.Point] = field(default_factory=list)
         lines: list[PostprocessCard.Line] = field(default_factory=list)
         sections: list[PostprocessCard.Section] = field(default_factory=list)
@@ -85,13 +86,14 @@ class PostprocessCardLoader:
         if element is None:
             return PostprocessCard.DomainProperties()
         names = XmlUtils.read_attribute(element, "names", list[str], required=True)
+        extra_process = XmlUtils.read_attribute(element, "extra_process", list[str], default=[])
         points_element = XmlUtils.read_child(element, "points", required=False)
         lines_element = XmlUtils.read_child(element, "lines", required=False)
         sections_element = XmlUtils.read_child(element, "sections", required=False)
         points = [cls.read_point(child) for child in XmlUtils.read_children(points_element, "point")] if points_element is not None else []
         lines = [cls.read_line(child) for child in XmlUtils.read_children(lines_element, "line")] if lines_element is not None else []
         sections = [cls.read_section(child) for child in XmlUtils.read_children(sections_element, "section")] if sections_element is not None else []
-        return PostprocessCard.DomainProperties(names=names, points=points, lines=lines, sections=sections)
+        return PostprocessCard.DomainProperties(names=names, extra_process=extra_process, points=points, lines=lines, sections=sections)
 
     @staticmethod
     def read_center(element: ET.Element | None) -> PostprocessCard.Center | None:

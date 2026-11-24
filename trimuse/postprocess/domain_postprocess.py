@@ -48,9 +48,9 @@ class DomainPostprocessManager:
         self.animation_jobs: list[tuple[list[Path], Path]] = []
         self.lines = list(self.config.lines)
         self.sections = list(self.config.sections)
-        if self.dimension == 1 and not self.lines:
+        if self.dimension == 1 and not self.lines and not self.config.extra_process:
             self.lines.append(PostprocessCard.Line(name="radial", sample_count=100))
-        if self.dimension == 2 and not self.sections:
+        if self.dimension == 2 and not self.sections and not self.config.extra_process:
             self.sections.append(PostprocessCard.Section(name="whole_domain"))
         # 每个属性使用自己的首帧输出网格, 同一属性的全部位置和时间帧共用定位器
         self.locators: dict[str, vtkStaticCellLocator] = {}

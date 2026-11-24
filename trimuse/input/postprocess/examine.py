@@ -17,6 +17,8 @@ class PostprocessCardExamine:
             if len(names) != len(set(names)):
                 raise ValueError(f"postprocess.{group}: names 不能重复")
         domain = card.domain_properties
+        if len(domain.extra_process) != len(set(domain.extra_process)) or set(domain.extra_process) - {"maximum", "minimum", "region_average", "global_average"}:
+            raise ValueError("postprocess.domain_properties.extra_process: 可选 maximum、minimum、region_average、global_average，不能重复")
         for group, items in (("points", domain.points), ("lines", domain.lines), ("sections", domain.sections)):
             names = [item.name for item in items]
             if len(names) != len(set(names)):

@@ -15,7 +15,13 @@ class ScalarPostprocessManager:
     """读取标量 CSV，每项属性绘制各位置随时间变化的曲线"""
 
     def __init__(self, input_cards: InputCards) -> None:
-        self.names = input_cards.postprocess.scalar_properties.names
+        self.names = list(input_cards.postprocess.scalar_properties.names)
+        domain = input_cards.postprocess.domain_properties
+        for name in domain.names:
+            for process in domain.extra_process:
+                statistic = f"{name}.{process}"
+                if statistic not in self.names:
+                    self.names.append(statistic)
         self.formats = set(input_cards.postprocess.output.formats)
         self.output_directory = Path(input_cards.chief.output.directory).expanduser().resolve()
         self.postprocess_directory = self.output_directory / "postprocess" / "scalar_properties"

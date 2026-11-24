@@ -21,6 +21,11 @@ double maximum(const std::vector<double>& values) // 最大值：vₘₐₓ = ma
     return *std::max_element(values.begin(), values.end());
 }
 
+double minimum(const std::vector<double>& values) // 最小值：vₘᵢₙ = minᵢ(vᵢ)
+{
+    return *std::min_element(values.begin(), values.end());
+}
+
 bool any_positive(const std::vector<double>& values) // 存在正值：若存在 i 使 vᵢ > 0，则返回 true，否则返回 false
 {
     return std::any_of(values.begin(), values.end(), [](double value) { return value > 0.0; });

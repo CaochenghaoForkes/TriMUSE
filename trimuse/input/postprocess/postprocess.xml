@@ -3,7 +3,10 @@
 <postprocess>
     <!-- 两类名称分别对应 simulation.output 中的 domain_properties 和 scalar_properties -->
     <!-- 域属性使用完整名称，所列属性共用内部的采样配置；单位读取 property_units.json -->
-    <domain_properties names="temperature von_mises_stress max_principal_stress material.thermal.conductivity">
+    <!-- extra_process 可省略；由 C++ 输出阶段从原始积分点统计，平均值使用物理体积权重 -->
+    <!-- 统计 CSV 自动保存为 scalar_properties/属性名.操作名.csv，并由标量后处理自动绘图 -->
+    <!-- 只配置 extra_process 而不配置采样位置时，仅绘制统计时间曲线 -->
+    <domain_properties names="temperature von_mises_stress max_principal_stress material.thermal.conductivity" extra_process="maximum minimum region_average global_average">
         <!-- 1D 默认输出 100 点径向线; 2D 默认输出全截面; 3D 至少指定一项 -->
         <points>
             <point name="[str]">

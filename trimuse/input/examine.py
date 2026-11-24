@@ -73,8 +73,16 @@ class InputCardsExamine:
                 missing = required - {item.property_name for item in mat.properties}
                 if missing:
                     raise ValueError(f"力学材料 {mat.name} 缺少属性: {', '.join(sorted(missing))}")
+        domain = postprocess.domain_properties
+        statistics = set()
+        for name in domain.names:
+            for process in domain.extra_process:
+                statistics.add(f"{name}.{process}")
         for group in ("domain_properties", "scalar_properties"):
-            missing = set(getattr(postprocess, group).names) - set(getattr(simulation.output, group))
+            available = set(getattr(simulation.output, group))
+            if group == "scalar_properties":
+                available.update(statistics)
+            missing = set(getattr(postprocess, group).names) - available
             if missing:
                 raise ValueError(f"后处理 {group} 引用了未输出的属性: {', '.join(sorted(missing))}")
 
@@ -208,7 +216,7 @@ class InputCardsExamine:
         if not domain.names:
             return
         dimension = geometry_mesh.model.dimension
-        if dimension == 3 and not domain.points and not domain.lines and not domain.sections:
+        if dimension == 3 and not domain.points and not domain.lines and not domain.sections and not domain.extra_process:
             raise ValueError("postprocess: 3D 至少配置一个 point、line 或 section")
         if dimension == 1 and domain.sections:
             raise ValueError("postprocess: 1D 不支持 section")
