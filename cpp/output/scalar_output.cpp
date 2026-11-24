@@ -13,7 +13,7 @@ ScalarOutput::ScalarOutput(const PropertiesSystem& properties, const std::string
     const auto global = data.global_values.find(name);
     if (global != data.global_values.end())
     {
-        columns_.push_back({"value", &global->second});
+        columns_.push_back({"global", &global->second});
     }
     else
     {

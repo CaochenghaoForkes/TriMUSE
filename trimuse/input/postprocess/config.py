@@ -48,10 +48,19 @@ class PostprocessCard:
     class Output:
         formats: list[str] = field(default_factory=lambda: ["png", "csv", "gif"])
 
-    properties: list[str]
-    points: list[Point] = field(default_factory=list)
-    lines: list[Line] = field(default_factory=list)
-    sections: list[Section] = field(default_factory=list)
+    @dataclass
+    class DomainProperties:
+        names: list[str] = field(default_factory=list)
+        points: list[PostprocessCard.Point] = field(default_factory=list)
+        lines: list[PostprocessCard.Line] = field(default_factory=list)
+        sections: list[PostprocessCard.Section] = field(default_factory=list)
+
+    @dataclass
+    class ScalarProperties:
+        names: list[str] = field(default_factory=list)
+
+    domain_properties: DomainProperties = field(default_factory=DomainProperties)
+    scalar_properties: ScalarProperties = field(default_factory=ScalarProperties)
     output: Output = field(default_factory=Output)
 
 class PostprocessCardLoader:
@@ -63,19 +72,26 @@ class PostprocessCardLoader:
             print(f"后处理模板输入卡已生成: {template_path}")
             sys.exit()
         root = XmlUtils.get_root(path, "postprocess")
-        points_element = XmlUtils.read_child(root, "points", required=False)
-        lines_element = XmlUtils.read_child(root, "lines", required=False)
-        sections_element = XmlUtils.read_child(root, "sections", required=False)
+        domain = cls.read_domain_properties(XmlUtils.read_child(root, "domain_properties", required=False))
+        scalar_element = XmlUtils.read_child(root, "scalar_properties", required=False)
+        scalar_names = XmlUtils.read_attribute(scalar_element, "names", list[str], default=[])
+        output_element = XmlUtils.read_child(root, "output", required=False)
+        formats = XmlUtils.read_attribute(output_element, "formats", list[str], default=["png", "csv", "gif"])
+        return PostprocessCard(domain_properties=domain, scalar_properties=PostprocessCard.ScalarProperties(names=scalar_names), output=PostprocessCard.Output(formats=formats))
+
+    @classmethod
+    def read_domain_properties(cls, element: ET.Element | None) -> PostprocessCard.DomainProperties:
+        """域属性共用其内部的点、线和截面采样配置"""
+        if element is None:
+            return PostprocessCard.DomainProperties()
+        names = XmlUtils.read_attribute(element, "names", list[str], required=True)
+        points_element = XmlUtils.read_child(element, "points", required=False)
+        lines_element = XmlUtils.read_child(element, "lines", required=False)
+        sections_element = XmlUtils.read_child(element, "sections", required=False)
         points = [cls.read_point(child) for child in XmlUtils.read_children(points_element, "point")] if points_element is not None else []
         lines = [cls.read_line(child) for child in XmlUtils.read_children(lines_element, "line")] if lines_element is not None else []
         sections = [cls.read_section(child) for child in XmlUtils.read_children(sections_element, "section")] if sections_element is not None else []
-        properties_element = XmlUtils.read_child(root, "properties")
-        properties = XmlUtils.read_attribute(properties_element, "names", list[str], required=True)
-        output_element = XmlUtils.read_child(root, "output", required=False)
-        formats = XmlUtils.read_attribute(output_element, "formats", list[str], default=["png", "csv", "gif"])
-        postprocess_card = PostprocessCard(properties=properties, points=points, lines=lines, sections=sections,
-                                         output=PostprocessCard.Output(formats=formats))
-        return postprocess_card
+        return PostprocessCard.DomainProperties(names=names, points=points, lines=lines, sections=sections)
 
     @staticmethod
     def read_center(element: ET.Element | None) -> PostprocessCard.Center | None:

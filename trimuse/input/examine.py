@@ -73,9 +73,10 @@ class InputCardsExamine:
                 missing = required - {item.property_name for item in mat.properties}
                 if missing:
                     raise ValueError(f"力学材料 {mat.name} 缺少属性: {', '.join(sorted(missing))}")
-        missing = set(postprocess.properties) - set(simulation.output.domain_properties)
-        if missing:
-            raise ValueError(f"后处理引用了未输出的属性: {', '.join(sorted(missing))}")
+        for group in ("domain_properties", "scalar_properties"):
+            missing = set(getattr(postprocess, group).names) - set(getattr(simulation.output, group))
+            if missing:
+                raise ValueError(f"后处理 {group} 引用了未输出的属性: {', '.join(sorted(missing))}")
 
     @staticmethod
     def check_bacon_anisotropy_factor_dependencies(material: MaterialCard, properties: PropertiesCard) -> None:
@@ -203,20 +204,23 @@ class InputCardsExamine:
     @staticmethod
     def check_postprocess_geometry(geometry_mesh: GeometryMeshCard, postprocess: PostprocessCard) -> None:
         """按几何维数检查采样坐标和方向, 不在输入阶段判断随机域内外"""
+        domain = postprocess.domain_properties
+        if not domain.names:
+            return
         dimension = geometry_mesh.model.dimension
-        if dimension == 3 and not postprocess.points and not postprocess.lines and not postprocess.sections:
+        if dimension == 3 and not domain.points and not domain.lines and not domain.sections:
             raise ValueError("postprocess: 3D 至少配置一个 point、line 或 section")
-        if dimension == 1 and postprocess.sections:
+        if dimension == 1 and domain.sections:
             raise ValueError("postprocess: 1D 不支持 section")
-        positions = [(point.name, point.center) for point in postprocess.points]
+        positions = [(point.name, point.center) for point in domain.points]
         if dimension == 3:
-            positions.extend((section.name, section.center) for section in postprocess.sections)
+            positions.extend((section.name, section.center) for section in domain.sections)
         for name, center in positions:
             if center is None or dimension > 1 and center.y is None or dimension == 3 and center.z is None:
                 raise ValueError(f"postprocess.{name}: center 必须提供当前维数所需的坐标")
-        directions = [(line.name, line.direction) for line in postprocess.lines] if dimension > 1 else []
+        directions = [(line.name, line.direction) for line in domain.lines] if dimension > 1 else []
         if dimension == 3:
-            directions.extend((section.name, section.normal) for section in postprocess.sections)
+            directions.extend((section.name, section.normal) for section in domain.sections)
         for name, direction in directions:
             if direction is None or dimension == 3 and direction.phi is None:
                 raise ValueError(f"postprocess.{name}: 必须提供 theta, 3D 还需要 phi")

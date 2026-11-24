@@ -1,48 +1,51 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- 默认处理全部已保存时刻; 坐标为实际笛卡尔坐标, 名称仅为采样位置标签 -->
 <postprocess>
-    <!-- 1D 默认输出 100 点径向线; 2D 默认输出全截面; 3D 至少指定一项 -->
-    <points>
-        <point name="[str]">
-            <center>
-                <x value="[float]" unit="[um]"/>
-                <!-- y 用于 2D/3D, z 用于 3D -->
-                <y value="[float]" unit="[um]"/>
-                <z value="[float]" unit="[um]"/>
-            </center>
-        </point>
-    </points>
-    <lines>
-        <!-- sample_count 至少 2, 默认 100; 起点固定为颗粒中心, 沿方向到外表面 -->
-        <!-- 1D 为整个径向范围, 可省略 direction -->
-        <line name="[str]" sample_count="[int]">
-            <!-- 2D theta 从 +y 起算; 3D theta 从 +z 起算, phi 绕 z 轴 -->
-            <!-- theta 在 [0,180] 度, phi 在 [0,360) 度; 2D 不需要 phi -->
-            <direction>
-                <theta value="[float]" unit="[degree]"/>
-                <phi value="[float]" unit="[degree]"/>
-            </direction>
-        </line>
-    </lines>
-    <!-- 1D 不支持 section; 2D 为整个计算截面, 可省略 center、normal -->
-    <sections>
-        <section name="[str]">
-            <!-- 以下 center、normal 在 3D 必填, 在 2D 不参与截面定义 -->
-            <center>
-                <x value="[float]" unit="[um]"/>
-                <y value="[float]" unit="[um]"/>
-                <z value="[float]" unit="[um]"/>
-            </center>
-            <normal>
-                <theta value="[float]" unit="[degree]"/>
-                <phi value="[float]" unit="[degree]"/>
-            </normal>
-        </section>
-    </sections>
-    <!-- 属性名称使用空格分隔，必须已列入 simulation.output.domain_properties；支持任意已输出的标量域属性 -->
-    <!-- 单位读取输出目录中的 property_units.json；温度用 plasma、浓度用 YlGn、von Mises 应力和第一主应力用 jet，其余属性默认 coolwarm -->
-    <properties names="temperature material.thermal.conductivity"/>
+    <!-- 两类名称分别对应 simulation.output 中的 domain_properties 和 scalar_properties -->
+    <!-- 域属性使用完整名称，所列属性共用内部的采样配置；单位读取 property_units.json -->
+    <domain_properties names="temperature von_mises_stress max_principal_stress material.thermal.conductivity">
+        <!-- 1D 默认输出 100 点径向线; 2D 默认输出全截面; 3D 至少指定一项 -->
+        <points>
+            <point name="[str]">
+                <center>
+                    <x value="[float]" unit="[um]"/>
+                    <!-- y 用于 2D/3D, z 用于 3D -->
+                    <y value="[float]" unit="[um]"/>
+                    <z value="[float]" unit="[um]"/>
+                </center>
+            </point>
+        </points>
+        <lines>
+            <!-- sample_count 至少 2, 默认 100; 起点固定为颗粒中心, 沿方向到外表面 -->
+            <!-- 1D 为整个径向范围, 可省略 direction -->
+            <line name="[str]" sample_count="[int]">
+                <!-- 2D theta 从 +y 起算; 3D theta 从 +z 起算, phi 绕 z 轴 -->
+                <!-- theta 在 [0,180] 度, phi 在 [0,360) 度; 2D 不需要 phi -->
+                <direction>
+                    <theta value="[float]" unit="[degree]"/>
+                    <phi value="[float]" unit="[degree]"/>
+                </direction>
+            </line>
+        </lines>
+        <!-- 1D 不支持 section; 2D 为整个计算截面, 可省略 center、normal -->
+        <sections>
+            <section name="[str]">
+                <!-- 以下 center、normal 在 3D 必填, 在 2D 不参与截面定义 -->
+                <center>
+                    <x value="[float]" unit="[um]"/>
+                    <y value="[float]" unit="[um]"/>
+                    <z value="[float]" unit="[um]"/>
+                </center>
+                <normal>
+                    <theta value="[float]" unit="[degree]"/>
+                    <phi value="[float]" unit="[degree]"/>
+                </normal>
+            </section>
+        </sections>
+    </domain_properties>
+    <!-- 每个标量属性一张时间曲线图，各区域或分区各一条线；Global 的位置列名为 global -->
+    <scalar_properties names="assembly.internal_gas_pressure external.power"/>
     <!-- 可任选 png、csv、gif, 空格分隔; 省略时默认全部输出 -->
-    <!-- gif 用于线和截面的时间动画; 只选 gif 时不保留中间 PNG -->
+    <!-- gif 仅用于域属性的线和截面动画；标量属性支持 png、csv；只选 gif 时不保留中间 PNG -->
     <output formats="png csv gif"/>
 </postprocess>
