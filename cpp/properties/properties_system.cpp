@@ -43,20 +43,15 @@ PropertiesSystem::PropertiesSystem(const FemSystem& fem_system, const std::vecto
         }
     }
     PrecomputedManager::initialize_precomputed(*this, fem_system_, field_names_, precomputed_parameters);
+    assign_field_properties(); // 初始化时按启用场安排固定属性模型
     required_state_snapshots_ = properties_field_data_; // 记录初始化完成后的属性与预计算依赖值
 }
 
 void PropertiesSystem::set_precomputed(const std::string& name, const ModelParameterValue& value) // 为已声明的全局预计算属性填写值，并把它保存为所有模型共用的构造参数
 {
     const std::string property_name = "precomputed." + name;
-    const PropertyInfo& property = property_info(property_name);
-    if (property.type != PropertyType::Precomputed || property.scope != PropertyScope::Global)
-    {
-        throw std::invalid_argument("set_precomputed 仅接受全局预计算属性: " + property_name);
-    }
     build_parameters_[name] = value;
-    properties_field_data_.global_values.at(property_name) = std::visit([](const auto& item) -> StateValue
-                                                                        { return item; }, value); // properties_field_data_.global_values.at(property_name) 取得该 Global Precomputed 对应的 std::optional<StateValue> std::visit(函数体, value) 把上面的 value 交给函数体 [](const auto& item) -> StateValue { return item; } 一个匿名函数负责把 value 的类型转化为 StateValue
+    properties_field_data_.global_values.at(property_name) = std::visit([](const auto& item) -> StateValue { return item; }, value); // properties_field_data_.global_values.at(property_name) 取得该 Global Precomputed 对应的 std::optional<StateValue> std::visit(函数体, value) 把上面的 value 交给函数体 [](const auto& item) -> StateValue { return item; } 一个匿名函数负责把 value 的类型转化为 StateValue
 }
 
 PropertiesSystem::PropertyInfo& PropertiesSystem::property_info(const std::string& name) // 返回该 name 对应属性的 PropertyInfo
@@ -74,14 +69,7 @@ std::size_t PropertiesSystem::property_index(const std::string& name) const // �
     // std::find_if 在 [begin, end) 范围内查找第一个满足条件的元素
     // [&name]：按引用捕获外部变量 name
     // 对容器中每个 PropertyInfo 元素，判断其 name 成员是否与要找的名字相等
-    const auto property = std::find_if(properties_.begin(), properties_.end(), [&name](const PropertyInfo& item)
-                                       {
-                                           return item.name == name; // 查找成功返回指向该元素的迭代器；失败则返回 end()
-                                       });
-    if (property == properties_.end()) // 未找到时抛出异常
-    {
-        throw std::out_of_range("未知属性: " + name);
-    }
+    const auto property = std::find_if(properties_.begin(), properties_.end(), [&name](const PropertyInfo& item) { return item.name == name; }); // 查找成功返回指向该元素的迭代器；失败则返回 end()
     return static_cast<std::size_t>(property - properties_.begin()); // 两个迭代器相减得到偏移量 (即 properties 中该 name 对应的的下标)
 }
 
@@ -107,10 +95,6 @@ void PropertiesSystem::assign(int attribute, const std::string& model_name, cons
     // 模型名固定为 namespace.model, 如 model_name = "material.thermal.conductivity.common.time_series";
     const auto model_separator = model_name.rfind('.'); // rfind('.') 从右往左找最后一个点的位置
     const auto property_end = model_separator == std::string::npos ? std::string::npos : model_name.rfind('.', model_separator - 1); // std::string::npos 是字符串查找中表示“没找到”的特殊值 如果没找到最后一个点就直接返回；rfind(字符, 起始位置) 表示从指定位置开始，向左寻找该字符，起始位置也会参与检查 如果找到了最后一个点 就从 model_separator - 1 的位置(最后一个点的前一个字符位置) 开始找倒数第二个 .
-    if (property_end == std::string::npos) // 如果找不到倒数第一个和倒数第二个点就报错
-    {
-        throw std::invalid_argument("模型路径应为完整属性名.common.xxx 或完整属性名.材料分类.xxx: " + model_name);
-    }
     const std::string property_name = model_name.substr(0, property_end); // 截取倒数第二个点之前的内容 如 material.thermal.conductivity
     const std::string specific_model_name = model_name.substr(property_end + 1); // 截取倒数第二个点之后点全部内容 如 common.time_series
     const PropertyInfo& property = property_info(property_name); // 查询该属性的分类信息
@@ -161,7 +145,6 @@ void PropertiesSystem::assign_field_properties()
 
 void PropertiesSystem::prepare_dependencies() // 标记各个属性在各个区域依赖的场有哪些
 {
-    assign_field_properties(); // 依赖分析前，按启用场统一配置固定关系属性。
     for (PropertyInfo& property : properties_)
     {
         property.field_regions.clear(); // 清空旧依赖标记
