@@ -18,8 +18,8 @@ public:
     using SolveInformation = std::vector<std::pair<std::string, double>>; // 求解信息如: picard_iterations -> 3 solve_elapsed_seconds -> 0.02 ...
 
     OutputManager(FemSystem& fem_system, const std::string& output_directory);
-    void add_field(const std::string& field_name, const std::string& directory_name, bool project_to_l2 = false, int order = 0); // 标量分域场沿用计算阶次，标量求积点数组使用指定阶次，统一建立 L2 输出空间
-    void save(const std::string& field_name, const FieldView& values, int cycle, double time, double time_step); // 按输出节点读取传入的正式标量场，不做 L2 投影
+    void add_field(const std::string& field_name, const std::string& directory_name, int order); // 按指定阶次建立标量 L2 输出空间
+    void save(const std::string& field_name, const FieldView& view, int cycle, double time, double time_step); // 按输出节点读取传入的正式标量场，不做 L2 投影
     void save(const std::string& field_name, const std::vector<double>& values, const PropertiesFieldData::DomainIntegrationPointValues& weights, int cycle, double time, double time_step); // 传入全域标量求积点数组，逐单元 L2 投影后保存
     void clear_solve_information(const std::string& field_name);
     void append_solve_information(const std::string& field_name, const std::string& name, double value);
@@ -35,7 +35,6 @@ private:
     };
 
     void write_field(const std::string& field_name, int cycle, double time, double time_step); // 设置时间信息并写出已经填好的输出场
-    void update_field_output(const FieldView& view, mfem::GridFunction& output); // 将传入的分域标量场插值到输出节点
 
     FemSystem& fem_system_; // 有限元系统的引用
     std::string output_directory_; // 结果输出目录

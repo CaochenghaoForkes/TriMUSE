@@ -17,10 +17,9 @@ MechanicsProblem::MechanicsProblem(FemSystem& fem, RegionFieldData& accepted_dis
     mechanics_state_(fem.domain_quadrature_point_count())
 {
     assembly_.mark_coupled(properties_);
-    const int region = fem.mesh_data().region_attributes().front();
-    const int order = std::max(0, trial_displacement_.space(region).GetMaxElementOrder() - 1); // 应力采用逐单元 L2 空间，保留材料界面跳变
-    output_manager_.add_field("max_principal_stress", "mechanics", true, order);
-    output_manager_.add_field("max_shear_stress", "mechanics", true, order);
+    const int order = accepted_displacement.finite_element_space(fem.mesh_data().region_attributes().front()).order(); // 应力输出沿用位移场的输入阶次
+    output_manager_.add_field("max_principal_stress", "mechanics", order);
+    output_manager_.add_field("max_shear_stress", "mechanics", order);
 }
 
 void MechanicsProblem::solve()

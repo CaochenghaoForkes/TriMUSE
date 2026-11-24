@@ -14,13 +14,9 @@ OutputManager::OutputManager(FemSystem& fem_system, const std::string& output_di
 {
 }
 
-void OutputManager::add_field(const std::string& field_name, const std::string& directory_name, bool project_to_l2, int order) // 为一个场建立输出目录，建立 L2 输出空间，并注册到 ParaView 输出对象中
+void OutputManager::add_field(const std::string& field_name, const std::string& directory_name, int order) // 为一个场建立输出目录，建立 L2 输出空间，并注册到 ParaView 输出对象中
 {
     FieldOutput field_output; // 创建一组输出资源
-    if (!project_to_l2) // 正式场沿用计算阶次；积分点数组使用传入的输出阶次
-    {
-        order = fem_system_.region_field(field_name).finite_element_space(fem_system_.mesh_data().region_attributes().front()).order();
-    }
     field_output.collection = std::make_unique<mfem::L2_FECollection>(order, fem_system_.mesh_data().dimension());
     field_output.space = std::make_unique<mfem::FiniteElementSpace>(&fem_system_.mesh_data().mfem_mesh(), field_output.collection.get()); // 在原网格建立标量 L2 输出空间，保留材料界面两侧的跳变
     field_output.values = std::make_unique<mfem::GridFunction>(field_output.space.get());
@@ -41,10 +37,28 @@ void OutputManager::add_field(const std::string& field_name, const std::string& 
     solve_information_.try_emplace(field_name); // 如果没有键就对 field_name 插入个空的 SolveInformation 否则什么也不做
 }
 
-void OutputManager::save(const std::string& field_name, const FieldView& values, int cycle, double time, double time_step) // 对于传入的场view，将输入分域场插值到 L2 输出场，并输出场 ParaView 文件
+void OutputManager::save(const std::string& field_name, const FieldView& view, int cycle, double time, double time_step) // 将输入分域场逐单元插值到 L2 输出节点，再保存 ParaView 文件
 {
-    update_field_output(values, *field_outputs_.at(field_name).values); // 将传入的正式场逐单元插值到输出节点，分域场按原网格单元读取
-    write_field(field_name, cycle, time, time_step); // 输出场 ParaView
+    auto& output = *field_outputs_.at(field_name).values;
+    // 根据输入场 view -> 确定输出场的节点场值
+    // 计算 u_j^{out} = u_h^{in}(x_j^{out}) = sum_i Ni^{in}(x_j^{out}) u_i^{in}
+    // 输出空间在 add_field 中建立，各单元的输出自由度独立
+    auto* space = output.FESpace(); // 取得输出场的有限元空间，并准备两个临时容器
+    mfem::Array<int> dofs; // 当前单元在输出场中的自由度编号
+    mfem::Vector values; // 这些自由度对应的场值
+    for (int element = 0; element < space->GetNE(); ++element) // 遍历输出空间所在原网格的全部域单元
+    {
+        const auto& points = space->GetFE(element)->GetNodes(); // 取得当前输出有限元的参考插值节点 些点用于插值，不是前面材料属性计算使用的求积点
+        space->GetElementDofs(element, dofs); // 取得当前单元的标量输出自由度编号
+        values.SetSize(dofs.Size()); // 并准备同长度的局部值向量
+        for (int q = 0; q < points.GetNPoints(); ++q) // 随后遍历每个输出插值节点
+        {
+            const auto value = view.evaluate(fem_system_.mesh_data().mfem_mesh().GetAttribute(element), element, points.IntPoint(q)); // 传入原网格所属区域编号 原网格单元编号 当前节点在参考单元中的坐标 view.evaluate() 从该区域的输入场中，计算这个参考位置上的输入场值
+            values[q] = std::get<double>(value); // 输出仅接收标量场
+        }
+        output.SetSubVector(dofs, values); // 按照当前单元的自由度编号，把局部值写入完整输出向量 分域场采用 L2 输出空间，相邻单元的自由度彼此独立，因此不会把界面两侧的值平均掉
+    }
+    write_field(field_name, cycle, time, time_step);
 }
 
 void OutputManager::write_field(const std::string& field_name, int cycle, double time, double time_step) // 把指定场在当前时间步的结果保存成 ParaView 文件
@@ -103,28 +117,6 @@ void OutputManager::save(const std::string& field_name, const std::vector<double
         output.SetSubVector(dofs, local);
     }
     write_field(field_name, cycle, time, time_step);
-}
-
-void OutputManager::update_field_output(const FieldView& view, mfem::GridFunction& output) // 将传入的正式场逐单元插值到输出节点，分域场按原网格单元读取 输入场的节点场值 -> 输出场的节点场值
-{
-    // 根据输入场 view -> 确定输出场的节点场值
-    // 计算 u_i^{out} = u_h^{in}(x_j^{out}) = sum_{i}(Ni^{in}(x_j^{out})u_i^{in})
-    // 输出空间在 add_field 中建立，各单元的输出自由度独立
-    auto* space = output.FESpace(); // 取得输出场的有限元空间，并准备两个临时容器
-    mfem::Array<int> dofs; // 当前单元在输出场中的自由度编号
-    mfem::Vector values; // 这些自由度对应的场值
-    for (int element = 0; element < space->GetNE(); ++element) // 遍历输出空间所在原网格的全部域单元
-    {
-        const auto& points = space->GetFE(element)->GetNodes(); // 取得当前输出有限元的参考插值节点 些点用于插值，不是前面材料属性计算使用的求积点
-        space->GetElementDofs(element, dofs); // 取得当前单元的标量输出自由度编号
-        values.SetSize(dofs.Size()); // 并准备同长度的局部值向量
-        for (int q = 0; q < points.GetNPoints(); ++q) // 随后遍历每个输出插值节点
-        {
-            const auto value = view.evaluate(fem_system_.mesh_data().mfem_mesh().GetAttribute(element), element, points.IntPoint(q)); // 传入原网格所属区域编号 原网格单元编号 当前节点在参考单元中的坐标 view.evaluate() 从该区域的输入场中，计算这个参考位置上的输入场值
-            values[q] = std::get<double>(value); // 输出仅接收标量场
-        }
-        output.SetSubVector(dofs, values); // 按照当前单元的自由度编号，把局部值写入完整输出向量 分域场采用 L2 输出空间，相邻单元的自由度彼此独立，因此不会把界面两侧的值平均掉
-    }
 }
 
 void OutputManager::clear_solve_information(const std::string& field_name) // 清空场对应的求解信息列表
