@@ -20,6 +20,7 @@ void MechanicsInterfacePressureAssembly::add_pressure(const InterfaceContext& co
     // c 为位移方向分量，i 为单元节点编号，q 为面积分点编号
     // wq 为求积权重，JΓ,q 为面片几何映射权重，gq 为降维几何权重
     const auto& interface = context.interface(); // 当前面片的信息，包括面片编号，以及两侧各自的区域和相邻单元编号
+    const std::size_t offset = fem_.face_quadrature_offset(interface.face);
     const int region_attribute = interface.sides[side].region_attribute; // 取得受压侧的区域编号和原网格单元编号
     const int element = interface.sides[side].element; // 这一侧紧邻界面的域单元编号 (原网格编号)
     const int dimension = fem_.mesh_data().dimension(); // 求解维数
@@ -46,7 +47,7 @@ void MechanicsInterfacePressureAssembly::add_pressure(const InterfaceContext& co
             traction *= (side == 0 ? 1.0 : -1.0) / traction.Norml2(); // 先除以长度，将法向单位化；若受压侧是第二侧，就反向
         }
         traction *= -pressure; // 法向转换为压力对应的面力
-        const double weight = std::get<double>(weights[interface.face][q].value());
+        const double weight = std::get<double>(weights[offset + q].value());
         for (int component = 0; component < dimension; ++component) // 遍历位移分量
         {
             for (int node = 0; node < shape.Size(); ++node) // 遍历受压侧单元的标量形函数 local 按分量分块排列[分量0的全部节点载荷，分量1的全部节点载荷，……]

@@ -23,6 +23,7 @@ FemSystem::FemSystem(const std::string& mesh_path, int domain_quadrature_order, 
         }
     }
     cache_domain_quadrature_positions(); // 缓存每个域单元上所有积分点的实际空间坐标，同时建立积分点的全域连续编号。 对固定网格，后续更新材料属性时就可以直接读取，不必重复计算坐标映射
+    cache_face_quadrature_offsets();
     const MaterialCoordinateSystem coordinates(geometry_method, mesh_data_.dimension(), geometry_center_, region_layers);
     material_bases_.resize(domain_quadrature_point_count());
     for (int element = 0; element < mesh_data_.element_count(); ++element)
@@ -139,6 +140,17 @@ const mfem::IntegrationRule* FemSystem::boundary_quadrature_rule(mfem::Geometry:
     return boundary_quadrature_rules_.at(geometry);
 }
 
+void FemSystem::cache_face_quadrature_offsets()
+{
+    const auto& mesh = mesh_data_.mfem_mesh();
+    face_quadrature_offsets_.resize(mesh.GetNumFaces() + 1);
+    for (int face = 0; face < mesh.GetNumFaces(); ++face)
+    {
+        const auto* rule = boundary_quadrature_rule(mesh.GetFaceGeometry(face));
+        face_quadrature_offsets_[face + 1] = face_quadrature_offsets_[face] + rule->GetNPoints();
+    }
+}
+
 void FemSystem::cache_domain_quadrature_positions() // 缓存每个域单元上所有积分点的实际空间坐标，同时建立积分点的全域连续编号。 对固定网格，后续更新材料属性时就可以直接读取，不必重复计算坐标映射
 {
     const mfem::Mesh& mesh = mesh_data_.mfem_mesh(); // 得到网格
@@ -185,6 +197,16 @@ std::size_t FemSystem::domain_quadrature_offset(int element) const // 传入原�
 std::size_t FemSystem::domain_quadrature_point_count() const // 返回所有域单元的积分点数量之和，通常用于给积分点属性数组分配空间
 {
     return domain_quadrature_offsets_.back();
+}
+
+std::size_t FemSystem::face_quadrature_offset(int face) const
+{
+    return face_quadrature_offsets_[face];
+}
+
+std::size_t FemSystem::face_quadrature_point_count() const
+{
+    return face_quadrature_offsets_.back();
 }
 
 const std::vector<std::size_t>& FemSystem::region_domain_point_indices(int region) const

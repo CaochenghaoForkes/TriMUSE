@@ -130,6 +130,7 @@ std::shared_ptr<mfem::Vector> MechanicsIntegrator::boundary_load(const std::vect
     {
         auto* transformation = fem_.mesh_data().mfem_mesh().GetBdrFaceTransformations(boundary); // 取得几何映射
         const int face = fem_.mesh_data().mfem_mesh().GetBdrElementFaceIndex(boundary); // 原网格面编号
+        const std::size_t offset = fem_.face_quadrature_offset(face);
         const int element = transformation->Elem1No; // 取得外边界内侧相邻的原网格域单元编号
         const int region = fem_.mesh_data().mfem_mesh().GetAttribute(element); // 查该域单元所属区域编号
         const auto* fe = trial_field_.space(region).GetFE(trial_field_.local_element(element)); // 取得该单元
@@ -164,7 +165,7 @@ std::shared_ptr<mfem::Vector> MechanicsIntegrator::boundary_load(const std::vect
                 }
                 traction *= -std::get<double>(value); // 取出压力标量并计算 t=-pn (负号表示正压力产生指向材料内部的面力)
             }
-            const double weight = std::get<double>(weights[face][q].value());
+            const double weight = std::get<double>(weights[offset + q].value());
             for (int c = 0; c < dimension_; ++c) // 遍历位移方向
                 for (int i = 0; i < shape.Size(); ++i) // 遍历插值节点
                 {

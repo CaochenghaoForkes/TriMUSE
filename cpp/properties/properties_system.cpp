@@ -405,7 +405,7 @@ void PropertiesSystem::load_required_states(PropertiesStatePoint& point, const s
         }
         else if (scope == PropertyScope::FaceIntegrationPoint)
         {
-            point.values[name] = properties_field_data_.face_integration_point_values.at(name)[point.face_index][point.face_point_index].value();
+            point.values[name] = properties_field_data_.face_integration_point_values.at(name)[fem_system_.face_quadrature_offset(point.face_index) + point.face_point_index].value();
         }
         else if (scope == PropertyScope::Interface)
         {
@@ -453,9 +453,10 @@ void PropertiesSystem::load_previous_value(PropertiesStatePoint& point, const Pr
     else if (property.scope == PropertyScope::FaceIntegrationPoint)
     {
         const auto values = previous_field_data_.face_integration_point_values.find(name);
-        if (values != previous_field_data_.face_integration_point_values.end() && point.face_index < values->second.size() && point.face_point_index < values->second[point.face_index].size())
+        const std::size_t index = fem_system_.face_quadrature_offset(point.face_index) + point.face_point_index;
+        if (values != previous_field_data_.face_integration_point_values.end() && index < values->second.size())
         {
-            point.previous_value = values->second[point.face_index][point.face_point_index];
+            point.previous_value = values->second[index];
         }
     }
     else if (property.scope == PropertyScope::Interface)
@@ -567,9 +568,12 @@ bool PropertiesSystem::required_states_changed(int attribute, const std::vector<
                     continue;
                 }
                 const int face = mesh.GetBdrElementFaceIndex(boundary);
-                if (old_values[face] != new_values[face])
+                for (std::size_t index = fem_system_.face_quadrature_offset(face); index < fem_system_.face_quadrature_offset(face + 1); ++index)
                 {
-                    return true;
+                    if (old_values[index] != new_values[index])
+                    {
+                        return true;
+                    }
                 }
             }
         }
@@ -894,7 +898,7 @@ void PropertiesSystem::evaluate_and_store_face_points(const Manager& manager, co
 {
     const auto& mesh = fem_system_.mesh_data().mfem_mesh();
     auto& values = properties_field_data_.face_integration_point_values.at(property.name);
-    values.resize(mesh.GetNumFaces());
+    values.resize(fem_system_.face_quadrature_point_count());
     mfem::IsoparametricTransformation transformation;
     mfem::Vector position(mesh.SpaceDimension());
     for (int boundary = 0; boundary < mesh.GetNBE(); ++boundary)
@@ -906,7 +910,7 @@ void PropertiesSystem::evaluate_and_store_face_points(const Manager& manager, co
         const int face = mesh.GetBdrElementFaceIndex(boundary);
         mesh.GetFaceTransformation(face, &transformation);
         const auto* rule = fem_system_.boundary_quadrature_rule(transformation.GetGeometryType());
-        values[face].resize(rule->GetNPoints());
+        const std::size_t offset = fem_system_.face_quadrature_offset(face);
         for (int q = 0; q < rule->GetNPoints(); ++q)
         {
             transformation.Transform(rule->IntPoint(q), position);
@@ -918,7 +922,7 @@ void PropertiesSystem::evaluate_and_store_face_points(const Manager& manager, co
             point.y = position.Size() > 1 ? position[1] : 0.0;
             point.z = position.Size() > 2 ? position[2] : 0.0;
             load_model_states(point, property, attribute, required, face);
-            values[face][q] = manager.evaluate(property.name, point);
+            values[offset + q] = manager.evaluate(property.name, point);
         }
     }
     computed_locations_[property.name].insert(attribute);

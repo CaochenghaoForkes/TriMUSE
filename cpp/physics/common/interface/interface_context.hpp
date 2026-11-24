@@ -20,6 +20,7 @@ public:
     const MeshData::Interface& interface() const { return interface_; }
     const std::array<double, 3>& geometry_center() const { return fem_.geometry_center(); }
     mfem::FaceElementTransformations& transformations() const; // 取得当前界面片及两侧域单元的几何变换对象返回引用 有了它就可以把同一个界面积分点映射到两侧单元中的对应位置，分别计算两侧场值或形函数
+    std::size_t quadrature_offset() const { return fem_.face_quadrature_offset(interface_.face); } // 当前面首个积分点的全网格编号
     const mfem::IntegrationRule& quadrature_rule() const; // 返回适用于当前界面片的求积规则，用于遍历界面积分点及其权重
     InterfacePoint point(const mfem::IntegrationPoint& face_point) const; // 输入参考面上的一个积分点，返回它的实际空间坐标，以及该位置两侧的参考单元坐标
 

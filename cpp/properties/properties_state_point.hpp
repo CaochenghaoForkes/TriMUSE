@@ -15,7 +15,7 @@ namespace trimuse
 // 求解场只在组装此临时状态时读取
 struct PropertiesStatePoint
 {
-    using PropertyReference = std::variant<const PropertiesFieldData::CachedValue*, const PropertiesFieldData::AttributeValues*, const PropertiesFieldData::DomainIntegrationPointValues*, const PropertiesFieldData::FaceIntegrationPointValues*>;
+    using PropertyReference = std::variant<const PropertiesFieldData::CachedValue*, const PropertiesFieldData::AttributeValues*, const PropertiesFieldData::DomainIntegrationPointValues*>;
 
     const std::vector<std::size_t>* region_domain_point_indices = nullptr; // 当前区域的全域求积点编号，只引用 FemSystem 中的缓存
     int region_attribute = 0;

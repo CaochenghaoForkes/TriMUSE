@@ -19,7 +19,7 @@ public:
 
     using DomainIntegrationPointValues = std::vector<CachedValue>; // 一个属性在全域积分点上的值，连续存储 某积分点的下标为: fem_system.domain_quadrature_offset(element) + point_index 其中 element 是原网格单元编号，point_index 是该单元内的局部积分点编号
 
-    using FaceIntegrationPointValues = std::vector<std::vector<CachedValue>>; // 原网格面编号 -> 面内求积点编号 -> 属性值
+    using FaceIntegrationPointValues = std::vector<CachedValue>; // 全网格面积分点连续数组，下标为 fem.face_quadrature_offset(face) + q
 
     std::unordered_map<std::string, CachedValue> global_values; // 属性名 -> 一个值
 
