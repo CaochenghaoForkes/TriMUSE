@@ -61,7 +61,10 @@ def direction_labels(theta: float, phi: float | None = None) -> list[str]:
 
 def property_label(name: str, metadata: dict[str, dict[str, str]]) -> str:
     unit = metadata.get(name, {}).get("unit")
-    return f"{name} ({unit})" if unit else name
+    if not unit or unit in ("[1]", "[none]"):
+        return name
+    unit = unit.replace("[", "").replace("]", "").replace("^2", "²").replace("^3", "³")
+    return f"{name} ({unit})"
 
 
 def scientific_axes(axes) -> None:

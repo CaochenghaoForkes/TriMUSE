@@ -73,10 +73,7 @@ class InputCardsExamine:
                 missing = required - {item.property_name for item in mat.properties}
                 if missing:
                     raise ValueError(f"力学材料 {mat.name} 缺少属性: {', '.join(sorted(missing))}")
-        outputs = fields & {"temperature", "concentration"}
-        if "displacement" in fields:
-            outputs |= {"max_principal_stress", "max_shear_stress"}
-        missing = set(postprocess.properties) - outputs
+        missing = set(postprocess.properties) - set(simulation.output.domain_properties)
         if missing:
             raise ValueError(f"后处理引用了未输出的属性: {', '.join(sorted(missing))}")
 

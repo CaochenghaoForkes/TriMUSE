@@ -24,12 +24,6 @@ class PostprocessManager:
         self.config = input_cards.postprocess
         self.formats = set(self.config.output.formats)
         self.image_directory: Path | None = None
-        self.property_metadata = {
-            "temperature": {"unit": "K", "color": "inferno"},
-            "concentration": {"unit": "mol/m³", "color": "viridis"},
-            "max_principal_stress": {"unit": "Pa", "color": "jet"},
-            "max_shear_stress": {"unit": "Pa", "color": "jet"},
-        }
         self.output_directory = Path(input_cards.chief.output.directory).expanduser().resolve()
         self.postprocess_directory = self.output_directory / "postprocess"
         self.dimension = input_cards.geometry_mesh.model.dimension
@@ -38,6 +32,10 @@ class PostprocessManager:
         self.center = (center.x, center.y if self.dimension > 1 else 0.0, center.z if self.dimension > 2 else 0.0)
         # 初始化类对象
         self.reader = OutputReader(self.output_directory, self.config.properties)
+        colors = {"temperature": "inferno", "concentration": "viridis", "max_principal_stress": "jet", "max_shear_stress": "jet"}
+        self.property_metadata = {}
+        for name in self.config.properties:
+            self.property_metadata[name] = {"unit": self.reader.units[name], "color": colors.get(name, "viridis")}
         self.point_plotter = PointPlotter(self.output_directory, self.postprocess_directory, self.reader, self.center, self.property_metadata)
         self.line_plotter = LinePlotter(self.output_directory, self.postprocess_directory, self.reader, self.center, self.property_metadata)
         self.section_plotter = SectionPlotter(self.output_directory, self.postprocess_directory, self.reader, self.center, self.property_metadata)

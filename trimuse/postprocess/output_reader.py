@@ -1,6 +1,7 @@
 from __future__ import annotations
 from collections.abc import Iterator
 from pathlib import Path
+import json
 from typing import TYPE_CHECKING
 from xml.etree import ElementTree as ET
 from vtkmodules.vtkIOXML import vtkXMLPUnstructuredGridReader, vtkXMLUnstructuredGridReader
@@ -16,9 +17,10 @@ class OutputReader:
     def __init__(self, output_directory: str | Path, properties: list[str]) -> None:
         """output_directory 为包含 seed 子目录后实际使用的输出根目录"""
         self.directory = Path(output_directory).expanduser().resolve() # expanduser() 若传入包含“~”则展开为系统当前用户主目录 resolve() 转为规范的绝对路径
+        self.units = json.loads((self.directory / "property_units.json").read_text(encoding="utf-8"))
         self.series: dict[str, list[tuple[float, Path]]] = {} # 每个属性对应的“时间—数据文件路径”列表
         for name in properties:
-            field = self.property_field_map[name]
+            field = self.property_field_map.get(name, "properties")
             path = self.directory / field / name / f"{name}.pvd"
             root = ET.parse(path).getroot()
             self.series[name] = sorted((float(item.get("timestep")), (path.parent / item.get("file")).resolve()) for item in root.findall("./Collection/DataSet")) # pvd 文件中所有时间步与其对应的子 pvtu 文件的路径

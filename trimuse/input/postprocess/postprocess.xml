@@ -39,9 +39,9 @@
             </normal>
         </section>
     </sections>
-    <!-- 属性名称使用空格分隔; 当前可选 temperature、concentration，仅列出实际启用的场 -->
-    <!-- 可选 temperature、concentration、max_principal_stress、max_shear_stress；应力单位为 Pa -->
-    <properties names="temperature concentration"/>
+    <!-- 属性名称使用空格分隔，必须已列入 simulation.output.domain_properties；支持任意已输出的标量域属性 -->
+    <!-- 单位读取输出目录中的 property_units.json；温度、浓度、应力保留配色，其余属性默认 viridis -->
+    <properties names="temperature material.thermal.conductivity"/>
     <!-- 可任选 png、csv、gif, 空格分隔; 省略时默认全部输出 -->
     <!-- gif 用于线和截面的时间动画; 只选 gif 时不保留中间 PNG -->
     <output formats="png csv gif"/>
