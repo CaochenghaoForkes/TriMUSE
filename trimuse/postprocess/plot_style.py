@@ -23,7 +23,7 @@ def plot_style(method):
             "xtick.major.width": 1.0,
             "ytick.major.width": 1.0,
             "lines.linewidth": 2.0,
-            "axes.prop_cycle": matplotlib.cycler(color=["#4C72B0", "#DD8452", "#55A868", "#C44E52"]),
+            "axes.prop_cycle": matplotlib.cycler(color=["#4C72B0", "#DD8452", "#55A868", "#C44E52", "#8172B3", "#937860", "#DA8BC3", "#8C8C8C", "#CCB974", "#64B5CD", "#006D77", "#A63603"]),
             "mathtext.fontset": "stix",
             "figure.figsize": (8.0, 6.0),
             "figure.facecolor": "white",
