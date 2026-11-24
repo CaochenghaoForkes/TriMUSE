@@ -27,7 +27,7 @@ public:
     void assign(int attribute, const std::string& model_name, const ModelParameterMap& parameters); // 为某个属性在指定 体积域/边界域 上配置一个计算模型 并把该位置已有的“计算完成”标记清掉
     void prepare_dependencies(); // 补齐固定关系属性并标记场依赖
     void mark_coupled(const std::string& field_name, const std::vector<RequiredState>& property_names); // 把指定属性中依赖某个求解场的位置标记为“参与耦合更新”，并沿依赖关系向上游传递这个标记
-    void update_field_independent_properties(double time, double time_step); // 更新时间和不依赖场的属性，最后保存依赖快照
+    void update_field_independent_properties(double time, double time_step); // 更新时间和不依赖场的属性，按变化序号复用结果
     void update_field_dependent_properties(const std::string& field_name, const FieldMap& trial_fields = {}, bool coupled_only = false); // 采样本轮所需场一次，再依次更新依赖该场的派生、材料及组装属性
     void accept_current_state(); // 把当前全部属性数据复制一份，保存为“已接受状态”的快照
     const PropertiesFieldData& previous_field_data() const;
@@ -54,6 +54,12 @@ private:
         FaceIntegrationPoint
     }; // 属性的作用位置
 
+    struct PropertyUpdateState
+    {
+        std::size_t changed_at = 0; // 当前位置的值最后发生变化时的全局序号
+        std::size_t evaluated_at = 0; // 当前位置上次求值完成时的全局序号
+    };
+
     struct PropertyInfo // 一项属性的说明记录
     {
         std::string name; // 属性名
@@ -62,6 +68,8 @@ private:
         std::string fixed_model; // 非空时可由程序自动配置；为空时使用用户配置或程序预置值
         std::unordered_map<std::string, std::unordered_set<int>> field_regions; // 哪些区域的属性依赖某个场(简洁依赖也算依赖) 求解场名称 -> 一组区域编号
         std::unordered_map<std::string, std::unordered_set<int>> coupled_regions; // 哪些区域的属性参与某个场的耦合更新 求解场名称 -> 一组区域编号
+        std::unordered_map<int, PropertyUpdateState> updates; // 位置编号 -> 变化与求值序号
+        std::size_t changed_at = 0; // 整项属性的最新变化序号，供完整引用查询
     };
 
     void assign_field_properties(); // 按开发时声明的对应关系，为启用场配置各区域的固定关系属性
@@ -83,7 +91,8 @@ private:
     void load_required_states(PropertiesStatePoint& point, const std::vector<RequiredState>& names, std::optional<std::size_t> point_index = std::nullopt) const; // 给 point 装配需要的属性，point_index 为域或面积分点数组的全局下标
     void load_model_states(PropertiesStatePoint& point, const PropertyInfo& property, int attribute, const std::vector<RequiredState>& required, std::optional<std::size_t> point_index = std::nullopt) const; // 加载当前依赖；若模型声明依赖自身，则改为加载已接受的旧值
     void load_previous_value(PropertiesStatePoint& point, const PropertyInfo& property, int attribute, std::optional<std::size_t> point_index = std::nullopt) const; // 读取同一位置上一个已接受时刻的属性值，积分点统一使用全局下标
-    bool required_states_changed(int attribute, const std::vector<RequiredState>& required_states) const; // 判断: 某个区域或边界分区所依赖的属性，相比之前保存的快照，是否发生变化
+    void record_update(const std::string& name, int location, bool changed); // 记录本次求值，只有输出变化时才递增全局变化序号
+    bool required_states_changed(const PropertyInfo& property, int location, const std::vector<RequiredState>& required_states) const; // 检查上游是否在当前位置上次求值之后发生变化
 
     std::vector<PropertyInfo> properties_ = {
         {"temperature", PropertyType::Field, PropertyScope::DomainIntegrationPoint}, // K，温度场的域积分点采样
@@ -180,7 +189,7 @@ private:
     PropertiesFieldData properties_field_data_;
     PropertiesFieldData previous_field_data_;
     std::unordered_map<std::string, std::unordered_map<int, std::string>> assigned_models_; // 属性名->位置名->模型名
-    PropertiesFieldData required_state_snapshots_;
+    std::size_t change_sequence_ = 0; // 全部属性及场采样共用的递增变化序号
     std::unordered_map<std::string, std::unordered_set<int>> computed_locations_; // 属性名 -> 已经计算过的位置编号集合
 };
 

@@ -99,7 +99,7 @@ class PropertiesManager:
                 self.assign_property(mesh_info.region_attributes[assignment.name], property_config.property_name, property_config.model, property_config.parameters)
 
     def update_field_independent_properties(self, time: float, time_step: float) -> None:
-        """更新时间及不依赖场的属性，最后保存依赖快照"""
+        """更新时间及不依赖场的属性，按变化序号复用结果"""
         self.properties_system.update_field_independent_properties(time, time_step)
 
     def update_field_dependent_properties(self, field_name: str) -> None:
