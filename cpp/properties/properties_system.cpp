@@ -499,15 +499,10 @@ bool PropertiesSystem::required_states_changed(int attribute, const std::vector<
         {
             const auto& old_values = previous.face_integration_point_values.at(name);
             const auto& new_values = current.face_integration_point_values.at(name);
-            const auto& mesh = fem_system_.mesh_data().mfem_mesh();
-            for (int boundary = 0; boundary < mesh.GetNBE(); ++boundary)
+            for (const int face : fem_system_.mesh_data().attribute_faces(attribute))
             {
-                if (mesh.GetBdrAttribute(boundary) != attribute)
-                {
-                    continue;
-                }
-                const int face = mesh.GetBdrElementFaceIndex(boundary);
-                for (std::size_t index = fem_system_.face_quadrature_offset(face); index < fem_system_.face_quadrature_offset(face + 1); ++index)
+                const std::size_t end = fem_system_.face_quadrature_offset(face + 1);
+                for (std::size_t index = fem_system_.face_quadrature_offset(face); index < end; ++index)
                 {
                     if (old_values[index] != new_values[index])
                     {
@@ -795,13 +790,8 @@ void PropertiesSystem::evaluate_and_store_face_points(const Manager& manager, co
     values.resize(fem_system_.face_quadrature_point_count());
     mfem::IsoparametricTransformation transformation;
     mfem::Vector position(mesh.SpaceDimension());
-    for (int boundary = 0; boundary < mesh.GetNBE(); ++boundary)
+    for (const int face : fem_system_.mesh_data().attribute_faces(attribute))
     {
-        if (mesh.GetBdrAttribute(boundary) != attribute)
-        {
-            continue;
-        }
-        const int face = mesh.GetBdrElementFaceIndex(boundary);
         mesh.GetFaceTransformation(face, &transformation);
         const auto* rule = fem_system_.boundary_quadrature_rule(transformation.GetGeometryType());
         const std::size_t offset = fem_system_.face_quadrature_offset(face);

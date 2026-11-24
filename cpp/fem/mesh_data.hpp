@@ -39,6 +39,7 @@ public:
     std::vector<int> region_attributes() const; // 网格中所有域区域属性编号的列表 (同一区域包含很多单元)
     std::vector<int> boundary_attributes() const; // 网格中所有边界属性编号的列表 (内部材料界面也作为边界单元导入了 MFEM，它们的属性编号也会包含在里面；二维的对称轴同样可能包含在内)
     const std::vector<int>& region_elements(int region_attribute) const; // 指定材料区域的域内单元编号
+    const std::vector<int>& attribute_faces(int attribute) const; // 指定物理标识下的原网格面编号，适用于外边界和内部材料界面
     RegionMeshData& region_mesh(int region_attribute); // 按区域编号取得子网格管理对象：没有就创建，有了就直接返回
     const std::vector<Interface>& interfaces() const; // 让外部代码只读访问已经建立的内部界面列表
     mfem::FaceElementTransformations& interface_transformations(int interface_index); // 获取某个内部界面片及其两侧单元的几何映射，方便后续在同一个界面积分点上计算两侧场值
@@ -47,12 +48,14 @@ public:
     const mfem::Mesh& mfem_mesh() const;
 
 private:
+    void build_attribute_faces(); // 建立面物理标识与原网格面编号列表的关系
     void build_region_elements(); // 建立体积区域编号与其中包含的域内单元编号列表的关系
     void build_interfaces(); // 遍历网格中的所有面，找出两侧属于不同 region 的内部面，并把它们保存到 interfaces_
     void calculate_region_volumes(); // 计算各个体积区域的体积
 
     mfem::Mesh mfem_mesh_;
     std::unordered_map<int, std::vector<int>> region_elements_; // 体积区域编号->体积区域中包含网格单元索引列表
+    std::unordered_map<int, std::vector<int>> attribute_faces_; // 面物理标识 -> 原网格面编号列表
     std::unordered_map<int, double> region_volumes_; // 体积区域编号->体积区域的体积
     std::vector<Interface> interfaces_; // 网格中所有连接不同 region 的内部界面片 每个元素对应一个网格面，不是整个材料界面
     std::unordered_map<int, std::unique_ptr<RegionMeshData>> region_meshes_; // 区域编号 → unique_ptr<RegionMeshData>

@@ -12,6 +12,7 @@ MeshData::MeshData(const std::string& mesh_path)
     mfem_mesh_(mesh_path, 1, 1, true) // 网格路径, 生成边, 准备细化数据, 修正反向单元
 {
     build_region_elements(); // 建立体积区域编号与其中包含的域内单元编号列表的关系
+    build_attribute_faces(); // 缓存各物理标识下的原网格面编号
     build_interfaces(); // 遍历网格中的所有面，找出两侧属于不同 region 的内部面，并把它们保存到 interfaces_
     calculate_region_volumes();
 }
@@ -61,6 +62,11 @@ const std::vector<int>& MeshData::region_elements(int region_attribute) const //
     return region_elements_.at(region_attribute);
 }
 
+const std::vector<int>& MeshData::attribute_faces(int attribute) const
+{
+    return attribute_faces_.at(attribute);
+}
+
 RegionMeshData& MeshData::region_mesh(int region_attribute) // 按区域编号取得子网格管理对象：没有就创建，有了就直接返回
 {
     auto& mesh = region_meshes_[region_attribute];
@@ -98,9 +104,12 @@ mfem::FaceElementTransformations& MeshData::interface_transformations(int interf
 void MeshData::build_interfaces() // 遍历网格中的所有面，找出两侧属于不同 region 的内部面，并把它们保存到 interfaces_
 {
     std::vector<int> boundary_attributes(mfem_mesh_.GetNumFaces(), 0); // 创建一个长度等于网格面总数的数组，全部初始化为 0， 注意：即使两个域内单元都属于 kernel，它们之间的公共面仍然是一个网格面，并有自己的 face 索引；公共面只计一次
-    for (int boundary = 0; boundary < mfem_mesh_.GetNBE(); ++boundary) // 遍历所有边界单元 这里也可能包含输入网格中显式标记的内部材料界面，不只是外边界 注意：边界单元本身已经是 1d点 2d线 3d片了
+    for (const auto& [attribute, faces] : attribute_faces_)
     {
-        boundary_attributes[mfem_mesh_.GetBdrElementFaceIndex(boundary)] = mfem_mesh_.GetBdrAttribute(boundary); // GetBdrElementFaceIndex(boundary) 这个边界单元对应原网格中全部面中的索引 GetBdrAttribute(boundary) 这个边界单元的边界属性编号(如 xml 中定义的 interfacei 的对应的编号) 例如，边界单元 5 对应面 12，属性编号为 41 相当于 boundary_attributes[12] = 41;
+        for (int face : faces)
+        {
+            boundary_attributes[face] = attribute;
+        }
     }
     // boundary_attributes 记录了 原始网格面单元索引 -> 人为定义的交界面 interface 的 id (对于非材料界面的 face 其对应 0)
     for (int face = 0; face < mfem_mesh_.GetNumFaces(); ++face) // 遍历全部网格面 包括外边界面、同区域内部面，以及不同区域之间的界面
@@ -123,6 +132,15 @@ void MeshData::build_region_elements()
     for (int element = 0; element < mfem_mesh_.GetNE(); ++element)
     {
         region_elements_[mfem_mesh_.GetAttribute(element)].push_back(element); // mfem_mesh_.GetAttribute(element) 根据域内单元索引取得该单元的区域属性编号
+    }
+}
+
+void MeshData::build_attribute_faces()
+{
+    attribute_faces_.clear();
+    for (int boundary = 0; boundary < mfem_mesh_.GetNBE(); ++boundary)
+    {
+        attribute_faces_[mfem_mesh_.GetBdrAttribute(boundary)].push_back(mfem_mesh_.GetBdrElementFaceIndex(boundary));
     }
 }
 
