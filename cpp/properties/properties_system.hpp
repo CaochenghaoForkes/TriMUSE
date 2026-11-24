@@ -27,6 +27,7 @@ public:
     void assign(int attribute, const std::string& model_name, const ModelParameterMap& parameters); // 为某个属性在指定 体积域/边界域 上配置一个计算模型 并把该位置已有的“计算完成”标记清掉
     void require_field(const std::string& name, const std::vector<double>* values = nullptr); // 登记所需场，可选传入物理模块的积分点数组，否则从 FEM 采样
     void sample_required_fields(const FieldMap& trial_fields = {}); // 统一采样所需场，默认读取已接受场，迭代时优先读取试探场
+    const std::string& unit(const std::string& name) const; // 返回属性的计算单位，无量纲为 [1]，无统一单位为 [none]
     bool has_assigned_model(const std::string& name, int location) const; // 判断该属性是否在指定位置配置了模型
     void prepare_dependencies(); // 补齐固定关系属性并标记场依赖
     void mark_coupled(const std::string& field_name, const std::vector<RequiredState>& property_names); // 把指定属性中依赖某个求解场的位置标记为“参与耦合更新”，并沿依赖关系向上游传递这个标记
@@ -68,6 +69,7 @@ private:
         std::string name; // 属性名
         PropertyType type;
         PropertyScope scope;
+        std::string unit; // 计算单位，使用输入层相同的单位表达式
         std::string fixed_model; // 非空时可由程序自动配置；为空时使用用户配置或程序预置值
         std::unordered_map<std::string, std::unordered_set<int>> field_regions; // 哪些区域的属性依赖某个场(简洁依赖也算依赖) 求解场名称 -> 一组区域编号
         std::unordered_map<std::string, std::unordered_set<int>> coupled_regions; // 哪些区域的属性参与某个场的耦合更新 求解场名称 -> 一组区域编号
@@ -97,72 +99,72 @@ private:
     bool required_states_changed(const PropertyInfo& property, int location, const std::vector<RequiredState>& required_states) const; // 检查上游是否在当前位置上次求值之后发生变化
 
     std::vector<PropertyInfo> properties_ = {
-        {"temperature", PropertyType::Field, PropertyScope::DomainIntegrationPoint}, // K，温度场的域积分点采样
-        {"concentration", PropertyType::Field, PropertyScope::DomainIntegrationPoint}, // mol/m³，浓度场的域积分点采样
-        {"displacement", PropertyType::Field, PropertyScope::DomainIntegrationPoint}, // m，位移场的域积分点采样
-        {"max_principal_stress", PropertyType::Field, PropertyScope::DomainIntegrationPoint}, // Pa，最大主应力
-        {"max_shear_stress", PropertyType::Field, PropertyScope::DomainIntegrationPoint}, // Pa，最大剪应力
-        {"precomputed.initial_region_volume", PropertyType::Precomputed, PropertyScope::Region},
-        {"precomputed.initial_domain_quadrature_weight", PropertyType::Precomputed, PropertyScope::DomainIntegrationPoint}, // m³，域内求积点初始物理体积权重
-        {"precomputed.initial_face_quadrature_weight", PropertyType::Precomputed, PropertyScope::FaceIntegrationPoint}, // m²，初始面求积点物理面积权重
-        {"precomputed.geometry_center", PropertyType::Precomputed, PropertyScope::Global}, // m，颗粒中心坐标
-        {"precomputed.thermal_expansion_reference_temperature", PropertyType::Precomputed, PropertyScope::Global}, // K, 来自力学卡的固定热膨胀参考温度
-        {"precomputed.tensor_transform", PropertyType::Precomputed, PropertyScope::DomainIntegrationPoint}, // 六分量张量 local -> global 的 T
-        {"precomputed.tensor_transform_inverse", PropertyType::Precomputed, PropertyScope::DomainIntegrationPoint}, // 六分量张量 global -> local 的 T^{-1}
-        {"precomputed.gravity_acceleration", PropertyType::Precomputed, PropertyScope::Global}, // m/s²
-        {"precomputed.nuclide_name", PropertyType::Precomputed, PropertyScope::Global}, // 核素名称, 如 Cs137
-        {"precomputed.nuclide_symbol", PropertyType::Precomputed, PropertyScope::Global}, // 元素符号, 如 Cs
-        {"precomputed.half_life", PropertyType::Precomputed, PropertyScope::Global}, // s, 核素半衰期
-        {"precomputed.decay_constant", PropertyType::Precomputed, PropertyScope::Global}, // s^-1，ln(2)/half_life
-        {"external.time", PropertyType::External, PropertyScope::Global},
-        {"external.time_step", PropertyType::External, PropertyScope::Global}, // s, 本次推进的时间增量
-        {"external.environment_temperature", PropertyType::External, PropertyScope::Zone},
-        {"external.environment_nuclide_concentration", PropertyType::External, PropertyScope::Zone}, // mol/m³
-        {"external.surface_nuclide_concentration", PropertyType::External, PropertyScope::Zone}, // mol/m³, 指定表面浓度
-        {"external.nuclide_flux", PropertyType::External, PropertyScope::Zone}, // mol/(m²·s), 外流为正、流入为负
-        {"external.surface_temperature", PropertyType::External, PropertyScope::Zone}, // K, 指定表面温度
-        {"external.surface_traction", PropertyType::External, PropertyScope::Zone}, // Pa, 求解坐标系中的面力分量
-        {"external.surface_displacement", PropertyType::External, PropertyScope::Zone}, // m, 求解坐标系中的位移分量
-        {"external.surface_pressure", PropertyType::External, PropertyScope::Zone}, // Pa, 正值沿表面内法向加载
-        {"external.heat_flux", PropertyType::External, PropertyScope::Zone}, // W/m², 外流为正、流入为负
-        {"external.power", PropertyType::External, PropertyScope::Region},
-        {"external.energy_per_fission", PropertyType::External, PropertyScope::Global}, // J，每次裂变的释热能量
-        {"external.nuclide_birth_rate", PropertyType::External, PropertyScope::Global}, // mol/s, 全局核素产生率
-        {"external.fast_neutron_flux", PropertyType::External, PropertyScope::Global}, // 1/(m²·s), 全局快中子通量
-        {"external.initial_heavy_metal_inventory", PropertyType::External, PropertyScope::Region}, // mol，区域初始重金属物质的量
-        {"external.uranium_fraction", PropertyType::External, PropertyScope::Region}, // 各区域占全局产生率的份额
-        {"derived.region_volume", PropertyType::Derived, PropertyScope::Region}, // m³，当前区域体积
-        {"derived.heat_transfer_coef", PropertyType::Derived, PropertyScope::Zone},
-        {"derived.mass_transfer_coef", PropertyType::Derived, PropertyScope::Zone}, // m/s
-        {"derived.average_volumetric_fission_rate", PropertyType::Derived, PropertyScope::Region}, // 1/(m³·s)，区域平均体积裂变率
-        {"derived.fission_gas_production_rate", PropertyType::Derived, PropertyScope::Region}, // mol/s，区域裂变气体总产生率
-        {"derived.burnup_fima_fraction", PropertyType::Derived, PropertyScope::Region}, // 0～1 的 FIMA 份额
-        {"derived.volumetric_power", PropertyType::Derived, PropertyScope::DomainIntegrationPoint},
-        {"derived.volumetric_nuclide_birth_rate", PropertyType::Derived, PropertyScope::DomainIntegrationPoint}, // mol/(m³·s)
-        {"derived.irradiation_time", PropertyType::Derived, PropertyScope::Global}, // s，累计辐照时间
-        {"derived.fast_neutron_fluence", PropertyType::Derived, PropertyScope::Global}, // 1/m², 累积快中子注量
-        {"material.general.porosity", PropertyType::Material, PropertyScope::DomainIntegrationPoint},
-        {"material.general.mass_density", PropertyType::Material, PropertyScope::DomainIntegrationPoint},
-        {"material.general.crystallite_diameter", PropertyType::Material, PropertyScope::Region}, // m，各区域的微晶直径 Lc
-        {"material.general.initial_bacon_anisotropy_factor", PropertyType::Material, PropertyScope::DomainIntegrationPoint}, // 无量纲，初始 BAF
-        {"material.general.bacon_anisotropy_factor", PropertyType::Material, PropertyScope::DomainIntegrationPoint}, // 无量纲，当前 BAF
-        {"material.thermal.conductivity", PropertyType::Material, PropertyScope::DomainIntegrationPoint},
-        {"material.thermal.specific_heat", PropertyType::Material, PropertyScope::DomainIntegrationPoint},
-        {"material.mechanics.young_modulus", PropertyType::Material, PropertyScope::DomainIntegrationPoint}, // Pa, [Er, Et]，径向、切向杨氏模量
-        {"material.mechanics.poisson_ratio", PropertyType::Material, PropertyScope::DomainIntegrationPoint}, // 无量纲, [nu_rt, nu_tt]，径向受力的切向泊松比、切向之间的泊松比
-        {"material.mechanics.shear_modulus", PropertyType::Material, PropertyScope::DomainIntegrationPoint}, // Pa, 标量 Grt；由用户在材料卡中指定模型
-        {"material.mechanics.elasticity_tensor", PropertyType::Material, PropertyScope::DomainIntegrationPoint, "common.from_engineering_constants"}, // Pa
-        {"material.mechanics.thermal_expansion_coef", PropertyType::Material, PropertyScope::DomainIntegrationPoint}, // K^-1, [alpha_r, alpha_t]，径向、切向热膨胀系数
-        {"material.radioactivity.fission_gas_diffusion_coef", PropertyType::Material, PropertyScope::DomainIntegrationPoint}, // m²/s，晶粒尺度裂变气体扩散系数
-        {"material.radioactivity.nuclide_diffusion_coef", PropertyType::Material, PropertyScope::DomainIntegrationPoint}, // m²/s
-        {"assembly.homogenized_panama_opf", PropertyType::Assembly, PropertyScope::Region}, // 向量：[OPF, H, J, 辐照时长, 上一步平均温度]，基于区域体积平均温度
-        {"assembly.local_panama_opf", PropertyType::Assembly, PropertyScope::DomainIntegrationPoint}, // 向量：[OPF, H, J, 辐照时长, 上一步温度]，UO₂ 的 PANAMA CO 模型
-        {"assembly.cumulative_co_release", PropertyType::Assembly, PropertyScope::Region}, // mol，累计释放到颗粒内部自由空间的 CO 量
-        {"assembly.local_booth_fission_gas_release_state", PropertyType::Assembly, PropertyScope::DomainIntegrationPoint}, // 向量：[累计释放量密度, 累计产生量密度, 释放份额, z₁, …, zM]
-        {"assembly.homogenized_booth_fission_gas_release_state", PropertyType::Assembly, PropertyScope::Region}, // 区域均匀化状态：[累计释放量密度, 累计产生量密度, 释放份额, z₁, …, zM]
-        {"assembly.cumulative_fission_gas_release", PropertyType::Assembly, PropertyScope::Region}, // mol，区域内累计释放的裂变气体总量
-        {"assembly.internal_gas_pressure", PropertyType::Assembly, PropertyScope::Region}, // Pa，储气区域的内部气体压力
-        {"assembly.interface_thermal_resistance", PropertyType::Assembly, PropertyScope::FaceIntegrationPoint} // m²·K/W，面积分点热阻
+        {"temperature", PropertyType::Field, PropertyScope::DomainIntegrationPoint, "[K]"}, // K，温度场的域积分点采样
+        {"concentration", PropertyType::Field, PropertyScope::DomainIntegrationPoint, "[mol]/[m]^3"}, // mol/m³，浓度场的域积分点采样
+        {"displacement", PropertyType::Field, PropertyScope::DomainIntegrationPoint, "[m]"}, // m，位移场的域积分点采样
+        {"max_principal_stress", PropertyType::Field, PropertyScope::DomainIntegrationPoint, "[Pa]"}, // Pa，最大主应力
+        {"max_shear_stress", PropertyType::Field, PropertyScope::DomainIntegrationPoint, "[Pa]"}, // Pa，最大剪应力
+        {"precomputed.initial_region_volume", PropertyType::Precomputed, PropertyScope::Region, "[m]^3"},
+        {"precomputed.initial_domain_quadrature_weight", PropertyType::Precomputed, PropertyScope::DomainIntegrationPoint, "[m]^3"}, // m³，域内求积点初始物理体积权重
+        {"precomputed.initial_face_quadrature_weight", PropertyType::Precomputed, PropertyScope::FaceIntegrationPoint, "[m]^2"}, // m²，初始面求积点物理面积权重
+        {"precomputed.geometry_center", PropertyType::Precomputed, PropertyScope::Global, "[m]"}, // m，颗粒中心坐标
+        {"precomputed.thermal_expansion_reference_temperature", PropertyType::Precomputed, PropertyScope::Global, "[K]"}, // K, 来自力学卡的固定热膨胀参考温度
+        {"precomputed.tensor_transform", PropertyType::Precomputed, PropertyScope::DomainIntegrationPoint, "[1]"}, // 六分量张量 local -> global 的 T
+        {"precomputed.tensor_transform_inverse", PropertyType::Precomputed, PropertyScope::DomainIntegrationPoint, "[1]"}, // 六分量张量 global -> local 的 T^{-1}
+        {"precomputed.gravity_acceleration", PropertyType::Precomputed, PropertyScope::Global, "[m]/[s]^2"}, // m/s²
+        {"precomputed.nuclide_name", PropertyType::Precomputed, PropertyScope::Global, "[none]"}, // 核素名称, 如 Cs137
+        {"precomputed.nuclide_symbol", PropertyType::Precomputed, PropertyScope::Global, "[none]"}, // 元素符号, 如 Cs
+        {"precomputed.half_life", PropertyType::Precomputed, PropertyScope::Global, "[s]"}, // s, 核素半衰期
+        {"precomputed.decay_constant", PropertyType::Precomputed, PropertyScope::Global, "[1]/[s]"}, // s^-1，ln(2)/half_life
+        {"external.time", PropertyType::External, PropertyScope::Global, "[s]"},
+        {"external.time_step", PropertyType::External, PropertyScope::Global, "[s]"}, // s, 本次推进的时间增量
+        {"external.environment_temperature", PropertyType::External, PropertyScope::Zone, "[K]"},
+        {"external.environment_nuclide_concentration", PropertyType::External, PropertyScope::Zone, "[mol]/[m]^3"}, // mol/m³
+        {"external.surface_nuclide_concentration", PropertyType::External, PropertyScope::Zone, "[mol]/[m]^3"}, // mol/m³, 指定表面浓度
+        {"external.nuclide_flux", PropertyType::External, PropertyScope::Zone, "[mol]/[m]^2[s]"}, // mol/(m²·s), 外流为正、流入为负
+        {"external.surface_temperature", PropertyType::External, PropertyScope::Zone, "[K]"}, // K, 指定表面温度
+        {"external.surface_traction", PropertyType::External, PropertyScope::Zone, "[Pa]"}, // Pa, 求解坐标系中的面力分量
+        {"external.surface_displacement", PropertyType::External, PropertyScope::Zone, "[m]"}, // m, 求解坐标系中的位移分量
+        {"external.surface_pressure", PropertyType::External, PropertyScope::Zone, "[Pa]"}, // Pa, 正值沿表面内法向加载
+        {"external.heat_flux", PropertyType::External, PropertyScope::Zone, "[W]/[m]^2"}, // W/m², 外流为正、流入为负
+        {"external.power", PropertyType::External, PropertyScope::Region, "[W]"},
+        {"external.energy_per_fission", PropertyType::External, PropertyScope::Global, "[J]"}, // J，每次裂变的释热能量
+        {"external.nuclide_birth_rate", PropertyType::External, PropertyScope::Global, "[mol]/[s]"}, // mol/s, 全局核素产生率
+        {"external.fast_neutron_flux", PropertyType::External, PropertyScope::Global, "[1]/[m]^2[s]"}, // 1/(m²·s), 全局快中子通量
+        {"external.initial_heavy_metal_inventory", PropertyType::External, PropertyScope::Region, "[mol]"}, // mol，区域初始重金属物质的量
+        {"external.uranium_fraction", PropertyType::External, PropertyScope::Region, "[1]"}, // 各区域占全局产生率的份额
+        {"derived.region_volume", PropertyType::Derived, PropertyScope::Region, "[m]^3"}, // m³，当前区域体积
+        {"derived.heat_transfer_coef", PropertyType::Derived, PropertyScope::Zone, "[W]/[m]^2[K]"},
+        {"derived.mass_transfer_coef", PropertyType::Derived, PropertyScope::Zone, "[m]/[s]"}, // m/s
+        {"derived.average_volumetric_fission_rate", PropertyType::Derived, PropertyScope::Region, "[1]/[m]^3[s]"}, // 1/(m³·s)，区域平均体积裂变率
+        {"derived.fission_gas_production_rate", PropertyType::Derived, PropertyScope::Region, "[mol]/[s]"}, // mol/s，区域裂变气体总产生率
+        {"derived.burnup_fima_fraction", PropertyType::Derived, PropertyScope::Region, "[1]"}, // 0～1 的 FIMA 份额
+        {"derived.volumetric_power", PropertyType::Derived, PropertyScope::DomainIntegrationPoint, "[W]/[m]^3"},
+        {"derived.volumetric_nuclide_birth_rate", PropertyType::Derived, PropertyScope::DomainIntegrationPoint, "[mol]/[m]^3[s]"}, // mol/(m³·s)
+        {"derived.irradiation_time", PropertyType::Derived, PropertyScope::Global, "[s]"}, // s，累计辐照时间
+        {"derived.fast_neutron_fluence", PropertyType::Derived, PropertyScope::Global, "[1]/[m]^2"}, // 1/m², 累积快中子注量
+        {"material.general.porosity", PropertyType::Material, PropertyScope::DomainIntegrationPoint, "[1]"},
+        {"material.general.mass_density", PropertyType::Material, PropertyScope::DomainIntegrationPoint, "[kg]/[m]^3"},
+        {"material.general.crystallite_diameter", PropertyType::Material, PropertyScope::Region, "[m]"}, // m，各区域的微晶直径 Lc
+        {"material.general.initial_bacon_anisotropy_factor", PropertyType::Material, PropertyScope::DomainIntegrationPoint, "[1]"}, // 无量纲，初始 BAF
+        {"material.general.bacon_anisotropy_factor", PropertyType::Material, PropertyScope::DomainIntegrationPoint, "[1]"}, // 无量纲，当前 BAF
+        {"material.thermal.conductivity", PropertyType::Material, PropertyScope::DomainIntegrationPoint, "[W]/[m][K]"},
+        {"material.thermal.specific_heat", PropertyType::Material, PropertyScope::DomainIntegrationPoint, "[J]/[kg][K]"},
+        {"material.mechanics.young_modulus", PropertyType::Material, PropertyScope::DomainIntegrationPoint, "[Pa]"}, // Pa, [Er, Et]，径向、切向杨氏模量
+        {"material.mechanics.poisson_ratio", PropertyType::Material, PropertyScope::DomainIntegrationPoint, "[1]"}, // 无量纲, [nu_rt, nu_tt]，径向受力的切向泊松比、切向之间的泊松比
+        {"material.mechanics.shear_modulus", PropertyType::Material, PropertyScope::DomainIntegrationPoint, "[Pa]"}, // Pa, 标量 Grt；由用户在材料卡中指定模型
+        {"material.mechanics.elasticity_tensor", PropertyType::Material, PropertyScope::DomainIntegrationPoint, "[Pa]", "common.from_engineering_constants"}, // Pa
+        {"material.mechanics.thermal_expansion_coef", PropertyType::Material, PropertyScope::DomainIntegrationPoint, "[1]/[K]"}, // K^-1, [alpha_r, alpha_t]，径向、切向热膨胀系数
+        {"material.radioactivity.fission_gas_diffusion_coef", PropertyType::Material, PropertyScope::DomainIntegrationPoint, "[m]^2/[s]"}, // m²/s，晶粒尺度裂变气体扩散系数
+        {"material.radioactivity.nuclide_diffusion_coef", PropertyType::Material, PropertyScope::DomainIntegrationPoint, "[m]^2/[s]"}, // m²/s
+        {"assembly.homogenized_panama_opf", PropertyType::Assembly, PropertyScope::Region, "[none]"}, // 向量：[OPF, H, J, 辐照时长, 上一步平均温度]，基于区域体积平均温度
+        {"assembly.local_panama_opf", PropertyType::Assembly, PropertyScope::DomainIntegrationPoint, "[none]"}, // 向量：[OPF, H, J, 辐照时长, 上一步温度]，UO₂ 的 PANAMA CO 模型
+        {"assembly.cumulative_co_release", PropertyType::Assembly, PropertyScope::Region, "[mol]"}, // mol，累计释放到颗粒内部自由空间的 CO 量
+        {"assembly.local_booth_fission_gas_release_state", PropertyType::Assembly, PropertyScope::DomainIntegrationPoint, "[none]"}, // 向量：[累计释放量密度, 累计产生量密度, 释放份额, z₁, …, zM]
+        {"assembly.homogenized_booth_fission_gas_release_state", PropertyType::Assembly, PropertyScope::Region, "[none]"}, // 区域均匀化状态：[累计释放量密度, 累计产生量密度, 释放份额, z₁, …, zM]
+        {"assembly.cumulative_fission_gas_release", PropertyType::Assembly, PropertyScope::Region, "[mol]"}, // mol，区域内累计释放的裂变气体总量
+        {"assembly.internal_gas_pressure", PropertyType::Assembly, PropertyScope::Region, "[Pa]"}, // Pa，储气区域的内部气体压力
+        {"assembly.interface_thermal_resistance", PropertyType::Assembly, PropertyScope::FaceIntegrationPoint, "[m]^2[K]/[W]"} // m²·K/W，面积分点热阻
     };
 
     // 状态名 -> 负责更新它的求解场，模型取值仍使用原状态名

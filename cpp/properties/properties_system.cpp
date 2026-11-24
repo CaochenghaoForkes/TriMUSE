@@ -147,6 +147,11 @@ void PropertiesSystem::assign_field_properties()
         }
 }
 
+const std::string& PropertiesSystem::unit(const std::string& name) const
+{
+    return property_info(name).unit;
+}
+
 bool PropertiesSystem::has_assigned_model(const std::string& name, int location) const
 {
     const auto assigned = assigned_models_.find(name);

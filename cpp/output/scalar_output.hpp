@@ -19,7 +19,7 @@ class ScalarOutput // 一个 Global、Region 或 Zone 标量属性的 CSV 时间
 public:
     ScalarOutput(const PropertiesSystem& properties, const std::string& name, const std::string& directory, const OutputLocationNames& region_names, const OutputLocationNames& zone_names);
     static std::unordered_map<std::string, std::unique_ptr<ScalarOutput>> initialize(const PropertiesSystem& properties, const std::vector<OutputConfig>& configs, const std::string& output_directory, const OutputLocationNames& region_names, const OutputLocationNames& zone_names);
-    void save(int cycle, double time); // 追加当前时刻的一行，时间单位为秒
+    void save(int cycle, double time, double time_step); // 追加当前时刻的一行，时间和步长单位为秒
 
 private:
     struct Column

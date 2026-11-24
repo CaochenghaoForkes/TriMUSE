@@ -1,6 +1,11 @@
 #include "output/output_manager.hpp"
 #include "properties/properties_system.hpp"
 
+#include <filesystem>
+#include <fstream>
+#include <iomanip>
+#include <map>
+
 namespace trimuse
 {
 
@@ -28,6 +33,28 @@ void OutputManager::initialize(PropertiesSystem& properties, const OutputConfigs
     {
         solve_information_.try_emplace(config.name);
     }
+    write_property_units(properties, configs);
+}
+
+void OutputManager::write_property_units(const PropertiesSystem& properties, const OutputConfigs& configs) const
+{
+    std::map<std::string, std::string> units{{"cycle", "[1]"}, {"time", "[s]"}, {"time_step", "[s]"}};
+    for (const auto& [range, entries] : configs)
+    {
+        for (const auto& config : entries)
+        {
+            units[config.name] = properties.unit(config.name);
+        }
+    }
+    std::filesystem::create_directories(output_directory_);
+    std::ofstream file(std::filesystem::path(output_directory_) / "property_units.json");
+    file << "{\n";
+    std::size_t count = 0;
+    for (const auto& [name, unit] : units)
+    {
+        file << "  " << std::quoted(name) << ": " << std::quoted(unit) << (++count < units.size() ? ",\n" : "\n");
+    }
+    file << "}\n";
 }
 
 void OutputManager::save(int cycle, double time, double time_step)
@@ -39,7 +66,7 @@ void OutputManager::save(int cycle, double time, double time_step)
     }
     for (const std::string& name : output_names_.at("scalar"))
     {
-        scalar_outputs_.at(name)->save(cycle, time);
+        scalar_outputs_.at(name)->save(cycle, time, time_step);
     }
 }
 

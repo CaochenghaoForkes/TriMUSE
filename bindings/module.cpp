@@ -96,6 +96,7 @@ PYBIND11_MODULE(_core, module)
             py::arg("model_name"),
             py::arg("parameters")
         )
+        .def("unit", &trimuse::PropertiesSystem::unit, py::arg("name"))
         .def("prepare_dependencies", &trimuse::PropertiesSystem::prepare_dependencies)
         .def("update_field_independent_properties", &trimuse::PropertiesSystem::update_field_independent_properties, py::arg("time"), py::arg("time_step"))
         .def("update_field_dependent_properties", [](trimuse::PropertiesSystem& system, const std::string& field_name)

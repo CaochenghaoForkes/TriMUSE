@@ -31,7 +31,7 @@ ScalarOutput::ScalarOutput(const PropertiesSystem& properties, const std::string
     }
     std::filesystem::create_directories(directory);
     file_.open(std::filesystem::path(directory) / (name + ".csv"));
-    file_ << std::setprecision(16) << "cycle,time";
+    file_ << std::setprecision(16) << "cycle,time,time_step";
     for (const auto& column : columns_)
     {
         file_ << ',' << column.name;
@@ -50,9 +50,9 @@ std::unordered_map<std::string, std::unique_ptr<ScalarOutput>> ScalarOutput::ini
     return outputs;
 }
 
-void ScalarOutput::save(int cycle, double time)
+void ScalarOutput::save(int cycle, double time, double time_step)
 {
-    file_ << cycle << ',' << time;
+    file_ << cycle << ',' << time << ',' << time_step;
     for (const auto& column : columns_)
     {
         file_ << ',';

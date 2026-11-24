@@ -42,7 +42,7 @@
         <!-- 温度、浓度、应力标量分别存入 thermal、radioactivity、mechanics；其余属性使用完整名称，存入 properties -->
         <domain_properties value="temperature max_principal_stress material.thermal.conductivity"/>
         <!-- 两类输出清单均可省略；Global、Region、Zone 仅支持标量，每项属性一个 CSV，存入 scalar_properties -->
-        <!-- 表头为 cycle,time,位置名称...；Global 使用 value 列，时间单位为秒 -->
+        <!-- 表头为 cycle,time,time_step,位置名称...；Global 使用 value 列，时间和步长单位为秒 -->
         <scalar_properties value="external.time external.power assembly.internal_gas_pressure"/>
     </output>
 </simulation>

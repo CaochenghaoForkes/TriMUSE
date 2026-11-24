@@ -30,6 +30,8 @@ public:
     const SolveInformation& solve_information(const std::string& field_name) const;
 
 private:
+    void write_property_units(const PropertiesSystem& properties, const OutputConfigs& configs) const; // 写出本次输出量的计算单位，不改变数值
+
     FemSystem& fem_system_; // 有限元系统的引用
     PropertiesSystem* properties_ = nullptr; // 保存前同步已接受场，随后统一读取属性表
     std::unordered_map<std::string, std::vector<std::string>> output_names_; // 输出范围 -> 已登记的域或标量名称
