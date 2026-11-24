@@ -35,9 +35,11 @@
     </coupling>
     <output>
         <!-- 每个阶段填写一个输出间隔; 初始时刻和各阶段终点额外保存 -->
-        <!-- 按启用场保存 thermal/temperature、radioactivity/concentration；力学仅输出 mechanics/max_principal_stress 和 mechanics/max_shear_stress（Pa），时间统一为 s -->
         <!-- 正数: 每隔指定模拟时间输出, unit 仅作用于正数; 负整数: 每隔其绝对值个时间步输出 -->
         <!-- 禁止零; 未落在步末的目标时间在首次达到或超过时输出, 不改变求解步长 -->
         <write_interval value="[float] [float]" unit="[s]"/>
+        <!-- 仅输出下列名称，空格分隔；FEM 场按求解阶次插值，标量域积分点属性按 0 阶 L2 投影 -->
+        <!-- 温度、浓度、应力标量分别存入 thermal、radioactivity、mechanics；其余属性使用完整名称，存入 properties -->
+        <domain_properties value="temperature max_principal_stress material.thermal.conductivity"/>
     </output>
 </simulation>

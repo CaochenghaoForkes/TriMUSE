@@ -1,8 +1,6 @@
 #include "output/output_manager.hpp"
 #include "properties/properties_system.hpp"
 
-#include <filesystem>
-
 namespace trimuse
 {
 
@@ -16,12 +14,11 @@ OutputManager::OutputManager(FemSystem& fem_system, const std::string& output_di
 void OutputManager::initialize(PropertiesSystem& properties, const OutputConfigs& configs)
 {
     properties_ = &properties;
+    domain_outputs_ = DomainOutput::initialize(fem_system_, properties, configs.at("domain"), output_directory_);
     auto& names = output_names_["domain"];
     for (const auto& config : configs.at("domain"))
     {
         names.push_back(config.name);
-        const auto directory = std::filesystem::path(output_directory_) / config.directory;
-        domain_outputs_[config.name] = std::make_unique<DomainOutput>(fem_system_, properties, config.name, directory.string());
         solve_information_.try_emplace(config.name);
     }
 }

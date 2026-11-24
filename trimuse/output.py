@@ -58,14 +58,10 @@ class OutputManager:
         from _core import OutputManager as CoreOutputManager
         self.record_mesh(fem_manager.mesh_info.path)
         self.field_output = CoreOutputManager(fem_manager.fem_system, str(self.directory))
+        directories = {"temperature": "thermal", "concentration": "radioactivity", "max_principal_stress": "mechanics", "max_shear_stress": "mechanics"}
         configs = []
-        for field in self.input_cards.simulation.problem.field:
-            if field.name == "displacement":
-                for name in ("max_principal_stress", "max_shear_stress"):
-                    configs.append((name, "mechanics"))
-            else:
-                directory = "thermal" if field.name == "temperature" else "radioactivity"
-                configs.append((field.name, directory))
+        for name in self.input_cards.simulation.output.domain_properties:
+            configs.append((name, directories.get(name, "properties")))
         self.field_output.initialize(properties_manager.properties_system, {"domain": configs})
         self.report_file.write_text("TriMUSE simulation report\n", encoding="utf-8")
 

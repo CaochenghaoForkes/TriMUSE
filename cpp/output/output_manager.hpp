@@ -17,12 +17,6 @@ class PropertiesSystem;
 class OutputManager
 {
 public:
-    struct OutputConfig
-    {
-        std::string name;
-        std::string directory;
-    };
-
     using OutputConfigs = std::unordered_map<std::string, std::vector<OutputConfig>>; // 输出范围 -> 输出项，当前实现 domain 域输出
     using SolveInformation = std::vector<std::pair<std::string, double>>; // 求解信息如: picard_iterations -> 3 solve_elapsed_seconds -> 0.02 ...
 

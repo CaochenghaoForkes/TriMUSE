@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "fem/fem_system.hpp"
@@ -12,10 +13,17 @@ namespace trimuse
 
 class PropertiesSystem;
 
+struct OutputConfig
+{
+    std::string name;
+    std::string directory;
+};
+
 class DomainOutput // 一个域标量的节点插值、L2 投影与 ParaView 时间序列输出
 {
 public:
     DomainOutput(FemSystem& fem_system, PropertiesSystem& properties, const std::string& field_name, const std::string& directory);
+    static std::unordered_map<std::string, std::unique_ptr<DomainOutput>> initialize(FemSystem& fem_system, PropertiesSystem& properties, const std::vector<OutputConfig>& configs, const std::string& output_directory); // 按域输出清单批量创建输出对象
     void save(int cycle, double time, double time_step); // 判断数据来源，正式场插值输出，属性数组投影输出
 
 private:

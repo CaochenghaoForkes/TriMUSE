@@ -9,7 +9,7 @@
 namespace trimuse
 {
 
-DomainOutput::DomainOutput(FemSystem& fem_system, PropertiesSystem& properties, const std::string& field_name, const std::string& directory) // 建立标量 L2 空间及 ParaView 输出对象
+DomainOutput::DomainOutput(FemSystem& fem_system, PropertiesSystem& properties, const std::string& field_name, const std::string& directory) // 建立标量 L2 空间及 ParaView 输出对象 有限元系统 属性系统 场名 目录
     :
     fem_system_(fem_system),
     properties_(properties),
@@ -39,6 +39,17 @@ DomainOutput::DomainOutput(FemSystem& fem_system, PropertiesSystem& properties, 
     output->SetDataFormat(mfem::VTKFormat::BINARY); // 指定二进制输出格式
     output->SetPrecision(16); // 设置输出精度参数
     collection_output_ = std::move(output); // 转交资源
+}
+
+std::unordered_map<std::string, std::unique_ptr<DomainOutput>> DomainOutput::initialize(FemSystem& fem_system, PropertiesSystem& properties, const std::vector<OutputConfig>& configs, const std::string& output_directory)
+{
+    std::unordered_map<std::string, std::unique_ptr<DomainOutput>> outputs;
+    for (const auto& config : configs)
+    {
+        const auto directory = std::filesystem::path(output_directory) / config.directory;
+        outputs[config.name] = std::make_unique<DomainOutput>(fem_system, properties, config.name, directory.string());
+    }
+    return outputs;
 }
 
 void DomainOutput::save(int cycle, double time, double time_step)
