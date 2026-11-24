@@ -4,39 +4,20 @@
     "type": "split",
     "children": [
       {
-        "id": "55850d4e30d40d09",
+        "id": "12dfcc3ebb0518fd",
         "type": "tabs",
         "children": [
           {
-            "id": "f06c16a0a362e3e1",
+            "id": "d1f8fcfafea65b91",
             "type": "leaf",
             "state": {
-              "type": "markdown",
-              "state": {
-                "file": "TriMUSE v1.0/理论手册.md",
-                "mode": "source",
-                "source": false
-              },
+              "type": "empty",
+              "state": {},
               "icon": "lucide-file",
-              "title": "理论手册"
-            }
-          },
-          {
-            "id": "63b22ac22b63df40",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "TriMUSE v1.0/理论手册.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "理论手册"
+              "title": "新标签页"
             }
           }
-        ],
-        "currentTab": 1
+        ]
       }
     ],
     "direction": "vertical"
@@ -203,13 +184,13 @@
       "bases:新建数据库": false
     }
   },
-  "active": "63b22ac22b63df40",
+  "active": "d1f8fcfafea65b91",
   "lastOpenFiles": [
-    "组会.md",
+    "TriMUSE v1.0/BISON_TRISO_热力与核素行为模型调研.md",
     "TriMUSE v1.0/理论手册.md",
+    "组会.md",
     "TriMUSE v0.5/理论手册.md",
     "TriMUSE v0.5/程序指南.md",
-    "TriMUSE v1.0/BISON_TRISO_热力与核素行为模型调研.md",
     "TriMUSE v0.5/附件/Pasted image 20261116133241.png",
     "TriMUSE v1.0/TRISO 颗粒燃料性能建模.xlsx",
     "TriMUSE v1.0/BISON作者 WenJiang 第一次讨论.md",

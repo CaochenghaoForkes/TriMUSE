@@ -159,6 +159,17 @@ void FemSystem::cache_domain_quadrature_positions() // 缓存每个域单元上�
             positions[point_index] = {position[0], position.Size() > 1 ? position[1] : 0.0, position.Size() > 2 ? position[2] : 0.0}; // 统一保存成三个分量
         }
     }
+    for (int region : mesh_data_.region_attributes())
+    {
+        auto& indices = region_domain_point_indices_[region];
+        for (int element : mesh_data_.region_elements(region))
+        {
+            for (std::size_t point = domain_quadrature_offset(element); point < domain_quadrature_offset(element + 1); ++point)
+            {
+                indices.push_back(point);
+            }
+        }
+    }
 }
 
 const FemSystem::QuadraturePositions& FemSystem::domain_quadrature_positions(int element) const // 返回指定单元上所有积分点的实际空间坐标 const auto& positions = fem_system.domain_quadrature_positions(element); double x = positions[q][0]; // 该单元第 q 个积分点的 x 坐标
@@ -174,6 +185,11 @@ std::size_t FemSystem::domain_quadrature_offset(int element) const // 传入原�
 std::size_t FemSystem::domain_quadrature_point_count() const // 返回所有域单元的积分点数量之和，通常用于给积分点属性数组分配空间
 {
     return domain_quadrature_offsets_.back();
+}
+
+const std::vector<std::size_t>& FemSystem::region_domain_point_indices(int region) const
+{
+    return region_domain_point_indices_.at(region);
 }
 
 double FemSystem::geometric_weight(mfem::ElementTransformation& transformation, const mfem::IntegrationPoint& point) const // 返回降维模型积分时需要额外乘上的几何权重：一维球对称用 \(4\pi r^2\)，二维轴对称用 \(2\pi r\)，完整三维则用 \(1\)

@@ -44,6 +44,7 @@ public:
     const QuadraturePositions& domain_quadrature_positions(int element) const; // 返回指定单元上所有积分点的实际空间坐标 const auto& positions = fem_system.domain_quadrature_positions(element); double x = positions[q][0]; // 该单元第 q 个积分点的 x 坐标
     std::size_t domain_quadrature_offset(int element) const; // 返回指定单元的积分点在全域连续积分点数组中的起始位置
     std::size_t domain_quadrature_point_count() const; // 返回所有域单元的积分点数量之和，通常用于给积分点属性数组分配空间
+    const std::vector<std::size_t>& region_domain_point_indices(int region) const; // 返回指定区域包含的全部域积分点的全域编号
     const Tensor3DValue& material_basis(std::size_t point_index) const; // 全域积分点编号 -> Q；列为厚度方向及两个切向
     double geometric_weight(mfem::ElementTransformation& transformation, const mfem::IntegrationPoint& point) const; // 返回降维模型积分时需要额外乘上的几何权重：一维球对称用 \(4\pi r^2\)，二维轴对称用 \(2\pi r\)，完整三维则用 \(1\)
 
@@ -67,6 +68,7 @@ private:
     QuadratureRules boundary_quadrature_rules_;
     std::vector<QuadraturePositions> domain_quadrature_positions_; // 该容器按照单元存储坐标 domain_quadrature_positions_[单元编号][积分点编号] = 该位置的 {x,y,z}
     std::vector<std::size_t> domain_quadrature_offsets_; // 它不仅存储每个单元的积分点起始位置，还要多存一个最后单元结束后的位置，也就是全域积分点总数 因此要 +1 (如：单元编号：    0    1    2 积分点数量：  3    4    2 offsets = [0,   3,   7,   9])
+    std::unordered_map<int, std::vector<std::size_t>> region_domain_point_indices_; // 区域编号 -> 该区域的全域积分点编号，随求积点缓存一次建立
     std::vector<Tensor3DValue> material_bases_; // 固定几何的 Q，仅初始化一次；下标沿用全域积分点编号
     std::unordered_map<std::string, std::unique_ptr<FieldObjects>> field_map_; // 按场名称管理各场对象的哈希表 场名称->独占拥有一个 FieldObjects 的智能指针；该对象包含有限元空间和场数据
     /*

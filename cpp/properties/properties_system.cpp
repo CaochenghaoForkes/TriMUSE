@@ -13,17 +13,6 @@ PropertiesSystem::PropertiesSystem(const FemSystem& fem_system, const std::vecto
     fem_system_(fem_system),
     field_names_(field_names)
 {
-    for (int region : fem_system_.mesh_data().region_attributes())
-    {
-        auto& indices = region_point_indices_[region];
-        for (int element : fem_system_.mesh_data().region_elements(region))
-        {
-            for (std::size_t point = fem_system_.domain_quadrature_offset(element); point < fem_system_.domain_quadrature_offset(element + 1); ++point)
-            {
-                indices.push_back(point);
-            }
-        }
-    }
     for (const PropertyInfo& property : properties_)
     {
         if (property.scope == PropertyScope::Global)
@@ -312,7 +301,7 @@ PropertiesStatePoint PropertiesSystem::make_state_point(PropertyScope scope, int
     point.zone_attribute = scope == PropertyScope::Zone ? attribute : 0; // 如果是边界分区属性，就设置边界分区编号；否则设为 0
     if (scope == PropertyScope::Region)
     {
-        point.region_domain_point_indices = &region_point_indices_.at(attribute);
+        point.region_domain_point_indices = &fem_system_.region_domain_point_indices(attribute);
     }
     return point;
 }
@@ -940,7 +929,7 @@ VectorValue PropertiesSystem::sample_region_field(const std::string& field_name,
     const auto trial = trial_fields.find(field_name);
     const auto view = trial != trial_fields.end() ? trial->second : fem_system_.field_view(field_name);
     VectorValue samples;
-    samples.reserve(region_point_indices_.at(region).size());
+    samples.reserve(fem_system_.region_domain_point_indices(region).size());
     const auto& mesh = fem_system_.mesh_data().mfem_mesh();
     for (int element : fem_system_.mesh_data().region_elements(region))
     {

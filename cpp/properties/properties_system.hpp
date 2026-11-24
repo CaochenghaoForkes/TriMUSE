@@ -173,7 +173,6 @@ private:
         {"displacement", {"material.mechanics.elasticity_tensor"}}
     };
     const FemSystem& fem_system_;
-    std::unordered_map<int, std::vector<std::size_t>> region_point_indices_; // 区域编号 -> 该区域的全域求积点编号，初始化后供各类 Region 模型共用
     std::vector<std::string> field_names_; // 本次启用的求解场，由外部传入
     ModelParameterMap build_parameters_; // 初始化阶段设置的公共构造参数, 在最上层 assign 中合并给所有模型
     MaterialModelManager material_model_manager_; // 材料属性模型管理器
