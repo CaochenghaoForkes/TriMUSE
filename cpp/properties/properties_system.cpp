@@ -373,13 +373,10 @@ void PropertiesSystem::load_required_states(PropertiesStatePoint& point, const s
         {
             point.values[name] = properties_field_data_.zone_values.at(name).at(point.zone_attribute).value();
         }
-        else if (scope == PropertyScope::FaceIntegrationPoint)
-        {
-            point.values[name] = properties_field_data_.face_integration_point_values.at(name)[fem_system_.face_quadrature_offset(point.face_index) + point.face_point_index].value();
-        }
         else
         {
-            point.values[name] = properties_field_data_.domain_integration_point_values.at(name)[point_index.value()].value();
+            const auto& values = scope == PropertyScope::FaceIntegrationPoint ? properties_field_data_.face_integration_point_values.at(name) : properties_field_data_.domain_integration_point_values.at(name);
+            point.values[name] = values[point_index.value()].value();
         }
     }
 }
@@ -416,15 +413,6 @@ void PropertiesSystem::load_previous_value(PropertiesStatePoint& point, const Pr
             point.previous_value = value->second;
         }
     }
-    else if (property.scope == PropertyScope::FaceIntegrationPoint)
-    {
-        const auto values = previous_field_data_.face_integration_point_values.find(name);
-        const std::size_t index = fem_system_.face_quadrature_offset(point.face_index) + point.face_point_index;
-        if (values != previous_field_data_.face_integration_point_values.end() && index < values->second.size())
-        {
-            point.previous_value = values->second[index];
-        }
-    }
     else if (property.scope == PropertyScope::Region || property.scope == PropertyScope::Zone)
     {
         const auto& values = property.scope == PropertyScope::Region ? previous_field_data_.region_values : previous_field_data_.zone_values;
@@ -440,8 +428,9 @@ void PropertiesSystem::load_previous_value(PropertiesStatePoint& point, const Pr
     }
     else
     {
-        const auto values = previous_field_data_.domain_integration_point_values.find(name);
-        if (values != previous_field_data_.domain_integration_point_values.end() && point_index.value() < values->second.size())
+        const auto& arrays = property.scope == PropertyScope::FaceIntegrationPoint ? previous_field_data_.face_integration_point_values : previous_field_data_.domain_integration_point_values;
+        const auto values = arrays.find(name);
+        if (values != arrays.end() && point_index.value() < values->second.size())
         {
             point.previous_value = values->second[point_index.value()];
         }
@@ -829,7 +818,7 @@ void PropertiesSystem::evaluate_and_store_face_points(const Manager& manager, co
             point.x = position[0];
             point.y = position.Size() > 1 ? position[1] : 0.0;
             point.z = position.Size() > 2 ? position[2] : 0.0;
-            load_model_states(point, property, attribute, required, face);
+            load_model_states(point, property, attribute, required, offset + q);
             values[offset + q] = manager.evaluate(property.name, point);
         }
     }

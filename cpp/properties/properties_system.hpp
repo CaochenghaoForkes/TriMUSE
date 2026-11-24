@@ -84,9 +84,9 @@ private:
     void evaluate_property(const Manager& manager, const PropertyInfo& property, int location, const std::vector<RequiredState>& required, const FieldMap& trial_fields = {}); // 根据存储范围求值并保存属性
     template <typename Manager>
     void evaluate_and_store_face_points(const Manager& manager, const PropertyInfo& property, int attribute, const std::vector<RequiredState>& required); // 计算指定外边界或内部界面的各面求积点属性
-    void load_required_states(PropertiesStatePoint& point, const std::vector<RequiredState>& names, std::optional<std::size_t> point_index = std::nullopt) const; // 给 point 装配需要的属性
+    void load_required_states(PropertiesStatePoint& point, const std::vector<RequiredState>& names, std::optional<std::size_t> point_index = std::nullopt) const; // 给 point 装配需要的属性，point_index 为域或面积分点数组的全局下标
     void load_model_states(PropertiesStatePoint& point, const PropertyInfo& property, int attribute, const std::vector<RequiredState>& required, std::optional<std::size_t> point_index = std::nullopt) const; // 加载当前依赖；若模型声明依赖自身，则改为加载已接受的旧值
-    void load_previous_value(PropertiesStatePoint& point, const PropertyInfo& property, int attribute, std::optional<std::size_t> point_index = std::nullopt) const; // 读取同一位置上一个已接受时刻的属性值
+    void load_previous_value(PropertiesStatePoint& point, const PropertyInfo& property, int attribute, std::optional<std::size_t> point_index = std::nullopt) const; // 读取同一位置上一个已接受时刻的属性值，积分点统一使用全局下标
     bool required_states_changed(int attribute, const std::vector<RequiredState>& required_states) const; // 判断: 某个区域或边界分区所依赖的属性，相比之前保存的快照，是否发生变化
 
     std::vector<PropertyInfo> properties_ = {
