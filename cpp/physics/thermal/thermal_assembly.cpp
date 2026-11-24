@@ -270,7 +270,7 @@ void ThermalAssembly::form_system(const mfem::SparseMatrix& matrix, const mfem::
 void ThermalAssembly::recover(const mfem::Vector& solution) // 传入独立自由度温度向量，把独立自由度温度恢复成完整温度向量，并写入试探场
 {
     const auto full = constraints_.recover(solution);
-    trial_field_.set_values(full); // 将完整向量写入试探场 连续场：直接复制到试探 GridFunction 分域场：按各区域偏移拆分，写入各区域试探 GridFunction
+    trial_field_.set_values(full); // 将完整向量按区域偏移拆分，写入各区域试探场
 }
 
 void ThermalAssembly::project_initial(const PropertiesFieldData::DomainIntegrationPointValues& weights) // 把当前初温投影到满足界面连续约束的空间中

@@ -5,7 +5,6 @@
 #include "properties/properties_field_data.hpp"
 
 #include <map>
-#include <stdexcept>
 
 #include "common/model_registry.hpp"
 
@@ -26,10 +25,6 @@ ThermalInterfaceManager::ThermalInterfaceManager(FemSystem& fem, TrialField& tri
     for (const auto& config : interface_heat_transfer_configs)
     {
         auto model = registry.registration(config.model_name).factory(config.parameters);
-        if (!trial_field.regional() && model->requires_region_field())
-        {
-            throw std::invalid_argument("所选热界面模型需要分域温度场: " + config.model_name);
-        }
         models.emplace(config.boundary_attribute, std::move(model));
     }
 

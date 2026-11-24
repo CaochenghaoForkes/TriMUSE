@@ -11,7 +11,7 @@ MechanicsPerfectContact::MechanicsPerfectContact(const ModelParameterMap&) // �
 
 void MechanicsPerfectContact::assemble(const InterfaceContext& context, DofConstraints& constraints) const
 {
-    constraints.connect(context.interface()); // 分域场按分量合并界面自由度，连续场已共享自由度
+    constraints.connect(context.interface()); // 按分量合并分域场两侧的界面自由度
 }
 
 }

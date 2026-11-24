@@ -85,7 +85,7 @@ std::shared_ptr<mfem::Vector> MechanicsIntegrator::domain_load(int region, const
                     local[c * shape.Size() + i] += weight * shape[i] * force[c]; // f^e_{c,i} += wq Jq gq Ni b_c
                 }
         }
-        trial_field_.element_dofs(element, dofs); // 连续场或分域场的完整自由度编号，局部按分量分块排列
+        trial_field_.element_dofs(element, dofs); // 分域场的完整自由度编号，局部按分量分块排列
         result->AddElementVector(dofs, local);
     }
     return result;

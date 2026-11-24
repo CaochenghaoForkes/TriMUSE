@@ -43,13 +43,6 @@ const Tensor3DValue& FemSystem::material_basis(std::size_t point_index) const
     return material_bases_.at(point_index);
 }
 
-FemSystem::FieldObjects::FieldObjects(MeshData& mesh_data, int order, int vector_dimension) // 创建一个场所需的对象组合，包含有限元空间(该场的有限元空间，确定插值阶次、分量数及自由度组织)，以及场数据(依附于上述空间，存储该场的全部自由度值)
-    :
-    finite_element_space(mesh_data, order, vector_dimension), // 先建立空间
-      field_data(finite_element_space) // 再用这个空间初始化场数据
-{
-}
-
 FemSystem::QuadratureRules FemSystem::make_quadrature_rules(const MeshData& mesh_data, int dimension, int order) // 据网格中指定维度的单元几何类型，建立并返回一张求积规则表
 {
     QuadratureRules rules; // 映射：单元参考几何类型 → 求积规则指针 (如：三角形->三角形的求积规则[包含在参考三角形单元上的积分点坐标和权重])
@@ -62,21 +55,8 @@ FemSystem::QuadratureRules FemSystem::make_quadrature_rules(const MeshData& mesh
     return rules;
 }
 
-void FemSystem::add_field(const std::string& name, int order, int vector_dimension) // 将名为 name 的场, 创建并初始化一个 FieldObjects 对象，然后返回拥有它的 unique_ptr 智能指针存入哈希表
-{
-    if (region_field_map_.count(name))
-    {
-        throw std::invalid_argument("场已使用分区域空间: " + name);
-    }
-    field_map_.emplace(name, std::make_unique<FieldObjects>(mesh_data_, order, vector_dimension));
-}
-
 void FemSystem::add_region_field(const std::string& name, int order, int vector_dimension) // 将名为 name 的场, 创建并初始化一个分域场对象，然后返回拥有它的 unique_ptr 智能指针存入哈希表
 {
-    if (field_map_.count(name))
-    {
-        throw std::invalid_argument("场已使用全域空间: " + name);
-    }
     region_field_map_.emplace(name, std::make_unique<RegionFieldData>(mesh_data_, order, vector_dimension));
 }
 
@@ -100,34 +80,9 @@ const MeshData& FemSystem::mesh_data() const // 返回场使用的网格
     return mesh_data_;
 }
 
-FiniteElementSpaceData& FemSystem::finite_element_space(const std::string& name) // 返回名为 name 的场的有限元空间
+FieldView FemSystem::field_view(const std::string& name) const // 按场名返回分域场的只读视图，不复制场数据
 {
-    return field_map_.at(name)->finite_element_space;
-}
-
-const FiniteElementSpaceData& FemSystem::finite_element_space(const std::string& name) const // 返回名为 name 的场的有限元空间
-{
-    return field_map_.at(name)->finite_element_space;
-}
-
-FieldData& FemSystem::field_data(const std::string& name) // 返回名为 name 的场的场数据
-{
-    return field_map_.at(name)->field_data;
-}
-
-const FieldData& FemSystem::field_data(const std::string& name) const // 返回名为 name 的场的场数据
-{
-    return field_map_.at(name)->field_data;
-}
-
-FieldView FemSystem::field_view(const std::string& name) const // 根据场名找到对应的连续场或分域场，并返回一个统一的 FieldView，不复制场数据
-{
-    const auto region = region_field_map_.find(name); // region 是迭代器，不是分域场对象
-    if (region != region_field_map_.end()) // 如果找到了，说明这个场使用分区域空间
-    {
-        return region->second.get(); // region->second.get() 取得 std::unique_ptr<RegionFieldData>  但函数要求返回 FieldView 所以编译器会调用对应的转换构造函数 相当于 return FieldView(region->second.get());
-    }
-    return &field_data(name).mfem_grid_function(); // 如果没找到分域场 首先 field_data(name): 取得同名连续场的数据对象 然后 .mfem_grid_function(): 取得其中的 GridFunction 引用 最后调用 FieldView(const mfem::GridFunction*)，构造返回的视图
+    return &region_field(name);
 }
 
 const mfem::IntegrationRule* FemSystem::domain_quadrature_rule(mfem::Geometry::Type geometry) const // 返回域内 geometry 型参考单元的求积规则

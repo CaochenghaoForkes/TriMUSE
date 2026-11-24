@@ -14,29 +14,16 @@ OutputManager::OutputManager(FemSystem& fem_system, const std::string& output_di
 {
 }
 
-void OutputManager::add_field(const std::string& field_name, const std::string& directory_name, bool project_to_l2, int order) // 为一个场建立输出目录，决定是否使用 L2 输出空间，并注册到 ParaView 输出对象中
+void OutputManager::add_field(const std::string& field_name, const std::string& directory_name, bool project_to_l2, int order) // 为一个场建立输出目录，建立 L2 输出空间，并注册到 ParaView 输出对象中
 {
     FieldOutput field_output; // 创建一组输出资源
-    mfem::FiniteElementSpace* space = nullptr;
-    bool discontinuous = project_to_l2;
-    if (!project_to_l2) // 未显式要求 L2 输出时，读取已有计算场的阶次；连续场复用原空间，分域场另建同阶 L2 输出空间
+    if (!project_to_l2) // 正式场沿用计算阶次；积分点数组使用传入的输出阶次
     {
-        const bool regional = fem_system_.has_region_field(field_name); // 判断这个场是否为分域场
-        const auto& field_space = regional ? fem_system_.region_field(field_name).finite_element_space(fem_system_.mesh_data().region_attributes().front()) : fem_system_.finite_element_space(field_name); // 连续场直接根据场名返回其唯一有限元空间
-        discontinuous = regional; // 分域场：设为 true，后面在原网格上创建 L2 输出空间，保留两侧不同的值 连续场：设为 false，直接复用原计算空间
-        order = field_space.order(); // 让输出使用与计算场相同的插值阶次
-        if (!regional) // 对于不需要做 L2 投影的连续场，输出场为 H1，取得原计算空间的指针，供后面创建独立的输出 GridFunction 使用，
-        {
-            space = fem_system_.field_data(field_name).mfem_grid_function().FESpace();
-        }
+        order = fem_system_.region_field(field_name).finite_element_space(fem_system_.mesh_data().region_attributes().front()).order();
     }
-    if (discontinuous) // 分域场或显式要求 L2 输出时，创建不连续 L2 输出空间；这里只建立空间，不执行投影
-    {
-        field_output.collection = std::make_unique<mfem::L2_FECollection>(order, fem_system_.mesh_data().dimension()); // 创建 L2 有限元集合，决定输出场采用的形函数类型、阶次和网格维数 它允许相邻单元拥有各自独立的自由度
-        field_output.space = std::make_unique<mfem::FiniteElementSpace>(&fem_system_.mesh_data().mfem_mesh(), field_output.collection.get()); // 将这套有限元集合放到原网格上，建立输出空间，确定每个单元有哪些输出自由度，以及它们的编号 默认是标量
-        space = field_output.space.get(); // 让局部指针 space 指向刚创建的空间，供后面统一创建输出场
-    }
-    field_output.values = std::make_unique<mfem::GridFunction>(space); // 输出对象持有独立场值，保存时由物理问题传入正式结果
+    field_output.collection = std::make_unique<mfem::L2_FECollection>(order, fem_system_.mesh_data().dimension());
+    field_output.space = std::make_unique<mfem::FiniteElementSpace>(&fem_system_.mesh_data().mfem_mesh(), field_output.collection.get()); // 在原网格建立标量 L2 输出空间，保留材料界面两侧的跳变
+    field_output.values = std::make_unique<mfem::GridFunction>(field_output.space.get());
     const auto directory = std::filesystem::path(output_directory_) / directory_name; // 拼接该场的输出目录 如 output_directory_="/结果" directory_name="thermal" directory="/结果/thermal"
     std::filesystem::create_directories(directory); // 创建该场的输出目录
     auto output = std::make_unique<mfem::ParaViewDataCollection>(field_name, &fem_system_.mesh_data().mfem_mesh()); // 指定数据集合名称及其使用的原网格
@@ -54,9 +41,9 @@ void OutputManager::add_field(const std::string& field_name, const std::string& 
     solve_information_.try_emplace(field_name); // 如果没有键就对 field_name 插入个空的 SolveInformation 否则什么也不做
 }
 
-void OutputManager::save(const std::string& field_name, const FieldView& values, int cycle, double time, double time_step) // 对于传入的场view，根据add_field中确定的输出空间，决定将输入场插值到H1输出场还是L2输出场，并输出场 ParaView 文件
+void OutputManager::save(const std::string& field_name, const FieldView& values, int cycle, double time, double time_step) // 对于传入的场view，将输入分域场插值到 L2 输出场，并输出场 ParaView 文件
 {
-    update_field_output(values, *field_outputs_.at(field_name).values); // 将传入的正式场逐单元插值到输出节点，连续场和分域场共用这一流程
+    update_field_output(values, *field_outputs_.at(field_name).values); // 将传入的正式场逐单元插值到输出节点，分域场按原网格单元读取
     write_field(field_name, cycle, time, time_step); // 输出场 ParaView
 }
 
@@ -118,11 +105,11 @@ void OutputManager::save(const std::string& field_name, const std::vector<double
     write_field(field_name, cycle, time, time_step);
 }
 
-void OutputManager::update_field_output(const FieldView& view, mfem::GridFunction& output) // 将传入的正式场逐单元插值到输出节点，连续场和分域场共用这一流程 输入场的节点场值 -> 输出场的节点场值
+void OutputManager::update_field_output(const FieldView& view, mfem::GridFunction& output) // 将传入的正式场逐单元插值到输出节点，分域场按原网格单元读取 输入场的节点场值 -> 输出场的节点场值
 {
     // 根据输入场 view -> 确定输出场的节点场值
     // 计算 u_i^{out} = u_h^{in}(x_j^{out}) = sum_{i}(Ni^{in}(x_j^{out})u_i^{in})
-    // 输出场是 H1 还是 L2 是在 add_field 中确定的
+    // 输出空间在 add_field 中建立，各单元的输出自由度独立
     auto* space = output.FESpace(); // 取得输出场的有限元空间，并准备两个临时容器
     mfem::Array<int> dofs; // 当前单元在输出场中的自由度编号
     mfem::Vector values; // 这些自由度对应的场值

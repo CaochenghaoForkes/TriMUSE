@@ -20,7 +20,7 @@ namespace trimuse
 class PropertiesSystem
 {
 public:
-    using FieldMap = std::unordered_map<std::string, FieldView>; // 场名 -> 连续场或分域场的只读视图, 用于传入试探场
+    using FieldMap = std::unordered_map<std::string, FieldView>; // 场名 -> 分域场的只读视图, 用于传入试探场
 
     explicit PropertiesSystem(const FemSystem& fem_system, const std::vector<std::string>& field_names = {}, const ModelParameterMap& precomputed_parameters = {}); // 初始化属性存储并填入物理卡参数及几何缓存
     void set_precomputed(const std::string& name, const ModelParameterValue& value); // assign 前填写已声明的全局预计算属性 precomputed.name, 并以 name 作为公共构造参数键

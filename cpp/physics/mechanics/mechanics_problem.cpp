@@ -7,21 +7,9 @@
 namespace trimuse
 {
 
-MechanicsProblem::MechanicsProblem(FemSystem& fem, FieldData& accepted_displacement, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output_manager, const MechanicsRegionConfigs& regions, const MechanicsBoundaryConfigs& boundaries, const MechanicsInterfaceConfigs& interfaces) // 接收连续场交给第三个构造函数委托构造
+MechanicsProblem::MechanicsProblem(FemSystem& fem, RegionFieldData& accepted_displacement, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output_manager, const MechanicsRegionConfigs& regions, const MechanicsBoundaryConfigs& boundaries, const MechanicsInterfaceConfigs& interfaces) // 初始化试探场、组装器及输出
     :
-    MechanicsProblem(fem, TrialField(fem, accepted_displacement), properties, solver, output_manager, regions, boundaries, interfaces)
-{
-}
-
-MechanicsProblem::MechanicsProblem(FemSystem& fem, RegionFieldData& accepted_displacement, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output_manager, const MechanicsRegionConfigs& regions, const MechanicsBoundaryConfigs& boundaries, const MechanicsInterfaceConfigs& interfaces) // 接收分域场生成试探场交给第三个构造函数委托构造
-    :
-    MechanicsProblem(fem, TrialField(fem, accepted_displacement), properties, solver, output_manager, regions, boundaries, interfaces)
-{
-}
-
-MechanicsProblem::MechanicsProblem(FemSystem& fem, TrialField trial_displacement, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output_manager, const MechanicsRegionConfigs& regions, const MechanicsBoundaryConfigs& boundaries, const MechanicsInterfaceConfigs& interfaces) // 真正的构造函数，初始化各对象，标记耦合，为输出对象添加待输出场值信息
-    :
-    trial_displacement_(std::move(trial_displacement)),
+    trial_displacement_(fem, accepted_displacement),
     properties_(properties),
     solver_(solver),
     output_manager_(output_manager),

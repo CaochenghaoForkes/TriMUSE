@@ -9,7 +9,6 @@ class ThermalPerfectContact final : public ThermalInterfaceModel // 处理当前
 {
 public:
     explicit ThermalPerfectContact(const ModelParameterMap&); // 该模型不需要使用额外的参数表
-    bool requires_region_field() const override { return false; } // 判断该模型是否强制要求有限元空间使用分域场,该模型对连续域自然成立,因此不要求
     bool is_perfect_contact(const InterfaceContext&) const override { return true; }
 };
 

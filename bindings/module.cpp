@@ -35,8 +35,6 @@ std::vector<Config> problem_configs(const std::vector<ProblemConfigEntry>& entri
     return configs;
 }
 
-
-
 }
 
 PYBIND11_MODULE(_core, module)
@@ -52,13 +50,6 @@ PYBIND11_MODULE(_core, module)
             py::arg("geometry_method"),
             py::arg("center"),
             py::arg("region_layers")
-        )
-        .def(
-            "add_field",
-            &trimuse::FemSystem::add_field,
-            py::arg("name"),
-            py::arg("order"),
-            py::arg("vector_dimension") = 1
         )
         .def("add_region_field", &trimuse::FemSystem::add_region_field,
              py::arg("name"), py::arg("order"), py::arg("vector_dimension") = 1)
@@ -145,12 +136,7 @@ PYBIND11_MODULE(_core, module)
             {
                 interfaces.emplace(term, problem_configs<trimuse::ThermalInterfaceConfig>(entries));
             }
-            if (fem.has_region_field("temperature"))
-            {
-                return std::make_unique<trimuse::ThermalProblem>(fem, fem.region_field("temperature"), properties,
-                    solver, output, problem_type, initial, regions, boundaries, interfaces);
-            }
-            return std::make_unique<trimuse::ThermalProblem>(fem, fem.field_data("temperature"), properties,
+            return std::make_unique<trimuse::ThermalProblem>(fem, fem.region_field("temperature"), properties,
                 solver, output, problem_type, initial, regions, boundaries, interfaces);
         }), py::arg("fem_system"), py::arg("properties_system"), py::arg("solver_system"), py::arg("output_manager"), py::arg("problem_type"),
             py::arg("initial_configs"), py::arg("regions"), py::arg("boundaries"), py::arg("interfaces"),
@@ -182,12 +168,7 @@ PYBIND11_MODULE(_core, module)
             {
                 interfaces.emplace(term, problem_configs<trimuse::MechanicsInterfaceConfig>(entries));
             }
-            if (fem.has_region_field("displacement"))
-            {
-                return std::make_unique<trimuse::MechanicsProblem>(fem, fem.region_field("displacement"), properties,
-                    solver, output, regions, boundaries, interfaces);
-            }
-            return std::make_unique<trimuse::MechanicsProblem>(fem, fem.field_data("displacement"), properties,
+            return std::make_unique<trimuse::MechanicsProblem>(fem, fem.region_field("displacement"), properties,
                 solver, output, regions, boundaries, interfaces);
         }), py::arg("fem_system"), py::arg("properties_system"), py::arg("solver_system"), py::arg("output_manager"),
             py::arg("regions"), py::arg("boundaries"), py::arg("interfaces"),
@@ -221,12 +202,7 @@ PYBIND11_MODULE(_core, module)
             {
                 interfaces.emplace(term, problem_configs<trimuse::RadioactivityInterfaceNuclideTransferConfig>(entries));
             }
-            if (fem.has_region_field("concentration"))
-            {
-                return std::make_unique<trimuse::RadioactivityProblem>(fem, fem.region_field("concentration"), properties,
-                    solver, output, problem_type, initial, regions, boundaries, interfaces);
-            }
-            return std::make_unique<trimuse::RadioactivityProblem>(fem, fem.field_data("concentration"), properties,
+            return std::make_unique<trimuse::RadioactivityProblem>(fem, fem.region_field("concentration"), properties,
                 solver, output, problem_type, initial, regions, boundaries, interfaces);
         }), py::arg("fem_system"), py::arg("properties_system"), py::arg("solver_system"), py::arg("output_manager"), py::arg("problem_type"),
             py::arg("initial_configs"), py::arg("regions"), py::arg("boundaries"), py::arg("interfaces"),

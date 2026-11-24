@@ -16,8 +16,7 @@ struct RadioactivityInitialConfig // 一个材料区域的初始核素盘存模�
     ModelParameterMap parameters; // 模型参数，包括该区域的初始盘存 inventory
 };
 
-// 初始盘存 mol 除以区域体积得到 mol/m³, 投影时不施加后续边界约束。
-void initialize_concentration(const FemSystem& fem_system, FieldData& accepted_concentration_field, const std::vector<RadioactivityInitialConfig>& initial_configs);
+// 初始盘存 mol 除以区域体积得到 mol/m³，区域间的连续性由后续约束投影处理。
 void initialize_concentration(const FemSystem& fem_system, RegionFieldData& accepted_concentration_field, const std::vector<RadioactivityInitialConfig>& initial_configs); // 分域场逐区域直接赋初值，后续再处理完美接触约束
 
 }

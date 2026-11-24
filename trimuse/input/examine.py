@@ -13,15 +13,6 @@ from .simulation.config import SimulationCard
 class InputCardsExamine:
     """只负责卡间一致性, 各卡自身的检查由对应 examine 完成"""
 
-    @staticmethod
-    def check_thermal_space(simulation: SimulationCard, thermal: ThermalCard | None) -> None:
-        """有温度跳跃的界面必须使用分域空间"""
-        if thermal is None or all(model.model_name == "perfect_contact" for interface in thermal.interfaces.interface for model in interface.model if model.name == "interface_heat_transfer"):
-            return
-        temperature = next((item for item in simulation.solver.field if item.name == "temperature"), None)
-        if temperature is None or temperature.fem_space.continuity != "region":
-            raise ValueError("热阻界面要求 temperature 的 fem_space 设置 continuity=\"region\"")
-
     @classmethod
     def examine(cls, geometry_mesh: GeometryMeshCard, material: MaterialCard, properties: PropertiesCard, thermal: ThermalCard | None, postprocess: PostprocessCard, radioactivity: RadioactivityCard | None = None, mechanics: MechanicsCard | None = None) -> None:
         """检查各已启用物理卡的几何引用, 以及后处理配置与几何维数的一致性"""

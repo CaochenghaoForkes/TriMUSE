@@ -11,7 +11,6 @@ namespace trimuse
 class MechanicsProblem // 调度当前线弹性与热膨胀模型的准静态平衡求解，每次求解一次线性方程
 {
 public:
-    MechanicsProblem(FemSystem& fem, FieldData& accepted_displacement, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output_manager, const MechanicsRegionConfigs& regions, const MechanicsBoundaryConfigs& boundaries, const MechanicsInterfaceConfigs& interfaces);
     MechanicsProblem(FemSystem& fem, RegionFieldData& accepted_displacement, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output_manager, const MechanicsRegionConfigs& regions, const MechanicsBoundaryConfigs& boundaries, const MechanicsInterfaceConfigs& interfaces);
     void solve(); // 按当前温度、属性和载荷求解平衡，提交位移与求积点状态，并记录求解信息
     void save_output(int cycle, double time, double time_step); // 保存当前正式状态的最大主应力和最大剪应力，单位 Pa
@@ -19,7 +18,6 @@ public:
     const MechanicsAssembly::Counts& assembly_counts() const;
 
 private:
-    MechanicsProblem(FemSystem& fem, TrialField trial_displacement, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output_manager, const MechanicsRegionConfigs& regions, const MechanicsBoundaryConfigs& boundaries, const MechanicsInterfaceConfigs& interfaces);
 
     TrialField trial_displacement_; // 本次求解的独立试探位移，求解成功后才写回正式场
     PropertiesSystem& properties_;

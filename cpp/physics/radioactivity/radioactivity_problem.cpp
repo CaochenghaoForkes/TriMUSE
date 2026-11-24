@@ -7,21 +7,9 @@
 namespace trimuse
 {
 
-RadioactivityProblem::RadioactivityProblem(FemSystem& fem, FieldData& accepted_concentration, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output_manager, const std::string& problem_type, const std::vector<RadioactivityInitialConfig>& initial, const RadioactivityRegionConfigs& regions, const RadioactivityBoundaryConfigs& boundaries, const RadioactivityInterfaceConfigs& interfaces)
-    :
-    RadioactivityProblem(fem, TrialField(fem, accepted_concentration), properties, solver, output_manager, problem_type, initial, regions, boundaries, interfaces) // 连续正式场包装为独立试探场，再交给统一构造函数
-{
-}
-
 RadioactivityProblem::RadioactivityProblem(FemSystem& fem, RegionFieldData& accepted_concentration, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output_manager, const std::string& problem_type, const std::vector<RadioactivityInitialConfig>& initial, const RadioactivityRegionConfigs& regions, const RadioactivityBoundaryConfigs& boundaries, const RadioactivityInterfaceConfigs& interfaces)
     :
-    RadioactivityProblem(fem, TrialField(fem, accepted_concentration), properties, solver, output_manager, problem_type, initial, regions, boundaries, interfaces) // 分域正式场同样包装为试探场
-{
-}
-
-RadioactivityProblem::RadioactivityProblem(FemSystem& fem, TrialField trial_concentration, PropertiesSystem& properties, SolverSystem& solver, OutputManager& output_manager, const std::string& problem_type, const std::vector<RadioactivityInitialConfig>& initial, const RadioactivityRegionConfigs& regions, const RadioactivityBoundaryConfigs& boundaries, const RadioactivityInterfaceConfigs& interfaces)
-    :
-    trial_concentration_(std::move(trial_concentration)),
+    trial_concentration_(fem, accepted_concentration),
     properties_(properties),
     solver_(solver),
     output_manager_(output_manager),
@@ -29,14 +17,7 @@ RadioactivityProblem::RadioactivityProblem(FemSystem& fem, TrialField trial_conc
     assembly_(fem, trial_concentration_, regions, boundaries, interfaces)
 {
     assembly_.mark_coupled(properties_); // 登记扩散、源和边界所需属性与浓度场的耦合关系
-    if (trial_concentration_.regional())
-    {
-        initialize_concentration(fem, *trial_concentration_.accepted_region_field(), initial);
-    }
-    else
-    {
-        initialize_concentration(fem, *trial_concentration_.accepted_continuous_field(), initial);
-    }
+    initialize_concentration(fem, *trial_concentration_.accepted_region_field(), initial); // 按区域设置正式场初值
     trial_concentration_.load(); // 正式场初值复制到试探场
     assembly_.project_initial(properties_.field_data().domain_integration_point_values.at("precomputed.initial_domain_quadrature_weight")); // 必要时将区域初始阶跃投影到完美接触约束空间
     trial_concentration_.accept(); // 将投影后的初值写回正式场
@@ -75,7 +56,7 @@ void RadioactivityProblem::solve(double time_step, double theta) // 每个时刻
 
 void RadioactivityProblem::save_output(int cycle, double time, double time_step)
 {
-    const FieldView accepted_concentration = trial_concentration_.regional() ? FieldView(trial_concentration_.accepted_region_field()) : FieldView(&trial_concentration_.accepted_continuous_field()->mfem_grid_function());
+    const FieldView accepted_concentration(trial_concentration_.accepted_region_field());
     output_manager_.save("concentration", accepted_concentration, cycle, time, time_step);
 }
 

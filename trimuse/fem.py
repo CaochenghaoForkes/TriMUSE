@@ -23,7 +23,6 @@ class FemManager:
             region_layers=mesh_info.region_layers,
         )
         for field in solver_config.field:
-            add_field = self.fem_system.add_region_field if field.fem_space.continuity == "region" else self.fem_system.add_field
             dimension = mesh_info.dimension if field.name == "displacement" else 1
-            add_field(field.name, order=field.fem_space.order, vector_dimension=dimension)
-            print(f"有限元场已创建: {field.name}, 阶次: {field.fem_space.order}, 连续性: {field.fem_space.continuity}")
+            self.fem_system.add_region_field(field.name, order=field.fem_space.order, vector_dimension=dimension)
+            print(f"有限元场已创建: {field.name}, 阶次: {field.fem_space.order}, 分域 H1")

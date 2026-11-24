@@ -4,7 +4,7 @@
 namespace trimuse
 {
 
-// 连续场已经共享界面自由度；分域场登记两侧浓度相等的约束。
+// 登记分域场两侧浓度相等的约束。
 class RadioactivityPerfectContact final : public RadioactivityInterfaceNuclideTransferModel
 {
 public:

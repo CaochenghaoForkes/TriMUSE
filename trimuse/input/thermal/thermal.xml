@@ -22,7 +22,7 @@
         </boundary>
     </boundaries>
     <interfaces>
-        <!-- 默认完美接触；热阻界面读取属性卡同名界面的热阻，温度场使用 continuity="region" -->
+        <!-- 默认完美接触；热阻界面读取属性卡同名界面的热阻，温度场统一采用分域 H1 空间 -->
         <interface name="[str]">
             <model name="interface_heat_transfer" model_name="interface_thermal_resistance"/>
         </interface>
