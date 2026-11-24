@@ -10,7 +10,7 @@
 namespace trimuse
 {
 
-void PrecomputedManager::initialize_precomputed(PropertiesSystem& properties, const FemSystem& fem, const std::unordered_map<std::string, std::vector<std::string>>& field_required_properties, const ModelParameterMap& parameters)
+void PrecomputedManager::initialize_precomputed(PropertiesSystem& properties, const FemSystem& fem, const std::vector<std::string>& field_names, const ModelParameterMap& parameters)
 {
     // 用户输入的预计算属性
     for (const auto& [name, value] : parameters)
@@ -28,8 +28,7 @@ void PrecomputedManager::initialize_precomputed(PropertiesSystem& properties, co
     // 场需要的预计算参数
     for (const auto& initializer : conditional_initializers_)
     {
-        const bool needed = std::any_of(field_required_properties.begin(), field_required_properties.end(), [&initializer](const auto& field) { const auto& required = field.second; return field.first == initializer.requirement || std::find(required.begin(), required.end(), initializer.requirement) != required.end(); });
-        if (needed)
+        if (std::find(field_names.begin(), field_names.end(), initializer.field_name) != field_names.end())
         {
             initializer.initialize(properties, fem);
         }

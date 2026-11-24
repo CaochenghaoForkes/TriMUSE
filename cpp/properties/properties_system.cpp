@@ -42,12 +42,7 @@ PropertiesSystem::PropertiesSystem(const FemSystem& fem_system, const std::vecto
             properties_field_data_.domain_integration_point_values.emplace(property.name, PropertiesFieldData::DomainIntegrationPointValues{}); // 初始化各 DomainIntegrationPoint 属性的域求积点数组为空
         }
     }
-    std::unordered_map<std::string, std::vector<std::string>> required_properties; // 临时的仅包含本次求解场的需求属性
-    for (const std::string& field : field_names_)
-    {
-        required_properties.emplace(field, field_required_properties_.at(field));
-    }
-    PrecomputedManager::initialize_precomputed(*this, fem_system_, required_properties, precomputed_parameters);
+    PrecomputedManager::initialize_precomputed(*this, fem_system_, field_names_, precomputed_parameters);
     required_state_snapshots_ = properties_field_data_; // 记录初始化完成后的属性与预计算依赖值
 }
 
