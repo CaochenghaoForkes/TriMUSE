@@ -13,7 +13,7 @@ LocalInterfaceThermalResistance::LocalInterfaceThermalResistance(const ModelPara
 std::optional<double> LocalInterfaceThermalResistance::evaluate(const PropertiesStatePoint& point) const
 {
     const auto& center = point.vector("precomputed.geometry_center");
-    const auto range = angles_.match({point.x - center[0], point.y - center[1], point.z - center[2]});
+    const auto range = angles_.match({point.face_center[0] - center[0], point.face_center[1] - center[1], point.face_center[2] - center[2]});
     if (range)
     {
         return resistances_[*range];

@@ -33,10 +33,6 @@ PropertiesSystem::PropertiesSystem(const FemSystem& fem_system, const std::vecto
         {
             properties_field_data_.face_integration_point_values.emplace(property.name, PropertiesFieldData::FaceIntegrationPointValues{});
         }
-        else if (property.scope == PropertyScope::Interface)
-        {
-            properties_field_data_.interface_values.try_emplace(property.name); // 为该属性创建的是一张空的面片值表
-        }
         else
         {
             properties_field_data_.domain_integration_point_values.emplace(property.name, PropertiesFieldData::DomainIntegrationPointValues{}); // 初始化各 DomainIntegrationPoint 属性的域求积点数组为空
@@ -355,10 +351,6 @@ void PropertiesSystem::load_required_states(PropertiesStatePoint& point, const s
             {
                 point.references[name] = &properties_field_data_.zone_values.at(name);
             }
-            else if (scope == PropertyScope::Interface)
-            {
-                point.references[name] = &properties_field_data_.interface_values.at(name);
-            }
             else if (scope == PropertyScope::FaceIntegrationPoint)
             {
                 point.references[name] = &properties_field_data_.face_integration_point_values.at(name);
@@ -384,10 +376,6 @@ void PropertiesSystem::load_required_states(PropertiesStatePoint& point, const s
         else if (scope == PropertyScope::FaceIntegrationPoint)
         {
             point.values[name] = properties_field_data_.face_integration_point_values.at(name)[fem_system_.face_quadrature_offset(point.face_index) + point.face_point_index].value();
-        }
-        else if (scope == PropertyScope::Interface)
-        {
-            point.values[name] = properties_field_data_.interface_values.at(name).at(point_index.value()).value();
         }
         else
         {
@@ -437,18 +425,6 @@ void PropertiesSystem::load_previous_value(PropertiesStatePoint& point, const Pr
             point.previous_value = values->second[index];
         }
     }
-    else if (property.scope == PropertyScope::Interface)
-    {
-        const auto values = previous_field_data_.interface_values.find(name);
-        if (values != previous_field_data_.interface_values.end())
-        {
-            const auto value = values->second.find(point_index.value());
-            if (value != values->second.end())
-            {
-                point.previous_value = value->second;
-            }
-        }
-    }
     else if (property.scope == PropertyScope::Region || property.scope == PropertyScope::Zone)
     {
         const auto& values = property.scope == PropertyScope::Region ? previous_field_data_.region_values : previous_field_data_.zone_values;
@@ -491,10 +467,6 @@ bool PropertiesSystem::required_states_changed(int attribute, const std::vector<
                 return true;
             }
             if (scope == PropertyScope::Zone && previous.zone_values.at(name) != current.zone_values.at(name))
-            {
-                return true;
-            }
-            if (scope == PropertyScope::Interface && previous.interface_values.at(name) != current.interface_values.at(name))
             {
                 return true;
             }
@@ -552,24 +524,6 @@ bool PropertiesSystem::required_states_changed(int attribute, const std::vector<
                     {
                         return true;
                     }
-                }
-            }
-        }
-        else if (scope == PropertyScope::Interface)
-        {
-            const auto& old_values = previous.interface_values.at(name);
-            const auto& new_values = current.interface_values.at(name);
-            for (const auto& interface : fem_system_.mesh_data().interfaces())
-            {
-                if (interface.boundary_attribute != attribute)
-                {
-                    continue;
-                }
-                const auto old_value = old_values.find(interface.face);
-                const auto new_value = new_values.find(interface.face);
-                if (old_value == old_values.end() || new_value == new_values.end() || old_value->second != new_value->second)
-                {
-                    return true;
                 }
             }
         }
@@ -845,33 +799,6 @@ bool PropertiesSystem::coupled_with_field(const std::string& property_name, int 
 }
 
 template <typename Manager>
-void PropertiesSystem::evaluate_and_store_interface(const Manager& manager, const PropertyInfo& property, int attribute, const std::vector<RequiredState>& required) // 按网格面片计算并保存界面属性
-{
-    const auto& mesh_data = fem_system_.mesh_data();
-    const auto& mesh = mesh_data.mfem_mesh();
-    auto& values = properties_field_data_.interface_values.at(property.name); // 准备这项属性的面片值表 网格面编号 -> 界面属性值
-    mfem::IsoparametricTransformation transformation; // 准备转换
-    mfem::Vector position(mesh.SpaceDimension());
-    for (const auto& interface : mesh_data.interfaces()) // 访问内部界面面片列表
-    {
-        if (interface.boundary_attribute != attribute) // 如果这个面片不属于当前 attribute 对应的界面则跳过
-        {
-            continue;
-        }
-        mesh.GetFaceTransformation(interface.face, &transformation); // 取得当前这块面片从参考面到物理空间的几何映射
-        transformation.Transform(mfem::Geometries.GetCenter(transformation.GetGeometryType()), position); // 把参考单元的中心代入这个映射，得到面片中心的物理坐标填入 position
-        PropertiesStatePoint point;
-        point.interface_attribute = attribute;
-        point.x = position[0];
-        point.y = position.Size() > 1 ? position[1] : 0.0;
-        point.z = position.Size() > 2 ? position[2] : 0.0;
-        load_model_states(point, property, attribute, required, interface.face);
-        values[interface.face] = manager.evaluate(property.name, point); // 按原网格面片编号保存属性值
-    }
-    computed_locations_[property.name].insert(attribute); // 该界面的所有面片都处理完后把这个界面标记为已计算
-}
-
-template <typename Manager>
 void PropertiesSystem::evaluate_and_store_face_points(const Manager& manager, const PropertyInfo& property, int attribute, const std::vector<RequiredState>& required)
 {
     const auto& mesh = fem_system_.mesh_data().mfem_mesh();
@@ -889,11 +816,14 @@ void PropertiesSystem::evaluate_and_store_face_points(const Manager& manager, co
         mesh.GetFaceTransformation(face, &transformation);
         const auto* rule = fem_system_.boundary_quadrature_rule(transformation.GetGeometryType());
         const std::size_t offset = fem_system_.face_quadrature_offset(face);
+        transformation.Transform(mfem::Geometries.GetCenter(transformation.GetGeometryType()), position);
+        const std::array<double, 3> face_center{position[0], position.Size() > 1 ? position[1] : 0.0, position.Size() > 2 ? position[2] : 0.0};
         for (int q = 0; q < rule->GetNPoints(); ++q)
         {
             transformation.Transform(rule->IntPoint(q), position);
             PropertiesStatePoint point;
-            point.face_attribute = point.zone_attribute = point.interface_attribute = attribute;
+            point.face_attribute = point.zone_attribute = attribute;
+            point.face_center = face_center;
             point.face_index = face;
             point.face_point_index = q;
             point.x = position[0];
@@ -930,10 +860,6 @@ void PropertiesSystem::evaluate_property(const Manager& manager, const PropertyI
     if (property.scope == PropertyScope::FaceIntegrationPoint)
     {
         evaluate_and_store_face_points(manager, property, location, required);
-    }
-    else if (property.scope == PropertyScope::Interface)
-    {
-        evaluate_and_store_interface(manager, property, location, required);
     }
     else if (property.scope == PropertyScope::DomainIntegrationPoint)
     {

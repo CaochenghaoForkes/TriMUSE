@@ -25,7 +25,7 @@ const std::vector<RequiredState>& InterfaceThermalResistanceModelManager::requir
 
 std::optional<double> InterfaceThermalResistanceModelManager::evaluate(const PropertiesStatePoint& point) const
 {
-    return interface_models_.at(point.interface_attribute)->evaluate(point);
+    return interface_models_.at(point.face_attribute)->evaluate(point);
 }
 
 }

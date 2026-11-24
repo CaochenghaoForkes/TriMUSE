@@ -3,7 +3,6 @@
 #include "properties/precomputed/geometry_center.hpp"
 #include "properties/precomputed/initial_region_volume.hpp"
 #include "properties/precomputed/initial_domain_quadrature_weight.hpp"
-#include "properties/precomputed/initial_interface_area.hpp"
 #include "properties/precomputed/initial_face_quadrature_weight.hpp"
 #include "properties/properties_system.hpp"
 
@@ -21,7 +20,6 @@ void PrecomputedManager::initialize_precomputed(PropertiesSystem& properties, co
     // 必定需要的预计算参数
     initialize_initial_region_volume(properties, fem);
     initialize_initial_domain_quadrature_weight(properties, fem);
-    initialize_initial_interface_area(properties, fem);
     initialize_initial_face_quadrature_weight(properties, fem);
     initialize_geometry_center(properties, fem);
 

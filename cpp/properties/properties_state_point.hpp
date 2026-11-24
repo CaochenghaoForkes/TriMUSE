@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <cstddef>
 #include <optional>
 #include <string>
@@ -20,8 +21,8 @@ struct PropertiesStatePoint
     const std::vector<std::size_t>* region_domain_point_indices = nullptr; // 当前区域的全域求积点编号，只引用 FemSystem 中的缓存
     int region_attribute = 0;
     int zone_attribute = 0; // 边界物理组编号，与材料区域编号分别使用
-    int interface_attribute = 0; // 内部界面物理组编号
     int face_attribute = 0; // 外边界或内部界面的物理组编号
+    std::array<double, 3> face_center{}; // 面片中心，局部模型据此确定整块面片的角域归属
     int face_index = 0; // 原网格面编号
     int face_point_index = 0; // 面内求积点编号
     double x = 0.0;

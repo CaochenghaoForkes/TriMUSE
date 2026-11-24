@@ -13,7 +13,7 @@ class ThermalInterfaceAssembly // 汇集界面自由度约束和双侧传热贡�
 public:
     ThermalInterfaceAssembly(const TrialField& trial_field, DofConstraints& constraints);
     void connect(const InterfaceContext& context); // 找出理想接触界面两侧对应的自由度，并把它们登记为同一组，后续由同一个温度未知量表示
-    void add_transfer(const InterfaceContext& context, mfem::Coefficient& conductance, const PropertiesFieldData::FaceIntegrationPointValues& weights); // 把当前界面片的传热贡献，累加到界面总矩阵 matrix_ 中
+    void add_transfer(const InterfaceContext& context, const std::vector<double>& values, const PropertiesFieldData::FaceIntegrationPointValues& weights); // 把当前界面片的传热贡献，累加到界面总矩阵 matrix_ 中
     std::unique_ptr<mfem::SparseMatrix> finalize(); // 整理并返回界面传热矩阵 K_I，没有积分型贡献时为空
 
 private:

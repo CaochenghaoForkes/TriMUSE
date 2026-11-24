@@ -12,7 +12,7 @@ class InterfaceThermalResistance
 {
 public:
     virtual ~InterfaceThermalResistance();
-    virtual std::optional<double> evaluate(const PropertiesStatePoint& point) const = 0; // 空值表示该面片采用理想接触
+    virtual std::optional<double> evaluate(const PropertiesStatePoint& point) const = 0; // 角域外的面积分点存为空值，不参与热阻组装
 };
 
 class InterfaceThermalResistanceModelManager

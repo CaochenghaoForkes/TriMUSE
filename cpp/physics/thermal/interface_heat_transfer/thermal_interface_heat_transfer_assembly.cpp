@@ -15,7 +15,7 @@ void ThermalInterfaceAssembly::connect(const InterfaceContext& context) // 找�
     constraints_.connect(context.interface());
 }
 
-void ThermalInterfaceAssembly::add_transfer(const InterfaceContext& context, mfem::Coefficient& conductance, const PropertiesFieldData::FaceIntegrationPointValues& weights) // 把当前界面片的传热贡献，累加到界面总矩阵 matrix_ 中
+void ThermalInterfaceAssembly::add_transfer(const InterfaceContext& context, const std::vector<double>& values, const PropertiesFieldData::FaceIntegrationPointValues& weights) // 把当前界面片的传热贡献，累加到界面总矩阵 matrix_ 中
 {
     if (!matrix_) // 判断矩阵指针是否为空 第一次处理热阻界面时，还没有创建矩阵
     {
@@ -65,7 +65,7 @@ void ThermalInterfaceAssembly::add_transfer(const InterfaceContext& context, mfe
             jump[shape[0].Size() + i] = -shape[1][i]; // 构造形函数跳跃向量 第二侧取负
         }
         // weight = hq * wq * J_gamma,q * gq
-        const double weight = conductance.Eval(transformation, point) * std::get<double>(weights[offset + q].value()); // 当前传热系数乘缓存的面求积点物理面积权重
+        const double weight = (1.0 / values[offset + q]) * std::get<double>(weights[offset + q].value()); // 当前传热系数乘缓存的面求积点物理面积权重
         // 界面推导沿用 weak_form.md 的 Galerkin 方法, i 对应测试函数/矩阵行, j 对应温度自由度/列。
         // 1. 定义 q_I=h(T_a-T_b), h=1/R, 正方向为 a -> b。
         //    两侧外向热流分别为 q_out,a=q_I, q_out,b=-q_I, 保证界面热量守恒。

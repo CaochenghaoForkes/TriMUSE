@@ -54,7 +54,6 @@ private:
         Global,
         Region,
         Zone,
-        Interface,
         DomainIntegrationPoint,
         FaceIntegrationPoint
     }; // 属性的作用位置
@@ -85,8 +84,6 @@ private:
     void evaluate_property(const Manager& manager, const PropertyInfo& property, int location, const std::vector<RequiredState>& required, const FieldMap& trial_fields = {}); // 根据存储范围求值并保存属性
     template <typename Manager>
     void evaluate_and_store_face_points(const Manager& manager, const PropertyInfo& property, int attribute, const std::vector<RequiredState>& required); // 计算指定外边界或内部界面的各面求积点属性
-    template <typename Manager>
-    void evaluate_and_store_interface(const Manager& manager, const PropertyInfo& property, int attribute, const std::vector<RequiredState>& required); // 按网格面片计算并保存界面属性
     void load_required_states(PropertiesStatePoint& point, const std::vector<RequiredState>& names, std::optional<std::size_t> point_index = std::nullopt) const; // 给 point 装配需要的属性
     void load_model_states(PropertiesStatePoint& point, const PropertyInfo& property, int attribute, const std::vector<RequiredState>& required, std::optional<std::size_t> point_index = std::nullopt) const; // 加载当前依赖；若模型声明依赖自身，则改为加载已接受的旧值
     void load_previous_value(PropertiesStatePoint& point, const PropertyInfo& property, int attribute, std::optional<std::size_t> point_index = std::nullopt) const; // 读取同一位置上一个已接受时刻的属性值
@@ -96,7 +93,6 @@ private:
         {"precomputed.initial_region_volume", PropertyType::Precomputed, PropertyScope::Region},
         {"precomputed.initial_domain_quadrature_weight", PropertyType::Precomputed, PropertyScope::DomainIntegrationPoint}, // m³，域内求积点初始物理体积权重
         {"precomputed.initial_face_quadrature_weight", PropertyType::Precomputed, PropertyScope::FaceIntegrationPoint}, // m²，初始面求积点物理面积权重
-        {"precomputed.initial_interface_area", PropertyType::Precomputed, PropertyScope::Interface}, // m²，内部界面面片初始物理面积
         {"precomputed.geometry_center", PropertyType::Precomputed, PropertyScope::Global}, // m，颗粒中心坐标
         {"precomputed.thermal_expansion_reference_temperature", PropertyType::Precomputed, PropertyScope::Global}, // K, 来自力学卡的固定热膨胀参考温度
         {"precomputed.tensor_transform", PropertyType::Precomputed, PropertyScope::DomainIntegrationPoint}, // 六分量张量 local -> global 的 T
@@ -154,7 +150,7 @@ private:
         {"assembly.homogenized_booth_fission_gas_release_state", PropertyType::Assembly, PropertyScope::Region}, // 区域均匀化状态：[累计释放量密度, 累计产生量密度, 释放份额, z₁, …, zM]
         {"assembly.cumulative_fission_gas_release", PropertyType::Assembly, PropertyScope::Region}, // mol，区域内累计释放的裂变气体总量
         {"assembly.internal_gas_pressure", PropertyType::Assembly, PropertyScope::Region}, // Pa，储气区域的内部气体压力
-        {"assembly.interface_thermal_resistance", PropertyType::Assembly, PropertyScope::Interface} // m²·K/W
+        {"assembly.interface_thermal_resistance", PropertyType::Assembly, PropertyScope::FaceIntegrationPoint} // m²·K/W，面积分点热阻
     };
 
     // 状态名 -> 负责更新它的求解场，模型取值仍使用原状态名
