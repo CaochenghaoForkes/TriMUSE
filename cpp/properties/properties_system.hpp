@@ -25,6 +25,8 @@ public:
     explicit PropertiesSystem(const FemSystem& fem_system, const std::vector<std::string>& field_names = {}, const ModelParameterMap& precomputed_parameters = {}); // 初始化属性存储并填入物理卡参数及几何缓存
     void set_precomputed(const std::string& name, const ModelParameterValue& value); // assign 前填写已声明的全局预计算属性 precomputed.name, 并以 name 作为公共构造参数键
     void assign(int attribute, const std::string& model_name, const ModelParameterMap& parameters); // 为某个属性在指定 体积域/边界域 上配置一个计算模型 并把该位置已有的“计算完成”标记清掉
+    void require_field(const std::string& name, const std::vector<double>* values = nullptr); // 登记所需场，可选传入物理模块的积分点数组，否则从 FEM 采样
+    void sample_required_fields(const FieldMap& trial_fields = {}); // 统一采样所需场，默认读取已接受场，迭代时优先读取试探场
     void prepare_dependencies(); // 补齐固定关系属性并标记场依赖
     void mark_coupled(const std::string& field_name, const std::vector<RequiredState>& property_names); // 把指定属性中依赖某个求解场的位置标记为“参与耦合更新”，并沿依赖关系向上游传递这个标记
     void update_field_independent_properties(double time, double time_step); // 更新时间和不依赖场的属性，按变化序号复用结果
@@ -79,7 +81,6 @@ private:
     const std::vector<RequiredState>& model_required_states(const PropertyInfo& property, const std::string& model_name) const; // 返回计算 property 属性的 model_name 模型所需要的参数
     bool depends_on_field(const std::string& property_name, int region_attribute, const std::string& field_name) const; // 判断: 某个属性在指定区域，是否依赖求解场
     PropertiesStatePoint make_state_point(PropertyScope scope, int attribute) const; // 根据属性的作用范围和位置编号，创建一个 PropertiesStatePoint 状态点对象，并设置它的区域/边界分区编号
-    void sample_required_fields(const FieldMap& trial_fields); // 将本轮所需场统一采样到全域积分点数组，优先读取试探场
     template <typename Manager>
     void evaluate_and_store(const Manager& manager, const std::string& name, const PropertiesStatePoint& point); // 调用管理器计算某项属性，把结果存到对应位置，并标记该位置已经计算完成 (这个方法只用于 Global、Region、Zone 属性)
     template <typename Manager>
@@ -98,8 +99,8 @@ private:
         {"temperature", PropertyType::Field, PropertyScope::DomainIntegrationPoint}, // K，温度场的域积分点采样
         {"concentration", PropertyType::Field, PropertyScope::DomainIntegrationPoint}, // mol/m³，浓度场的域积分点采样
         {"displacement", PropertyType::Field, PropertyScope::DomainIntegrationPoint}, // m，位移场的域积分点采样
-        {"stress", PropertyType::Field, PropertyScope::DomainIntegrationPoint}, // Pa，位移场恢复的应力状态
-        {"strain", PropertyType::Field, PropertyScope::DomainIntegrationPoint}, // 无量纲，位移场恢复的应变状态
+        {"max_principal_stress", PropertyType::Field, PropertyScope::DomainIntegrationPoint}, // Pa，最大主应力
+        {"max_shear_stress", PropertyType::Field, PropertyScope::DomainIntegrationPoint}, // Pa，最大剪应力
         {"precomputed.initial_region_volume", PropertyType::Precomputed, PropertyScope::Region},
         {"precomputed.initial_domain_quadrature_weight", PropertyType::Precomputed, PropertyScope::DomainIntegrationPoint}, // m³，域内求积点初始物理体积权重
         {"precomputed.initial_face_quadrature_weight", PropertyType::Precomputed, PropertyScope::FaceIntegrationPoint}, // m²，初始面求积点物理面积权重
@@ -169,8 +170,8 @@ private:
         {"temperature", "temperature"},
         {"concentration", "concentration"},
         {"displacement", "displacement"},
-        {"stress", "displacement"},
-        {"strain", "displacement"}
+        {"max_principal_stress", "displacement"},
+        {"max_shear_stress", "displacement"}
     };
     // 场名 -> 程序内置且无需用户选择模型的固定关系属性
     inline static const std::unordered_map<std::string, std::vector<std::string>> field_required_properties_ = {
@@ -180,7 +181,8 @@ private:
     };
     const FemSystem& fem_system_;
     std::vector<std::string> field_names_; // 本次启用的求解场，由外部传入
-    std::unordered_set<std::string> required_field_names_; // 当前已配置的所有属性模型直接依赖的场名称的集合
+    std::unordered_map<std::string, const std::vector<double>*> physics_result_array_sources_; // 物理模块积分点结果名称 -> 已接受结果数组的只读指针
+    std::unordered_set<std::string> required_field_and_result_names_; // 需要统一采样的有限元场及物理模块积分点结果的名称
     ModelParameterMap build_parameters_; // 初始化阶段设置的公共构造参数, 在最上层 assign 中合并给所有模型
     MaterialModelManager material_model_manager_; // 材料属性模型管理器
     AssemblyModelManager assembly_model_manager_; // 物理模块模型属性管理器

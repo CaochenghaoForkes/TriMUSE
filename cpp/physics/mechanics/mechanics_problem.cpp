@@ -1,8 +1,6 @@
 #include "physics/mechanics/mechanics_problem.hpp"
 
-#include <algorithm>
 #include <chrono>
-#include <utility>
 
 namespace trimuse
 {
@@ -17,9 +15,9 @@ MechanicsProblem::MechanicsProblem(FemSystem& fem, RegionFieldData& accepted_dis
     mechanics_state_(fem.domain_quadrature_point_count())
 {
     assembly_.mark_coupled(properties_);
-    const int order = accepted_displacement.finite_element_space(fem.mesh_data().region_attributes().front()).order(); // 应力输出沿用位移场的输入阶次
-    output_manager_.add_field("max_principal_stress", "mechanics", order);
-    output_manager_.add_field("max_shear_stress", "mechanics", order);
+    const auto& state = mechanics_state_.accepted_values();
+    properties_.require_field("max_principal_stress", &state.max_principal_stress);
+    properties_.require_field("max_shear_stress", &state.max_shear_stress);
 }
 
 void MechanicsProblem::solve()
@@ -46,19 +44,6 @@ void MechanicsProblem::solve()
         const auto old = before.find(name);
         output_manager_.append_solve_information("displacement", name + "_assemblies", count - (old == before.end() ? 0 : old->second));
     }
-}
-
-void MechanicsProblem::save_output(int cycle, double time, double time_step)
-{
-    const auto& state = mechanics_state_.accepted_values();
-    const auto& weights = properties_.field_data().domain_integration_point_values.at("precomputed.initial_domain_quadrature_weight");
-    std::vector<double> maximum(state.principal_stress.size());
-    for (std::size_t point = 0; point < maximum.size(); ++point)
-    {
-        maximum[point] = state.principal_stress[point][0];
-    }
-    output_manager_.save("max_principal_stress", maximum, weights, cycle, time, time_step);
-    output_manager_.save("max_shear_stress", state.max_shear_stress, weights, cycle, time, time_step);
 }
 
 const MechanicsState::Values& MechanicsProblem::accepted_state() const

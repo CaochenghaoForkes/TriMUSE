@@ -25,7 +25,7 @@ void principal_values(const VectorValue& values, VectorValue& principal) // 向�
 
 MechanicsState::MechanicsState(std::size_t point_count) // 传入 point_count 是原网格全部域单元的求积点总数
     :
-    trial_values_{std::vector<VectorValue>(point_count, VectorValue(6, 0.0)), std::vector<VectorValue>(point_count, VectorValue(6, 0.0)), std::vector<VectorValue>(point_count, VectorValue(3, 0.0)), std::vector<VectorValue>(point_count, VectorValue(3, 0.0)), std::vector<double>(point_count, 0.0)},
+    trial_values_{std::vector<VectorValue>(point_count, VectorValue(6, 0.0)), std::vector<VectorValue>(point_count, VectorValue(6, 0.0)), std::vector<VectorValue>(point_count, VectorValue(3, 0.0)), std::vector<VectorValue>(point_count, VectorValue(3, 0.0)), std::vector<double>(point_count, 0.0), std::vector<double>(point_count, 0.0)},
     accepted_values_(trial_values_)
 {
 }
@@ -38,6 +38,7 @@ void MechanicsState::update(const MechanicsIntegrator& integrator, const std::ve
         principal_values(trial_values_.strain[point], trial_values_.principal_strain[point]); // 主应变就是应变张量的特征值
         principal_values(trial_values_.stress[point], trial_values_.principal_stress[point]); // 主应力就是应力张量的特征值
         const auto& principal_stress = trial_values_.principal_stress[point];
+        trial_values_.max_principal_stress[point] = principal_stress[0];
         trial_values_.max_shear_stress[point] = 0.5 * (principal_stress[0] - principal_stress[2]); // 最大剪应力
     }
 }

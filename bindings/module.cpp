@@ -68,12 +68,20 @@ PYBIND11_MODULE(_core, module)
     py::class_<trimuse::OutputManager>(module, "OutputManager")
         .def(py::init<trimuse::FemSystem&, const std::string&>(),
              py::arg("fem_system"), py::arg("output_directory"), py::keep_alive<1, 2>())
-        .def("add_field", &trimuse::OutputManager::add_field,
-             py::arg("field_name"), py::arg("directory_name"), py::arg("order"))
-        .def("save", [](trimuse::OutputManager& output, const std::string& field_name, const std::vector<double>& values, const trimuse::PropertiesSystem& properties, int cycle, double time, double time_step)
+        .def("initialize", [](trimuse::OutputManager& output, trimuse::PropertiesSystem& properties, const std::unordered_map<std::string, std::vector<std::tuple<std::string, std::string>>>& entries)
         {
-            output.save(field_name, values, properties.field_data().domain_integration_point_values.at("precomputed.initial_domain_quadrature_weight"), cycle, time, time_step);
-        }, py::arg("field_name"), py::arg("values"), py::arg("properties"), py::arg("cycle"), py::arg("time"), py::arg("time_step"))
+            trimuse::OutputManager::OutputConfigs configs;
+            for (const auto& [range, items] : entries)
+            {
+                auto& group = configs[range];
+                for (const auto& [name, directory] : items)
+                {
+                    group.push_back({name, directory});
+                }
+            }
+            output.initialize(properties, configs);
+        }, py::arg("properties"), py::arg("configs"), py::keep_alive<1, 2>())
+        .def("save", py::overload_cast<int, double, double>(&trimuse::OutputManager::save), py::arg("cycle"), py::arg("time"), py::arg("time_step"))
         .def("solve_information", &trimuse::OutputManager::solve_information, py::arg("field_name"));
 
     py::class_<trimuse::PropertiesSystem>(module, "PropertiesSystem")
@@ -141,8 +149,6 @@ PYBIND11_MODULE(_core, module)
         }), py::arg("fem_system"), py::arg("properties_system"), py::arg("solver_system"), py::arg("output_manager"), py::arg("problem_type"),
             py::arg("initial_configs"), py::arg("regions"), py::arg("boundaries"), py::arg("interfaces"),
             py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::keep_alive<1, 4>(), py::keep_alive<1, 5>())
-        .def("save_output", &trimuse::ThermalProblem::save_output,
-             py::arg("cycle"), py::arg("time"), py::arg("time_step"))
         .def("assembly_counts", &trimuse::ThermalProblem::assembly_counts)
         .def("solve", &trimuse::ThermalProblem::solve, py::arg("time_step") = 0.0, py::arg("theta") = 1.0);
 
@@ -174,8 +180,6 @@ PYBIND11_MODULE(_core, module)
             py::arg("regions"), py::arg("boundaries"), py::arg("interfaces"),
             py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::keep_alive<1, 4>(), py::keep_alive<1, 5>())
         .def("solve", &trimuse::MechanicsProblem::solve)
-        .def("save_output", &trimuse::MechanicsProblem::save_output,
-             py::arg("cycle"), py::arg("time"), py::arg("time_step"))
         .def("assembly_counts", &trimuse::MechanicsProblem::assembly_counts);
 
     py::class_<trimuse::RadioactivityProblem>(module, "RadioactivityProblem")
@@ -207,8 +211,6 @@ PYBIND11_MODULE(_core, module)
         }), py::arg("fem_system"), py::arg("properties_system"), py::arg("solver_system"), py::arg("output_manager"), py::arg("problem_type"),
             py::arg("initial_configs"), py::arg("regions"), py::arg("boundaries"), py::arg("interfaces"),
             py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::keep_alive<1, 4>(), py::keep_alive<1, 5>())
-        .def("save_output", &trimuse::RadioactivityProblem::save_output,
-             py::arg("cycle"), py::arg("time"), py::arg("time_step"))
         .def("assembly_counts", &trimuse::RadioactivityProblem::assembly_counts)
         .def("solve", &trimuse::RadioactivityProblem::solve, py::arg("time_step") = 0.0, py::arg("theta") = 1.0);
 }

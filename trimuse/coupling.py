@@ -29,7 +29,7 @@ class CouplingManager:
         self.field_theta = {field.name: field.theta for field in fields}
         self.properties_manager = properties_manager
         self.output_manager = output_manager
-        self.output_manager.initialize_field_output(fem_manager)
+        self.output_manager.initialize_field_output(fem_manager, properties_manager)
         self.problems = {field.name: PROBLEM_TYPES[field.name](input_cards, fem_manager, properties_manager, solver_manager, output_manager) for field in fields}
         self.cycle = 0
         self.time = 0.0
@@ -42,7 +42,7 @@ class CouplingManager:
         self.cycle = 0
         total_steps = sum(ceil(duration / time_step) for duration, time_step in zip(self.time_span, self.min_time_step))
         self.update_and_solve()
-        self.output_manager.save(self.cycle, self.time, self.time_step, self.problems)
+        self.output_manager.save(self.cycle, self.time, self.time_step)
         print(f"计算进度: 0/{total_steps}, 时间: 0 s", flush=True)
         for duration, time_step, write_interval in zip(self.time_span, self.min_time_step, self.write_interval):
             stage_start = self.time
@@ -65,7 +65,7 @@ class CouplingManager:
                     if write_due:
                         next_output = output_period + 1
                 if write_due or step == step_count:
-                    self.output_manager.save(self.cycle, self.time, self.time_step, self.problems)
+                    self.output_manager.save(self.cycle, self.time, self.time_step)
                 print(f"计算进度: {self.cycle}/{total_steps} ({self.cycle / total_steps:.1%}), 时间: {self.time:.6g} s", flush=True)
         self.output_manager.finish_simulation(self.time, self.cycle)
 

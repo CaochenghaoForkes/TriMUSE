@@ -18,6 +18,7 @@ public:
         std::vector<VectorValue> stress; // 应力 sigma = C epsilon - beta，beta = C epsilon*
         std::vector<VectorValue> principal_strain; // 三个主总应变，按降序排列
         std::vector<VectorValue> principal_stress; // 三个主应力，按降序排列
+        std::vector<double> max_principal_stress; // 最大主应力，单位 Pa
         std::vector<double> max_shear_stress; // 最大剪应力 (sigma1 - sigma3) / 2，单位 Pa
     };
 

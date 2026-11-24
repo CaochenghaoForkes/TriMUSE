@@ -27,6 +27,7 @@ public:
     FemSystem(FemSystem&&) = delete; // 内部空间引用公共网格, 管理对象保持固定地址
     FemSystem& operator=(FemSystem&&) = delete; // 内部空间引用公共网格, 管理对象保持固定地址
     void add_region_field(const std::string& name, int order, int vector_dimension = 1); // 将名为 name 的场, 创建并初始化一个分域场对象，然后返回拥有它的 unique_ptr 智能指针存入哈希表
+    bool has_field(const std::string& name) const { return region_field_map_.count(name) != 0; } // 判断该名称是否对应实际有限元场
     RegionFieldData& region_field(const std::string& name); // 返回名为 name 的场的子域场数据
     const RegionFieldData& region_field(const std::string& name) const; // 返回名为 name 的场的子域场数据
     MeshData& mesh_data(); // 返回可写网格数据

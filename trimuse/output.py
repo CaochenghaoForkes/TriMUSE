@@ -10,6 +10,7 @@ import json
 
 if TYPE_CHECKING:
     from .fem import FemManager
+    from .properties import PropertiesManager
     from .input.xml_loader import InputCards
 
 class OutputManager:
@@ -52,16 +53,24 @@ class OutputManager:
             "boundary_element_count": sum(count for cell_type, count in counts.items() if vtkCellTypes.GetDimension(cell_type) == dimension - 1)
         }
 
-    def initialize_field_output(self, fem_manager: FemManager) -> None:
+    def initialize_field_output(self, fem_manager: FemManager, properties_manager: PropertiesManager) -> None:
         """记录网格统计，创建 C++ 输出管理器并初始化运行报告"""
         from _core import OutputManager as CoreOutputManager
         self.record_mesh(fem_manager.mesh_info.path)
         self.field_output = CoreOutputManager(fem_manager.fem_system, str(self.directory))
+        configs = []
+        for field in self.input_cards.simulation.problem.field:
+            if field.name == "displacement":
+                for name in ("max_principal_stress", "max_shear_stress"):
+                    configs.append((name, "mechanics"))
+            else:
+                directory = "thermal" if field.name == "temperature" else "radioactivity"
+                configs.append((field.name, directory))
+        self.field_output.initialize(properties_manager.properties_system, {"domain": configs})
         self.report_file.write_text("TriMUSE simulation report\n", encoding="utf-8")
 
-    def save(self, cycle: int, time: float, time_step: float, problems: dict) -> None:
-        for field in self.input_cards.simulation.problem.field:
-            problems[field.name].save_output(cycle, time, time_step)
+    def save(self, cycle: int, time: float, time_step: float) -> None:
+        self.field_output.save(cycle, time, time_step)
         self.frame_count += 1
 
     def _append_report(self, text: str) -> None:

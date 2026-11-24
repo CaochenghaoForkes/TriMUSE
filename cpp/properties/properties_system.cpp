@@ -149,7 +149,7 @@ void PropertiesSystem::assign_field_properties()
 
 void PropertiesSystem::prepare_dependencies() // 标记各个属性在各个区域依赖的场有哪些
 {
-    required_field_names_.clear();
+    required_field_and_result_names_.clear();
     for (PropertyInfo& property : properties_)
     {
         property.field_regions.clear(); // 清空旧依赖标记
@@ -179,9 +179,8 @@ void PropertiesSystem::prepare_dependencies() // 标记各个属性在各个区�
                     {
                         throw std::logic_error("External 属性不允许依赖求解场: " + property.name);
                     }
-                    required_field_names_.insert(required_name); // 把当前依赖的场名（如 "temperature"）加入集合。集合自动去重，多个模型依赖同一个场，也只记录一次
-                    properties_field_data_.domain_integration_point_values.at(required_name).resize(fem_system_.domain_quadrature_point_count()); // 按全域求积点总数准备场采样数组，之后统一采样时填入场值 此时数组里的元素都是空值 std::nullopt，之后统一采样时再填入实际场值
-                    property.field_regions[field_state_owners_.at(required_name)].insert(location); // 按所属求解场登记依赖，stress 和 strain 随 displacement 更新
+                    require_field(required_name);
+                    property.field_regions[field_state_owners_.at(required_name)].insert(location); // 按所属求解场登记依赖，应力标量随 displacement 更新
                     continue;
                 }
                 const std::size_t upstream_index = property_index(required_name); // 如果依赖的是其他属性 还要检查该属性(称之为上游属性) 首先查询该上游属性在 properties_ 中的下标
@@ -597,13 +596,31 @@ void PropertiesSystem::evaluate_and_store_face_points(const Manager& manager, co
     record_update(property.name, attribute, changed);
 }
 
+void PropertiesSystem::require_field(const std::string& name, const std::vector<double>* values) // 登记需要统一采样的场，并准备存储空间，不计算场值
+{
+    if (values)
+    {
+        physics_result_array_sources_[name] = values;
+    }
+    if (property_info(name).type == PropertyType::Field) // 只有 Field 类型才登记；普通材料属性已经由模型计算，不需要场采样
+    {
+        required_field_and_result_names_.insert(name); // 将名称加入采样集合，自动去重
+        properties_field_data_.domain_integration_point_values.at(name).resize(fem_system_.domain_quadrature_point_count()); // 将对应数组调整为全域积分点总数 新增位置初始为空，后续由 sample_required_fields() 填入实际值
+    }
+}
+
 void PropertiesSystem::sample_required_fields(const FieldMap& trial_fields)
 {
     const auto& mesh = fem_system_.mesh_data().mfem_mesh();
-    for (const std::string& name : required_field_names_)
+    for (const std::string& name : required_field_and_result_names_) // 逐个处理需要采样的名称，例如温度、浓度、最大剪应力
     {
-        const auto trial = trial_fields.find(name);
-        const auto view = trial != trial_fields.end() ? trial->second : fem_system_.field_view(name);
+        const auto registered = physics_result_array_sources_.find(name); // 查找它是否登记了现成的积分点数组。如应力标量走这个来源，后面直接按下标读取
+        std::optional<FieldView> view; // 准备一个可为空的场视图。读取现成数组时不需要它；从 FEM 采样时才填写
+        if (registered == physics_result_array_sources_.end()) // 如果没有登记数组，就从有限元场取值：
+        {
+            const auto trial = trial_fields.find(name);
+            view = trial != trial_fields.end() ? trial->second : fem_system_.field_view(name);
+        }
         auto& values = properties_field_data_.domain_integration_point_values.at(name);
         for (int region : fem_system_.mesh_data().region_attributes())
         {
@@ -614,9 +631,10 @@ void PropertiesSystem::sample_required_fields(const FieldMap& trial_fields)
                 const std::size_t offset = fem_system_.domain_quadrature_offset(element);
                 for (int q = 0; q < rule->GetNPoints(); ++q)
                 {
-                    PropertiesFieldData::CachedValue value = view.evaluate(region, element, rule->IntPoint(q));
-                    changed = changed || values[offset + q] != value;
-                    values[offset + q] = std::move(value);
+                    const std::size_t index = offset + q;
+                    PropertiesFieldData::CachedValue value = registered != physics_result_array_sources_.end() ? StateValue{(*registered->second)[index]} : view->evaluate(region, element, rule->IntPoint(q)); // 已登记数组：`registered->second` 是数组指针，解引用后用 [index] 读取，再包装成 StateValue // 有限元场：在该单元的参考积分点位置计算场值
+                    changed = changed || values[index] != value;
+                    values[index] = std::move(value);
                 }
             }
             record_update(name, region, changed);

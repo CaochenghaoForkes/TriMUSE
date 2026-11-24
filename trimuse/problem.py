@@ -92,9 +92,6 @@ class Thermal:
         """调用统一求解入口, 问题类型由 C++ 对象保存"""
         self.thermal_problem.solve(time_step, theta)
 
-    def save_output(self, cycle: int, time: float, time_step: float) -> None:
-        self.thermal_problem.save_output(cycle, time, time_step)
-
 class Radioactivity:
     """整理单核素配置, 创建并调用 C++ 扩散与衰变问题对象"""
 
@@ -110,9 +107,6 @@ class Radioactivity:
 
     def solve(self, time_step: float = 0.0, theta: float = 1.0) -> None:
         self.radioactivity_problem.solve(time_step, theta)
-
-    def save_output(self, cycle: int, time: float, time_step: float) -> None:
-        self.radioactivity_problem.save_output(cycle, time, time_step)
 
 class Mechanics:
     """整理力学配置，每个调度时刻求解一次准静态平衡"""
@@ -135,6 +129,3 @@ class Mechanics:
     def solve(self, time_step: float = 0.0, theta: float = 1.0) -> None:
         """保持统一调度接口，准静态方程本身不使用时间离散参数"""
         self.mechanics_problem.solve()
-
-    def save_output(self, cycle: int, time: float, time_step: float) -> None:
-        self.mechanics_problem.save_output(cycle, time, time_step)
