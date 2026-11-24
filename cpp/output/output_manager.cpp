@@ -11,14 +11,21 @@ OutputManager::OutputManager(FemSystem& fem_system, const std::string& output_di
 {
 }
 
-void OutputManager::initialize(PropertiesSystem& properties, const OutputConfigs& configs)
+void OutputManager::initialize(PropertiesSystem& properties, const OutputConfigs& configs, const LocationNames& location_names)
 {
     properties_ = &properties;
     domain_outputs_ = DomainOutput::initialize(fem_system_, properties, configs.at("domain"), output_directory_);
-    auto& names = output_names_["domain"];
+    scalar_outputs_ = ScalarOutput::initialize(properties, configs.at("scalar"), output_directory_, location_names.at("region"), location_names.at("zone"));
+    for (const auto& [range, entries] : configs)
+    {
+        auto& names = output_names_[range];
+        for (const auto& config : entries)
+        {
+            names.push_back(config.name);
+        }
+    }
     for (const auto& config : configs.at("domain"))
     {
-        names.push_back(config.name);
         solve_information_.try_emplace(config.name);
     }
 }
@@ -29,6 +36,10 @@ void OutputManager::save(int cycle, double time, double time_step)
     for (const std::string& name : output_names_.at("domain"))
     {
         domain_outputs_.at(name)->save(cycle, time, time_step);
+    }
+    for (const std::string& name : output_names_.at("scalar"))
+    {
+        scalar_outputs_.at(name)->save(cycle, time);
     }
 }
 

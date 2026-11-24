@@ -6,18 +6,13 @@
 #include <vector>
 
 #include "fem/fem_system.hpp"
+#include "output/output_config.hpp"
 #include "properties/properties_field_data.hpp"
 
 namespace trimuse
 {
 
 class PropertiesSystem;
-
-struct OutputConfig
-{
-    std::string name;
-    std::string directory;
-};
 
 class DomainOutput // 一个域标量的节点插值、L2 投影与 ParaView 时间序列输出
 {

@@ -68,7 +68,7 @@ PYBIND11_MODULE(_core, module)
     py::class_<trimuse::OutputManager>(module, "OutputManager")
         .def(py::init<trimuse::FemSystem&, const std::string&>(),
              py::arg("fem_system"), py::arg("output_directory"), py::keep_alive<1, 2>())
-        .def("initialize", [](trimuse::OutputManager& output, trimuse::PropertiesSystem& properties, const std::unordered_map<std::string, std::vector<std::tuple<std::string, std::string>>>& entries)
+        .def("initialize", [](trimuse::OutputManager& output, trimuse::PropertiesSystem& properties, const std::unordered_map<std::string, std::vector<std::tuple<std::string, std::string>>>& entries, const trimuse::OutputManager::LocationNames& location_names)
         {
             trimuse::OutputManager::OutputConfigs configs;
             for (const auto& [range, items] : entries)
@@ -79,8 +79,8 @@ PYBIND11_MODULE(_core, module)
                     group.push_back({name, directory});
                 }
             }
-            output.initialize(properties, configs);
-        }, py::arg("properties"), py::arg("configs"), py::keep_alive<1, 2>())
+            output.initialize(properties, configs, location_names);
+        }, py::arg("properties"), py::arg("configs"), py::arg("location_names"), py::keep_alive<1, 2>())
         .def("save", py::overload_cast<int, double, double>(&trimuse::OutputManager::save), py::arg("cycle"), py::arg("time"), py::arg("time_step"))
         .def("solve_information", &trimuse::OutputManager::solve_information, py::arg("field_name"));
 

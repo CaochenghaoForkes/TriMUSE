@@ -32,6 +32,7 @@ add_library(
     solver/cg_solver.cpp
     output/output_manager.cpp
     output/domain_output.cpp
+    output/scalar_output.cpp
     
 )
 

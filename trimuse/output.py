@@ -59,10 +59,17 @@ class OutputManager:
         self.record_mesh(fem_manager.mesh_info.path)
         self.field_output = CoreOutputManager(fem_manager.fem_system, str(self.directory))
         directories = {"temperature": "thermal", "concentration": "radioactivity", "max_principal_stress": "mechanics", "max_shear_stress": "mechanics"}
-        configs = []
+        configs = {"domain": [], "scalar": []}
         for name in self.input_cards.simulation.output.domain_properties:
-            configs.append((name, directories.get(name, "properties")))
-        self.field_output.initialize(properties_manager.properties_system, {"domain": configs})
+            configs["domain"].append((name, directories.get(name, "properties")))
+        for name in self.input_cards.simulation.output.scalar_properties:
+            configs["scalar"].append((name, "scalar_properties"))
+        location_names = {"region": {}, "zone": {}}
+        for name, attribute in fem_manager.mesh_info.region_attributes.items():
+            location_names["region"][attribute] = name
+        for name, attribute in fem_manager.mesh_info.boundary_attributes.items():
+            location_names["zone"][attribute] = name
+        self.field_output.initialize(properties_manager.properties_system, configs, location_names)
         self.report_file.write_text("TriMUSE simulation report\n", encoding="utf-8")
 
     def save(self, cycle: int, time: float, time_step: float) -> None:

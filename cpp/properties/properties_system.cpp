@@ -147,6 +147,12 @@ void PropertiesSystem::assign_field_properties()
         }
 }
 
+bool PropertiesSystem::has_assigned_model(const std::string& name, int location) const
+{
+    const auto assigned = assigned_models_.find(name);
+    return assigned != assigned_models_.end() && assigned->second.count(location) != 0;
+}
+
 void PropertiesSystem::prepare_dependencies() // 标记各个属性在各个区域依赖的场有哪些
 {
     required_field_and_result_names_.clear();

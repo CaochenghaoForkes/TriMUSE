@@ -27,6 +27,7 @@ public:
     void assign(int attribute, const std::string& model_name, const ModelParameterMap& parameters); // 为某个属性在指定 体积域/边界域 上配置一个计算模型 并把该位置已有的“计算完成”标记清掉
     void require_field(const std::string& name, const std::vector<double>* values = nullptr); // 登记所需场，可选传入物理模块的积分点数组，否则从 FEM 采样
     void sample_required_fields(const FieldMap& trial_fields = {}); // 统一采样所需场，默认读取已接受场，迭代时优先读取试探场
+    bool has_assigned_model(const std::string& name, int location) const; // 判断该属性是否在指定位置配置了模型
     void prepare_dependencies(); // 补齐固定关系属性并标记场依赖
     void mark_coupled(const std::string& field_name, const std::vector<RequiredState>& property_names); // 把指定属性中依赖某个求解场的位置标记为“参与耦合更新”，并沿依赖关系向上游传递这个标记
     void update_field_independent_properties(double time, double time_step); // 更新时间和不依赖场的属性，按变化序号复用结果
